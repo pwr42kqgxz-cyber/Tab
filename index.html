@@ -22,6 +22,10 @@ html, body {
   touch-action: none;
 }
 
+#canvas.disabled {
+  pointer-events: none; /* ⬅ canvas totalement inerte */
+}
+
 .line {
   position: absolute;
   left: 5%;
@@ -38,7 +42,6 @@ html, body {
 }
 
 #controls {
-  display: flex;
   padding: 6px;
   border-top: 1px solid black;
 }
@@ -76,7 +79,7 @@ button {
 <div id="palette"></div>
 
 <script>
-// BLOQUAGE TOTAL SCROLL iOS
+// ⛔ BLOQUAGE TOTAL DU SCROLL iOS
 document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
 
 const canvas = document.getElementById("canvas");
@@ -90,7 +93,6 @@ let selected = null;
 // LIGNES
 // =======================
 const lineYs = [];
-
 for (let i = 0; i < 6; i++) {
   const y = 60 + i * 40;
   const line = document.createElement("div");
@@ -106,7 +108,6 @@ for (let i = 0; i < 6; i++) {
 function snapToLineCenter(y, el) {
   let closest = lineYs[0];
   let minDist = Math.abs(y - closest);
-
   for (let ly of lineYs) {
     const d = Math.abs(y - ly);
     if (d < minDist) {
@@ -114,17 +115,18 @@ function snapToLineCenter(y, el) {
       closest = ly;
     }
   }
-
-  const h = el.offsetHeight || 22;
-  return closest - h / 2;
+  return closest - (el.offsetHeight || 22) / 2;
 }
 
 // =======================
-// MODE EFFACER
+// MODE EFFACER (clé)
 // =======================
 deleteBtn.addEventListener("click", () => {
   deleteMode = !deleteMode;
   deleteBtn.textContent = deleteMode ? "🗑 Effacer : ON" : "🗑 Effacer : OFF";
+
+  // ⛔ désactivation totale du canvas
+  canvas.classList.toggle("disabled", deleteMode);
 });
 
 // =======================
@@ -140,25 +142,20 @@ symbols.forEach(sym => {
   const btn = document.createElement("div");
   btn.className = "palette-item";
   btn.textContent = sym;
-
   btn.addEventListener("touchstart", e => {
     e.preventDefault();
     selected = sym;
   }, { passive: false });
-
   palette.appendChild(btn);
 });
 
 // =======================
-// INSERTION / DÉPLACEMENT
+// CRÉATION (mode normal)
 // =======================
 canvas.addEventListener("touchstart", e => {
+  if (deleteMode || !selected) return;
+
   e.preventDefault();
-
-  // 🔴 PAS DE CRÉATION EN MODE EFFACER
-  if (deleteMode) return;
-  if (!selected) return;
-
   const touch = e.touches[0];
   const rect = canvas.getBoundingClientRect();
 
@@ -168,8 +165,6 @@ canvas.addEventListener("touchstart", e => {
 
   s.style.left = (touch.clientX - rect.left) + "px";
   canvas.appendChild(s);
-
-  // aimantation initiale
   s.style.top = snapToLineCenter(touch.clientY - rect.top, s) + "px";
 
   let startX, startY, offsetX, offsetY;
@@ -177,6 +172,7 @@ canvas.addEventListener("touchstart", e => {
   s.addEventListener("touchstart", ev => {
     ev.preventDefault();
 
+    // 🗑 SUPPRESSION GARANTIE
     if (deleteMode) {
       s.remove();
       return;
@@ -190,6 +186,7 @@ canvas.addEventListener("touchstart", e => {
   }, { passive: false });
 
   s.addEventListener("touchmove", ev => {
+    if (deleteMode) return;
     ev.preventDefault();
     const t = ev.touches[0];
     s.style.left = (offsetX + t.clientX - startX) + "px";
@@ -197,7 +194,12 @@ canvas.addEventListener("touchstart", e => {
   }, { passive: false });
 
   s.addEventListener("touchend", () => {
-    s.style.top = snapToLineCenter(s.offsetTop + s.offsetHeight / 2, s) + "px";
+    if (!deleteMode) {
+      s.style.top = snapToLineCenter(
+        s.offsetTop + s.offsetHeight / 2,
+        s
+      ) + "px";
+    }
   });
 
 }, { passive: false });
