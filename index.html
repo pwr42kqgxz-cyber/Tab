@@ -49,11 +49,11 @@ button.active {
 }
 
 .line.black { background: black; }
-.line.white { background: transparent; } /* invisible mais active */
+.line.white { background: transparent; }
 
 .symbol {
   position: absolute;
-  font-size: 18px;
+  font-size: 24px;        /* 🔑 TAILLE AUGMENTÉE */
   line-height: 1;
   user-select: none;
   white-space: nowrap;
@@ -64,6 +64,7 @@ button.active {
   position: absolute;
   width: 2px;
   background: black;
+  touch-action: none;
 }
 
 #palette {
@@ -76,9 +77,9 @@ button.active {
 
 .palette-item {
   border: 1px solid black;
-  padding: 6px;
+  padding: 8px;
   margin: 4px;
-  font-size: 16px;
+  font-size: 22px;        /* 🔑 PALETTE AGRANDIE */
 }
 </style>
 </head>
@@ -108,8 +109,9 @@ const toolSelect = document.getElementById("toolSelect");
 
 let tool = "place";
 let selectedSymbol = null;
+let activeBar = null;
 
-const LINE_SPACING = 30; // 🔑 ESPACEMENT RESSERRÉ
+const LINE_SPACING = 30;     // 🔑 ESPACEMENT
 const history = [];
 const allLines = [];
 
@@ -131,13 +133,10 @@ function addLine(type) {
   canvas.appendChild(line);
   allLines.push({ y, el: line });
 
-  history.push(() => {
-    canvas.removeChild(line);
-    allLines.pop();
-  });
+  history.push(() => canvas.removeChild(line));
 }
 
-// 6 lignes noires initiales
+// 6 lignes initiales
 for (let i = 0; i < 6; i++) addLine("black");
 
 addBlack.onclick = () => addLine("black");
@@ -145,10 +144,9 @@ addWhite.onclick = () => addLine("white");
 
 // ===== barre verticale =====
 addBar.onclick = () => {
-  if (allLines.length < 6) return;
-
-  const top = allLines[0].y;
-  const bottom = allLines[5].y;
+  const sorted = [...allLines].sort((a, b) => a.y - b.y);
+  const top = sorted[0].y;
+  const bottom = sorted[sorted.length - 1].y;
 
   const bar = document.createElement("div");
   bar.className = "bar";
@@ -159,11 +157,22 @@ addBar.onclick = () => {
 
   history.push(() => canvas.removeChild(bar));
 
-  bar.addEventListener("touchmove", e => {
+  bar.addEventListener("touchstart", e => {
     if (tool !== "select") return;
+    activeBar = bar;
+    e.preventDefault();
+  }, { passive: false });
+
+  bar.addEventListener("touchmove", e => {
+    if (tool !== "select" || activeBar !== bar) return;
     const r = canvas.getBoundingClientRect();
     bar.style.left = (e.touches[0].clientX - r.left) + "px";
+    e.preventDefault();
   }, { passive: false });
+
+  bar.addEventListener("touchend", () => {
+    activeBar = null;
+  });
 };
 
 // ===== retour =====
@@ -185,7 +194,7 @@ undo.onclick = () => {
   palette.appendChild(el);
 });
 
-// ===== placement (RÈGLE CORRECTE) =====
+// ===== placement =====
 canvas.addEventListener("touchstart", e => {
   if (tool !== "place" || !selectedSymbol) return;
 
@@ -200,19 +209,16 @@ canvas.addEventListener("touchstart", e => {
   canvas.appendChild(s);
 
   requestAnimationFrame(() => {
-    const h = s.offsetHeight || 18;
+    const h = s.offsetHeight || 24;
     const sorted = [...allLines].sort((a, b) => a.y - b.y);
 
     let target = null;
-
-    // 🔑 première ligne STRICTEMENT en dessous du clic
     for (const l of sorted) {
       if (yTouch < l.y) {
         target = l;
         break;
       }
     }
-
     if (!target) target = sorted[sorted.length - 1];
 
     s.style.top = (target.y - h / 2) + "px";
@@ -220,10 +226,16 @@ canvas.addEventListener("touchstart", e => {
 
   history.push(() => canvas.removeChild(s));
 
+  s.addEventListener("touchstart", ev => {
+    if (tool !== "select") return;
+    ev.stopPropagation();
+  }, { passive: false });
+
   s.addEventListener("touchmove", ev => {
     if (tool !== "select") return;
     const r = canvas.getBoundingClientRect();
     s.style.left = (ev.touches[0].clientX - r.left) + "px";
+    ev.preventDefault();
   }, { passive: false });
 
 }, { passive: false });
