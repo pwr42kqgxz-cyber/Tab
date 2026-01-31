@@ -14,215 +14,262 @@ user-scalable=no">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English&display=swap" rel="stylesheet">
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
 <style>
-/* ===== BLOQUAGE ZOOM iOS (HORS TITRE) ===== */
-body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  background: white;
-  font-family: "IM Fell English", serif;
-  overflow: hidden;
-  -webkit-text-size-adjust: 100%;
+html,body{
+  margin:0;
+  padding:0;
+  height:100%;
+  font-family:"IM Fell English",serif;
+  background:white;
+  overflow:hidden;
+  -webkit-text-size-adjust:100%;
 }
 
-/* tout sauf le titre */
-#canvas, #toolbar, #palette {
-  touch-action: manipulation;
-  user-select: none;
-  -webkit-user-select: none;
+/* blocage zoom */
+#canvas,#toolbar,#palette{
+  touch-action:manipulation;
+  user-select:none;
+  -webkit-user-select:none;
 }
 
-/* ===== TITRE (ZONE TEXTE NORMALE) ===== */
-#title {
-  width: 100%;
-  box-sizing: border-box;
-  text-align: center;
-  font-size: 34px;
-  padding: 12px 0;
-  border: none;
-  outline: none;
-  font-family: "IM Fell English", serif;
-  touch-action: auto;          /* 🔑 autorise clavier */
-  user-select: text;
-  -webkit-user-select: text;
+#title{
+  width:100%;
+  text-align:center;
+  font-size:34px;
+  padding:10px 0;
+  border:none;
+  outline:none;
+  user-select:text;
+  -webkit-user-select:text;
+  touch-action:auto;
 }
 
-/* ===== BARRE OUTILS ===== */
-#toolbar {
-  display: flex;
-  gap: 6px;
-  padding: 6px;
-  border-top: 1px solid black;
-  border-bottom: 1px solid black;
-  flex-wrap: wrap;
+/* toolbar */
+#toolbar{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  padding:6px;
+  border-top:1px solid black;
+  border-bottom:1px solid black;
 }
 
-button {
-  font-size: 14px;
-  padding: 6px 10px;
-  border: 1px solid black;
-  background: white;
+button{
+  padding:6px 10px;
+  border:1px solid black;
+  background:white;
+  font-size:14px;
 }
 
-/* ===== CANVAS ===== */
-#canvas {
-  position: relative;
-  height: 55vh;
+button.active{
+  background:black;
+  color:white;
 }
 
-/* ===== LIGNES ===== */
-.line {
-  position: absolute;
-  left: 5%;
-  right: 5%;
-  height: 2px;
-  background: black;
+/* canvas */
+#canvas{
+  position:relative;
+  height:55vh;
 }
 
-/* ===== SYMBOLES ===== */
-.symbol {
-  position: absolute;
-  font-size: 34px;
-  line-height: 1;
-  white-space: nowrap;
-  pointer-events: auto;
+/* lignes */
+.line{
+  position:absolute;
+  left:5%;
+  right:5%;
+  height:2px;
+  background:black;
 }
 
-/* ===== BARRE LIBRE ===== */
-.bar {
-  position: absolute;
-  width: 3px;
-  height: 150px;
-  background: black;
-  pointer-events: auto;
+/* symboles */
+.symbol{
+  position:absolute;
+  font-size:34px;
+  white-space:nowrap;
 }
 
-/* ===== PALETTE ===== */
-#palette {
-  height: 35vh;
-  border-top: 1px solid black;
-  padding: 8px;
-  display: flex;
-  flex-wrap: wrap;
+/* barres */
+.bar{
+  position:absolute;
+  width:3px;
+  height:150px;
+  background:black;
 }
 
-.palette-item {
-  border: 1px solid black;
-  padding: 10px;
-  margin: 4px;
-  font-size: 30px;
+/* palette */
+#palette{
+  height:35vh;
+  border-top:1px solid black;
+  padding:8px;
+  display:flex;
+  flex-wrap:wrap;
+}
+
+.palette-item{
+  border:1px solid black;
+  padding:10px;
+  margin:4px;
+  font-size:30px;
 }
 </style>
 </head>
 
 <body>
 
-<!-- TITRE : CLIQUE ICI POUR CLAVIER -->
 <input id="title" placeholder="Titre du morceau">
 
 <div id="toolbar">
-  <button id="toolPlace">✍️ Placer</button>
+  <button id="toolPlace" class="active">✍️ Placer</button>
   <button id="toolSelect">🖐 Sélection</button>
+  <button id="toggleSnap" class="active">🧲 Accroché</button>
+  <button id="erase">❌ Effacer</button>
   <button id="addBar">➕ Barre</button>
+  <button id="exportPDF">📄 PDF</button>
 </div>
 
 <div id="canvas"></div>
 <div id="palette"></div>
 
 <script>
-/* ===== BLOQUE ZOOM iOS DEFINITIF ===== */
-["gesturestart","gesturechange","gestureend","dblclick"].forEach(ev => {
-  document.addEventListener(ev, e => e.preventDefault(), { passive:false });
+/* anti-zoom iOS */
+["gesturestart","gesturechange","gestureend","dblclick"].forEach(ev=>{
+  document.addEventListener(ev,e=>e.preventDefault(),{passive:false});
 });
 
-/* ===== VARIABLES ===== */
-const canvas = document.getElementById("canvas");
-const palette = document.getElementById("palette");
+/* variables */
+const canvas=document.getElementById("canvas");
+const palette=document.getElementById("palette");
+let tool="place";
+let snap=true;
+let placingBar=false;
+let active=null;
 
-let tool = "place";
-let selectedSymbol = "a";
-let activeElement = null;
-let placingBar = false;
+/* outils */
+toolPlace.onclick=()=>setTool("place");
+toolSelect.onclick=()=>setTool("select");
+toggleSnap.onclick=()=>{
+  snap=!snap;
+  toggleSnap.textContent=snap?"🧲 Accroché":"🔓 Libre";
+  toggleSnap.classList.toggle("active",snap);
+};
+function setTool(t){
+  tool=t;
+  toolPlace.classList.toggle("active",t==="place");
+  toolSelect.classList.toggle("active",t==="select");
+}
 
-/* ===== OUTILS ===== */
-toolPlace.onclick = () => tool = "place";
-toolSelect.onclick = () => tool = "select";
+/* lignes de base */
+const LINE_SPACING=30;
+const lines=[];
+for(let i=0;i<6;i++){
+  const y=80+i*LINE_SPACING;
+  lines.push(y);
+  const l=document.createElement("div");
+  l.className="line";
+  l.style.top=y+"px";
+  canvas.appendChild(l);
+}
 
-/* ===== PALETTE ===== */
-["a","b","c","d","e","f","g","/a","//a","1","2","3"].forEach(s => {
-  const el = document.createElement("div");
-  el.className = "palette-item";
-  el.textContent = s;
-  el.onclick = () => selectedSymbol = s;
-  palette.appendChild(el);
+/* palette complète */
+[
+"a","b","c","d","e","f","g","h","j","k",
+"/a","//a","///a",
+"1","2","3","4","5","6","7"
+].forEach(t=>{
+  const p=document.createElement("div");
+  p.className="palette-item";
+  p.textContent=t;
+  p.onclick=()=>selected=t;
+  palette.appendChild(p);
 });
+let selected="a";
 
-/* ===== BARRE ===== */
-addBar.onclick = () => {
-  placingBar = true;
-  tool = "select";
+/* barre */
+addBar.onclick=()=>{
+  placingBar=true;
+  setTool("select");
 };
 
-/* ===== INTERACTIONS CANVAS ===== */
-canvas.addEventListener("touchstart", e => {
-  const r = canvas.getBoundingClientRect();
-  const x = e.touches[0].clientX - r.left;
-  const y = e.touches[0].clientY - r.top;
+/* canvas interaction */
+canvas.addEventListener("touchstart",e=>{
+  const r=canvas.getBoundingClientRect();
+  const x=e.touches[0].clientX-r.left;
+  const y=e.touches[0].clientY-r.top;
+
+  /* effacer */
+  if(tool==="select" && e.target!==canvas && erase.classList.contains("active")){
+    e.target.remove();
+    return;
+  }
 
   /* placer barre */
-  if (placingBar) {
-    placingBar = false;
-    const bar = document.createElement("div");
-    bar.className = "bar";
-    bar.style.left = x + "px";
-    bar.style.top = y + "px";
-    canvas.appendChild(bar);
-
-    bar.addEventListener("touchstart", ev => {
-      if (tool !== "select") return;
-      activeElement = bar;
-      ev.stopPropagation();
-    }, { passive:false });
-
-    bar.addEventListener("touchmove", ev => {
-      if (tool !== "select" || activeElement !== bar) return;
-      const rr = canvas.getBoundingClientRect();
-      bar.style.left = (ev.touches[0].clientX - rr.left) + "px";
-      bar.style.top = (ev.touches[0].clientY - rr.top) + "px";
-      ev.preventDefault();
-    }, { passive:false });
-
-    bar.addEventListener("touchend", () => activeElement = null);
+  if(placingBar){
+    placingBar=false;
+    const b=document.createElement("div");
+    b.className="bar";
+    b.style.left=x+"px";
+    b.style.top=y+"px";
+    canvas.appendChild(b);
+    makeDraggable(b);
     return;
   }
 
   /* placer symbole */
-  if (tool === "place") {
-    const s = document.createElement("div");
-    s.className = "symbol";
-    s.textContent = selectedSymbol;
-    s.style.left = x + "px";
-    s.style.top = y + "px";
+  if(tool==="place"){
+    const s=document.createElement("div");
+    s.className="symbol";
+    s.textContent=selected;
+    s.style.left=x+"px";
+    s.style.top=(snap?nearestLine(y):y)+"px";
     canvas.appendChild(s);
-
-    s.addEventListener("touchstart", ev => {
-      if (tool !== "select") return;
-      activeElement = s;
-      ev.stopPropagation();
-    }, { passive:false });
-
-    s.addEventListener("touchmove", ev => {
-      if (tool !== "select" || activeElement !== s) return;
-      const rr = canvas.getBoundingClientRect();
-      s.style.left = (ev.touches[0].clientX - rr.left) + "px";
-      s.style.top = (ev.touches[0].clientY - rr.top) + "px";
-      ev.preventDefault();
-    }, { passive:false });
-
-    s.addEventListener("touchend", () => activeElement = null);
+    makeDraggable(s);
   }
-}, { passive:false });
+},{passive:false});
+
+/* drag */
+function makeDraggable(el){
+  el.addEventListener("touchstart",e=>{
+    if(tool!=="select")return;
+    active=el;
+    e.stopPropagation();
+  },{passive:false});
+
+  el.addEventListener("touchmove",e=>{
+    if(!active)return;
+    const r=canvas.getBoundingClientRect();
+    const x=e.touches[0].clientX-r.left;
+    const y=e.touches[0].clientY-r.top;
+    active.style.left=x+"px";
+    active.style.top=(snap && active.classList.contains("symbol")?nearestLine(y):y)+"px";
+    e.preventDefault();
+  },{passive:false});
+
+  el.addEventListener("touchend",()=>active=null);
+}
+
+/* effacer toggle */
+erase.onclick=()=>{
+  erase.classList.toggle("active");
+};
+
+/* snap helper */
+function nearestLine(y){
+  return lines.reduce((a,b)=>Math.abs(b-y)<Math.abs(a-y)?b:a);
+}
+
+/* export pdf */
+exportPDF.onclick=async()=>{
+  const {jsPDF}=window.jspdf;
+  const pdf=new jsPDF("p","mm","a4");
+  const img=await html2canvas(document.body,{scale:2});
+  const w=210;
+  const h=img.height*w/img.width;
+  pdf.addImage(img.toDataURL("image/png"),"PNG",0,0,w,h);
+  pdf.save("tablature.pdf");
+};
 </script>
 
 </body>
