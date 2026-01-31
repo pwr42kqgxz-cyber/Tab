@@ -5,15 +5,9 @@
 <title>Tablature baroque</title>
 
 <meta name="viewport"
-content="width=device-width,
-initial-scale=1.0,
-maximum-scale=1.0,
-user-scalable=no">
+content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English&display=swap" rel="stylesheet">
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
@@ -25,29 +19,19 @@ html,body{
   font-family:"IM Fell English",serif;
   background:white;
   overflow:hidden;
-  -webkit-text-size-adjust:100%;
 }
 
-/* blocage zoom */
-#canvas,#toolbar,#palette{
-  touch-action:manipulation;
-  user-select:none;
-  -webkit-user-select:none;
-}
-
+/* ===== TITRE ===== */
 #title{
   width:100%;
   text-align:center;
   font-size:34px;
-  padding:10px 0;
+  padding:12px 0;
   border:none;
   outline:none;
-  user-select:text;
-  -webkit-user-select:text;
-  touch-action:auto;
 }
 
-/* toolbar */
+/* ===== TOOLBAR ===== */
 #toolbar{
   display:flex;
   flex-wrap:wrap;
@@ -69,37 +53,39 @@ button.active{
   color:white;
 }
 
-/* canvas */
+/* ===== CANVAS ===== */
 #canvas{
   position:relative;
   height:55vh;
+  touch-action:manipulation;
 }
 
-/* lignes */
+/* ===== LIGNES ===== */
 .line{
   position:absolute;
   left:5%;
   right:5%;
   height:2px;
-  background:black;
 }
+.line.black{ background:black; }
+.line.white{ background:transparent; }
 
-/* symboles */
+/* ===== SYMBOLES ===== */
 .symbol{
   position:absolute;
-  font-size:34px;
+  font-size:36px;
   white-space:nowrap;
 }
 
-/* barres */
+/* ===== BARRES ===== */
 .bar{
   position:absolute;
   width:3px;
-  height:150px;
+  height:160px;
   background:black;
 }
 
-/* palette */
+/* ===== PALETTE ===== */
 #palette{
   height:35vh;
   border-top:1px solid black;
@@ -124,9 +110,11 @@ button.active{
 <div id="toolbar">
   <button id="toolPlace" class="active">✍️ Placer</button>
   <button id="toolSelect">🖐 Sélection</button>
-  <button id="toggleSnap" class="active">🧲 Accroché</button>
-  <button id="erase">❌ Effacer</button>
+  <button id="undo">↩️ Retour</button>
+  <button id="addBlackLine">➕ Ligne noire</button>
+  <button id="addWhiteLine">➕ Ligne blanche</button>
   <button id="addBar">➕ Barre</button>
+  <button id="toggleSnap" class="active">🧲 Accroché</button>
   <button id="exportPDF">📄 PDF</button>
 </div>
 
@@ -134,20 +122,21 @@ button.active{
 <div id="palette"></div>
 
 <script>
-/* anti-zoom iOS */
+/* ==== anti zoom iOS ==== */
 ["gesturestart","gesturechange","gestureend","dblclick"].forEach(ev=>{
   document.addEventListener(ev,e=>e.preventDefault(),{passive:false});
 });
 
-/* variables */
-const canvas=document.getElementById("canvas");
-const palette=document.getElementById("palette");
+const canvas = document.getElementById("canvas");
+const palette = document.getElementById("palette");
+
 let tool="place";
 let snap=true;
 let placingBar=false;
 let active=null;
+let history=[];
 
-/* outils */
+/* ==== outils ==== */
 toolPlace.onclick=()=>setTool("place");
 toolSelect.onclick=()=>setTool("select");
 toggleSnap.onclick=()=>{
@@ -155,57 +144,66 @@ toggleSnap.onclick=()=>{
   toggleSnap.textContent=snap?"🧲 Accroché":"🔓 Libre";
   toggleSnap.classList.toggle("active",snap);
 };
+
 function setTool(t){
   tool=t;
   toolPlace.classList.toggle("active",t==="place");
   toolSelect.classList.toggle("active",t==="select");
 }
 
-/* lignes de base */
+/* ==== undo ==== */
+undo.onclick=()=>{
+  const last=history.pop();
+  if(last) last.remove();
+};
+
+/* ==== lignes ==== */
+let currentY=80;
 const LINE_SPACING=30;
 const lines=[];
-for(let i=0;i<6;i++){
-  const y=80+i*LINE_SPACING;
-  lines.push(y);
+
+function addLine(type){
   const l=document.createElement("div");
-  l.className="line";
-  l.style.top=y+"px";
+  l.className="line "+type;
+  l.style.top=currentY+"px";
   canvas.appendChild(l);
+  history.push(l);
+  lines.push(currentY);
+  currentY+=LINE_SPACING;
 }
 
-/* palette complète */
+addBlackLine.onclick=()=>addLine("black");
+addWhiteLine.onclick=()=>addLine("white");
+
+/* lignes initiales */
+for(let i=0;i<6;i++) addLine("black");
+
+/* ==== palette complète ==== */
+let selected="a";
 [
 "a","b","c","d","e","f","g","h","j","k",
 "/a","//a","///a",
 "1","2","3","4","5","6","7"
-].forEach(t=>{
+].forEach(s=>{
   const p=document.createElement("div");
   p.className="palette-item";
-  p.textContent=t;
-  p.onclick=()=>selected=t;
+  p.textContent=s;
+  p.onclick=()=>selected=s;
   palette.appendChild(p);
 });
-let selected="a";
 
-/* barre */
+/* ==== barre ==== */
 addBar.onclick=()=>{
   placingBar=true;
   setTool("select");
 };
 
-/* canvas interaction */
+/* ==== interactions canvas ==== */
 canvas.addEventListener("touchstart",e=>{
   const r=canvas.getBoundingClientRect();
   const x=e.touches[0].clientX-r.left;
   const y=e.touches[0].clientY-r.top;
 
-  /* effacer */
-  if(tool==="select" && e.target!==canvas && erase.classList.contains("active")){
-    e.target.remove();
-    return;
-  }
-
-  /* placer barre */
   if(placingBar){
     placingBar=false;
     const b=document.createElement("div");
@@ -213,11 +211,11 @@ canvas.addEventListener("touchstart",e=>{
     b.style.left=x+"px";
     b.style.top=y+"px";
     canvas.appendChild(b);
+    history.push(b);
     makeDraggable(b);
     return;
   }
 
-  /* placer symbole */
   if(tool==="place"){
     const s=document.createElement("div");
     s.className="symbol";
@@ -225,11 +223,12 @@ canvas.addEventListener("touchstart",e=>{
     s.style.left=x+"px";
     s.style.top=(snap?nearestLine(y):y)+"px";
     canvas.appendChild(s);
+    history.push(s);
     makeDraggable(s);
   }
 },{passive:false});
 
-/* drag */
+/* ==== drag ==== */
 function makeDraggable(el){
   el.addEventListener("touchstart",e=>{
     if(tool!=="select")return;
@@ -243,25 +242,28 @@ function makeDraggable(el){
     const x=e.touches[0].clientX-r.left;
     const y=e.touches[0].clientY-r.top;
     active.style.left=x+"px";
-    active.style.top=(snap && active.classList.contains("symbol")?nearestLine(y):y)+"px";
+    active.style.top=(snap && el.classList.contains("symbol")?nearestLine(y):y)+"px";
     e.preventDefault();
   },{passive:false});
 
   el.addEventListener("touchend",()=>active=null);
 }
 
-/* effacer toggle */
-erase.onclick=()=>{
-  erase.classList.toggle("active");
-};
-
-/* snap helper */
+/* ==== snap ==== */
 function nearestLine(y){
   return lines.reduce((a,b)=>Math.abs(b-y)<Math.abs(a-y)?b:a);
 }
 
-/* export pdf */
+/* ==== EXPORT PDF PROPRE ==== */
 exportPDF.onclick=async()=>{
+  const toolbar=document.getElementById("toolbar");
+  const palette=document.getElementById("palette");
+
+  toolbar.style.display="none";
+  palette.style.display="none";
+
+  await new Promise(r=>setTimeout(r,100));
+
   const {jsPDF}=window.jspdf;
   const pdf=new jsPDF("p","mm","a4");
   const img=await html2canvas(document.body,{scale:2});
@@ -269,6 +271,9 @@ exportPDF.onclick=async()=>{
   const h=img.height*w/img.width;
   pdf.addImage(img.toDataURL("image/png"),"PNG",0,0,w,h);
   pdf.save("tablature.pdf");
+
+  toolbar.style.display="";
+  palette.style.display="";
 };
 </script>
 
