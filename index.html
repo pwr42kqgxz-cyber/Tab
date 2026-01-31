@@ -45,8 +45,15 @@ button.active {
   position: absolute;
   left: 5%;
   right: 5%;
-  height: 1px;
+  height: 2px;
+}
+
+.line.black {
   background: black;
+}
+
+.line.white {
+  background: #f0f0f0; /* visible mais discret */
 }
 
 .symbol {
@@ -55,12 +62,6 @@ button.active {
   user-select: none;
   white-space: nowrap;
   touch-action: none;
-}
-
-.bar {
-  position: absolute;
-  width: 2px;
-  background: black;
 }
 
 #palette {
@@ -86,71 +87,65 @@ button.active {
   <button id="toolPlace" class="active">✍️ Placer</button>
   <button id="toolSelect">🖐 Sélection</button>
   <button id="undo">↩︎ Retour</button>
-  <button id="addLine">➕ Ligne</button>
-  <button id="addBar">│ Barre</button>
+  <button id="addBlack">➕ Ligne noire</button>
+  <button id="addWhite">➕ Ligne blanche</button>
 </div>
 
 <div id="canvas"></div>
 <div id="palette"></div>
 
 <script>
-// ⛔ blocage scroll iOS
 document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
 
 const canvas = document.getElementById("canvas");
 const palette = document.getElementById("palette");
 
-const btnPlace = document.getElementById("toolPlace");
-const btnSelect = document.getElementById("toolSelect");
-
 let tool = "place";
 let selectedSymbol = null;
 
 const LINE_SPACING = 40;
-const WRITE_OFFSET = 16; // distance sous la ligne
-const lines = [];
 const history = [];
+const lines = []; // { y, type, el }
 
-// ======== outils (état visible) ========
+// ===== outils =====
 function setTool(t) {
   tool = t;
-  btnPlace.classList.toggle("active", t === "place");
-  btnSelect.classList.toggle("active", t === "select");
+  document.getElementById("toolPlace").classList.toggle("active", t === "place");
+  document.getElementById("toolSelect").classList.toggle("active", t === "select");
 }
-btnPlace.onclick = () => setTool("place");
-btnSelect.onclick = () => setTool("select");
+document.getElementById("toolPlace").onclick = () => setTool("place");
+document.getElementById("toolSelect").onclick = () => setTool("select");
 
-// ======== lignes ========
-function addLine(record = true) {
-  const y = 50 + lines.length * LINE_SPACING;
+// ===== lignes =====
+function addLine(type) {
+  const y = 60 + lines.length * LINE_SPACING;
   const line = document.createElement("div");
-  line.className = "line";
+  line.className = "line " + type;
   line.style.top = y + "px";
   canvas.appendChild(line);
-  lines.push({ y, el: line });
+  lines.push({ y, type, el: line });
 
-  if (record) {
-    history.push(() => {
-      canvas.removeChild(line);
-      lines.pop();
-    });
-  }
+  history.push(() => {
+    canvas.removeChild(line);
+    lines.pop();
+  });
 }
-for (let i = 0; i < 6; i++) addLine(false);
 
-document.getElementById("addLine").onclick = () => addLine(true);
+document.getElementById("addBlack").onclick = () => addLine("black");
+document.getElementById("addWhite").onclick = () => addLine("white");
 
-// ======== retour ========
+// ===== retour =====
 document.getElementById("undo").onclick = () => {
   const action = history.pop();
   if (action) action();
 };
 
-// ======== palette ========
+// ===== palette =====
 const symbols = [
   "a","b","c","d","e","f","g","h","j","k",
   "/a","//a","///a",
-  "1","2","3","4","5","6","7"
+  "1","2","3","4","5","6","7",
+  "|"
 ];
 
 symbols.forEach(sym => {
@@ -161,51 +156,42 @@ symbols.forEach(sym => {
   palette.appendChild(el);
 });
 
-// ======== barre verticale ========
-document.getElementById("addBar").onclick = () => {
-  const bar = document.createElement("div");
-  bar.className = "bar";
-  bar.style.left = "50%";
-  bar.style.top = lines[0].y + "px";
-  bar.style.height = (lines[lines.length - 1].y - lines[0].y) + "px";
-  canvas.appendChild(bar);
-
-  history.push(() => canvas.removeChild(bar));
-
-  bar.addEventListener("touchmove", e => {
-    if (tool !== "select") return;
-    bar.style.left = e.touches[0].clientX + "px";
-  }, { passive: false });
-};
-
-// ======== placement ========
+// ===== placement =====
 canvas.addEventListener("touchstart", e => {
   if (tool !== "place" || !selectedSymbol) return;
 
   const rect = canvas.getBoundingClientRect();
+  const x = e.touches[0].clientX - rect.left;
   const yTouch = e.touches[0].clientY - rect.top;
-
-  // ligne la plus proche
-  let closest = lines[0];
-  let minDist = Math.abs(yTouch - closest.y);
-  for (const l of lines) {
-    const d = Math.abs(yTouch - l.y);
-    if (d < minDist) {
-      minDist = d;
-      closest = l;
-    }
-  }
 
   const s = document.createElement("div");
   s.className = "symbol";
   s.textContent = selectedSymbol;
-  s.style.left = (e.touches[0].clientX - rect.left) + "px";
+  s.style.left = x + "px";
   canvas.appendChild(s);
 
-  // ⬇️ centrage exact sur la ligne d’écriture
   requestAnimationFrame(() => {
     const h = s.offsetHeight || 22;
-    s.style.top = (closest.y + WRITE_OFFSET - h / 2) + "px";
+
+    if (selectedSymbol === "|") {
+      // caractère libre
+      s.style.top = (yTouch - h / 2) + "px";
+    } else {
+      // aimantation sur la ligne BLANCHE la plus proche
+      const whiteLines = lines.filter(l => l.type === "white");
+      if (whiteLines.length === 0) return;
+
+      let closest = whiteLines[0];
+      let min = Math.abs(yTouch - closest.y);
+      for (const l of whiteLines) {
+        const d = Math.abs(yTouch - l.y);
+        if (d < min) {
+          min = d;
+          closest = l;
+        }
+      }
+      s.style.top = (closest.y - h / 2) + "px";
+    }
   });
 
   history.push(() => canvas.removeChild(s));
@@ -217,7 +203,7 @@ canvas.addEventListener("touchstart", e => {
   }, { passive: false });
 
 }, { passive: false });
-
 </script>
+
 </body>
 </html>
