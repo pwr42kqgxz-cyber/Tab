@@ -58,6 +58,10 @@ html, body {
 <div id="palette"></div>
 
 <script>
+  // BLOQUAGE TOTAL DU SCROLL iOS (OBLIGATOIRE)
+document.addEventListener('touchmove', function(e) {
+  e.preventDefault();
+}, { passive: false });
 const canvas = document.getElementById("canvas");
 
 // lignes
