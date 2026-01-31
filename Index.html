@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Tablature</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body {
+  margin: 0;
+  font-family: serif;
+  background: white;
+}
+#canvas {
+  position: relative;
+  height: 70vh;
+  border-bottom: 1px solid #000;
+}
+.line {
+  position: absolute;
+  left: 5%;
+  right: 5%;
+  height: 1px;
+  background: black;
+}
+.symbol {
+  position: absolute;
+  font-size: 22px;
+  cursor: move;
+  user-select: none;
+}
+#palette {
+  display: flex;
+  flex-wrap: wrap;
+  border-top: 1px solid black;
+  padding: 8px;
+}
+.palette-item {
+  border: 1px solid black;
+  padding: 6px;
+  margin: 4px;
+  font-size: 20px;
+}
+button {
+  margin: 5px;
+}
+</style>
+</head>
+<body>
+
+<div id="canvas"></div>
+
+<div id="palette"></div>
+<button onclick="window.print()">Exporter PDF</button>
+
+<script>
+const canvas = document.getElementById("canvas");
+
+// lignes
+for (let i = 0; i < 6; i++) {
+  const line = document.createElement("div");
+  line.className = "line";
+  line.style.top = (50 + i * 40) + "px";
+  canvas.appendChild(line);
+}
+
+// palette
+const symbols = [
+  "a","b","c","d","e","f","g","h","j","k",
+  "/a","//a","///a",
+  "1","2","3","4","5","6","7","|"
+];
+
+const palette = document.getElementById("palette");
+
+symbols.forEach(sym => {
+  const btn = document.createElement("div");
+  btn.className = "palette-item";
+  btn.innerText = sym;
+  btn.onclick = () => selected = sym;
+  palette.appendChild(btn);
+});
+
+let selected = null;
+
+canvas.onclick = e => {
+  if (!selected) return;
+  const s = document.createElement("div");
+  s.className = "symbol";
+  s.innerText = selected;
+  s.style.left = e.offsetX + "px";
+  s.style.top = e.offsetY + "px";
+
+  s.ondblclick = () => s.remove();
+
+  s.onpointerdown = ev => {
+    ev.preventDefault();
+    const shiftX = ev.clientX - s.offsetLeft;
+    const shiftY = ev.clientY - s.offsetTop;
+
+    document.onpointermove = ev2 => {
+      s.style.left = ev2.clientX - shiftX + "px";
+      s.style.top = ev2.clientY - shiftY + "px";
+    };
+    document.onpointerup = () => {
+      document.onpointermove = null;
+      document.onpointerup = null;
+    };
+  };
+
+  canvas.appendChild(s);
+};
+</script>
+
+</body>
+</html>
