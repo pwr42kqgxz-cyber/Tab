@@ -39,7 +39,6 @@ html, body {
 
 #controls {
   display: flex;
-  gap: 10px;
   padding: 6px;
   border-top: 1px solid black;
 }
@@ -77,16 +76,9 @@ button {
 <div id="palette"></div>
 
 <script>
-// ===============================
-// BLOQUAGE TOTAL DU SCROLL iOS
-// ===============================
-document.addEventListener('touchmove', function(e) {
-  e.preventDefault();
-}, { passive: false });
+// BLOQUAGE TOTAL SCROLL iOS
+document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
 
-// ===============================
-// INITIALISATION
-// ===============================
 const canvas = document.getElementById("canvas");
 const palette = document.getElementById("palette");
 const deleteBtn = document.getElementById("deleteToggle");
@@ -94,9 +86,9 @@ const deleteBtn = document.getElementById("deleteToggle");
 let deleteMode = false;
 let selected = null;
 
-// ===============================
-// LIGNES + AIMANTATION
-// ===============================
+// =======================
+// LIGNES
+// =======================
 const lineYs = [];
 
 for (let i = 0; i < 6; i++) {
@@ -108,7 +100,10 @@ for (let i = 0; i < 6; i++) {
   lineYs.push(y);
 }
 
-function snapToLine(y) {
+// =======================
+// AIMANTATION CENTRÉE
+// =======================
+function snapToLineCenter(y, el) {
   let closest = lineYs[0];
   let minDist = Math.abs(y - closest);
 
@@ -119,20 +114,22 @@ function snapToLine(y) {
       closest = ly;
     }
   }
-  return closest;
+
+  const h = el.offsetHeight || 22;
+  return closest - h / 2;
 }
 
-// ===============================
-// MODE SUPPRESSION
-// ===============================
+// =======================
+// MODE EFFACER
+// =======================
 deleteBtn.addEventListener("click", () => {
   deleteMode = !deleteMode;
   deleteBtn.textContent = deleteMode ? "🗑 Effacer : ON" : "🗑 Effacer : OFF";
 });
 
-// ===============================
+// =======================
 // PALETTE
-// ===============================
+// =======================
 const symbols = [
   "a","b","c","d","e","f","g","h","j","k",
   "/a","//a","///a",
@@ -152,11 +149,14 @@ symbols.forEach(sym => {
   palette.appendChild(btn);
 });
 
-// ===============================
-// INSERTION & DÉPLACEMENT
-// ===============================
+// =======================
+// INSERTION / DÉPLACEMENT
+// =======================
 canvas.addEventListener("touchstart", e => {
   e.preventDefault();
+
+  // 🔴 PAS DE CRÉATION EN MODE EFFACER
+  if (deleteMode) return;
   if (!selected) return;
 
   const touch = e.touches[0];
@@ -167,7 +167,10 @@ canvas.addEventListener("touchstart", e => {
   s.textContent = selected;
 
   s.style.left = (touch.clientX - rect.left) + "px";
-  s.style.top = snapToLine(touch.clientY - rect.top) + "px";
+  canvas.appendChild(s);
+
+  // aimantation initiale
+  s.style.top = snapToLineCenter(touch.clientY - rect.top, s) + "px";
 
   let startX, startY, offsetX, offsetY;
 
@@ -194,10 +197,8 @@ canvas.addEventListener("touchstart", e => {
   }, { passive: false });
 
   s.addEventListener("touchend", () => {
-    s.style.top = snapToLine(s.offsetTop) + "px";
+    s.style.top = snapToLineCenter(s.offsetTop + s.offsetHeight / 2, s) + "px";
   });
-
-  canvas.appendChild(s);
 
 }, { passive: false });
 
