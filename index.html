@@ -5,7 +5,6 @@
 <title>Tablature baroque</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-<!-- Police historique -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English&display=swap" rel="stylesheet">
@@ -21,7 +20,6 @@ html, body {
   touch-action: none;
 }
 
-/* ===== BARRE D’OUTILS ===== */
 #toolbar {
   display: flex;
   gap: 8px;
@@ -41,13 +39,11 @@ button.active {
   color: white;
 }
 
-/* ===== PORTÉE ===== */
 #canvas {
   position: relative;
   height: 65vh;
 }
 
-/* ===== LIGNES ===== */
 .line {
   position: absolute;
   left: 5%;
@@ -57,16 +53,14 @@ button.active {
 .line.black { background: black; }
 .line.white { background: transparent; }
 
-/* ===== SYMBOLes ===== */
 .symbol {
   position: absolute;
-  font-size: 34px;     /* volontairement large */
+  font-size: 34px;
   line-height: 1;
-  user-select: none;
   white-space: nowrap;
+  user-select: none;
 }
 
-/* ===== BARRE VERTICALE ===== */
 .bar {
   position: absolute;
   width: 3px;
@@ -74,7 +68,6 @@ button.active {
   touch-action: none;
 }
 
-/* ===== PALETTE ===== */
 #palette {
   height: 35vh;
   border-top: 1px solid black;
@@ -82,6 +75,7 @@ button.active {
   display: flex;
   flex-wrap: wrap;
 }
+
 .palette-item {
   border: 1px solid black;
   padding: 10px;
@@ -116,10 +110,11 @@ let selectedSymbol = null;
 let activeBar = null;
 
 const LINE_SPACING = 30;
+const BAR_HEIGHT = 5 * LINE_SPACING; // 🔑 HAUTEUR FIXE = 6 lignes
 const history = [];
 const lines = [];
 
-/* ===== outils ===== */
+/* outils */
 toolPlace.onclick = () => setTool("place");
 toolSelect.onclick = () => setTool("select");
 
@@ -129,7 +124,7 @@ function setTool(t) {
   toolSelect.classList.toggle("active", t === "select");
 }
 
-/* ===== lignes ===== */
+/* lignes */
 function addLine(type) {
   const y = 60 + lines.length * LINE_SPACING;
   const line = document.createElement("div");
@@ -145,19 +140,15 @@ for (let i = 0; i < 6; i++) addLine("black");
 addBlack.onclick = () => addLine("black");
 addWhite.onclick = () => addLine("white");
 
-/* ===== BARRE VERTICALE (6 LIGNES) ===== */
+/* BARRE DE SÉPARATION */
 addBar.onclick = () => {
-  const blackLines = lines.filter(l => l.type === "black");
-  if (blackLines.length < 6) return;
-
-  const top = blackLines[0].y;
-  const bottom = blackLines[5].y;
+  if (tool !== "select") setTool("select");
 
   const bar = document.createElement("div");
   bar.className = "bar";
-  bar.style.top = top + "px";
-  bar.style.height = (bottom - top) + "px";
   bar.style.left = "50%";
+  bar.style.top = "60px";
+  bar.style.height = BAR_HEIGHT + "px";
   canvas.appendChild(bar);
 
   history.push(() => canvas.removeChild(bar));
@@ -166,19 +157,25 @@ addBar.onclick = () => {
     if (tool !== "select") return;
     activeBar = bar;
     e.preventDefault();
-  }, { passive: false });
+  }, { passive:false });
 
   bar.addEventListener("touchmove", e => {
     if (tool !== "select" || activeBar !== bar) return;
     const r = canvas.getBoundingClientRect();
     bar.style.left = (e.touches[0].clientX - r.left) + "px";
     e.preventDefault();
-  }, { passive: false });
+  }, { passive:false });
 
   bar.addEventListener("touchend", () => activeBar = null);
 };
 
-/* ===== palette ===== */
+/* retour */
+undo.onclick = () => {
+  const a = history.pop();
+  if (a) a();
+};
+
+/* palette */
 [
   "a","b","c","d","e","f","g","h","j","k",
   "/a","//a","///a",
@@ -191,7 +188,7 @@ addBar.onclick = () => {
   palette.appendChild(el);
 });
 
-/* ===== placement ===== */
+/* placement symboles */
 canvas.addEventListener("touchstart", e => {
   if (tool !== "place" || !selectedSymbol) return;
 
@@ -208,7 +205,6 @@ canvas.addEventListener("touchstart", e => {
   requestAnimationFrame(() => {
     const h = s.offsetHeight || 34;
     const sorted = [...lines].sort((a,b)=>a.y-b.y);
-
     let target = sorted.find(l => yTouch < l.y) || sorted[sorted.length-1];
     s.style.top = (target.y - h/2) + "px";
   });
