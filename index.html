@@ -3,7 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <title>Tablature baroque</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<meta name="viewport"
+content="width=device-width,
+initial-scale=1.0,
+maximum-scale=1.0,
+user-scalable=no">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,16 +19,29 @@ html, body {
   margin: 0;
   padding: 0;
   height: 100%;
-  overflow: hidden;
   background: white;
   font-family: "IM Fell English", serif;
+  overflow: hidden;
   touch-action: none;
 }
 
+/* ===== TITRE ===== */
+#title {
+  width: 100%;
+  text-align: center;
+  font-size: 34px;
+  padding: 12px 0;
+  border: none;
+  outline: none;
+  font-family: "IM Fell English", serif;
+}
+
+/* ===== BARRE OUTILS ===== */
 #toolbar {
   display: flex;
   gap: 8px;
   padding: 6px;
+  border-top: 1px solid black;
   border-bottom: 1px solid black;
 }
 
@@ -39,11 +57,13 @@ button.active {
   color: white;
 }
 
+/* ===== CANVAS ===== */
 #canvas {
   position: relative;
-  height: 65vh;
+  height: 55vh;
 }
 
+/* ===== LIGNES ===== */
 .line {
   position: absolute;
   left: 5%;
@@ -53,14 +73,17 @@ button.active {
 .line.black { background: black; }
 .line.white { background: transparent; }
 
+/* ===== SYMBOLES ===== */
 .symbol {
   position: absolute;
   font-size: 34px;
   line-height: 1;
   white-space: nowrap;
   user-select: none;
+  touch-action: none;
 }
 
+/* ===== BARRES ===== */
 .bar {
   position: absolute;
   width: 3px;
@@ -68,6 +91,7 @@ button.active {
   touch-action: none;
 }
 
+/* ===== PALETTE ===== */
 #palette {
   height: 35vh;
   border-top: 1px solid black;
@@ -87,6 +111,9 @@ button.active {
 
 <body>
 
+<!-- TITRE EDITABLE CLAVIER -->
+<input id="title" placeholder="Titre du morceau">
+
 <div id="toolbar">
   <button id="toolPlace" class="active">✍️ Placer</button>
   <button id="toolSelect">🖐 Sélection</button>
@@ -100,21 +127,32 @@ button.active {
 <div id="palette"></div>
 
 <script>
-document.addEventListener("touchmove", e => e.preventDefault(), { passive: false });
+/* === BLOQUE ZOOM DOUBLE TAP (iOS SAFARI) === */
+let lastTouchEnd = 0;
+document.addEventListener("touchend", e => {
+  const now = Date.now();
+  if (now - lastTouchEnd <= 300) e.preventDefault();
+  lastTouchEnd = now;
+}, { passive:false });
+
+document.addEventListener("touchmove", e => e.preventDefault(), { passive:false });
 
 const canvas = document.getElementById("canvas");
 const palette = document.getElementById("palette");
 
 let tool = "place";
 let selectedSymbol = null;
+let activeSymbol = null;
 let activeBar = null;
+let placingBar = false;
 
 const LINE_SPACING = 30;
-const BAR_HEIGHT = 5 * LINE_SPACING; // 🔑 HAUTEUR FIXE = 6 lignes
+const BAR_HEIGHT = 5 * LINE_SPACING;
+
 const history = [];
 const lines = [];
 
-/* outils */
+/* ===== outils ===== */
 toolPlace.onclick = () => setTool("place");
 toolSelect.onclick = () => setTool("select");
 
@@ -124,9 +162,9 @@ function setTool(t) {
   toolSelect.classList.toggle("active", t === "select");
 }
 
-/* lignes */
+/* ===== lignes ===== */
 function addLine(type) {
-  const y = 60 + lines.length * LINE_SPACING;
+  const y = 80 + lines.length * LINE_SPACING;
   const line = document.createElement("div");
   line.className = "line " + type;
   line.style.top = y + "px";
@@ -140,42 +178,13 @@ for (let i = 0; i < 6; i++) addLine("black");
 addBlack.onclick = () => addLine("black");
 addWhite.onclick = () => addLine("white");
 
-/* BARRE DE SÉPARATION */
+/* ===== BARRE ===== */
 addBar.onclick = () => {
-  if (tool !== "select") setTool("select");
-
-  const bar = document.createElement("div");
-  bar.className = "bar";
-  bar.style.left = "50%";
-  bar.style.top = "60px";
-  bar.style.height = BAR_HEIGHT + "px";
-  canvas.appendChild(bar);
-
-  history.push(() => canvas.removeChild(bar));
-
-  bar.addEventListener("touchstart", e => {
-    if (tool !== "select") return;
-    activeBar = bar;
-    e.preventDefault();
-  }, { passive:false });
-
-  bar.addEventListener("touchmove", e => {
-    if (tool !== "select" || activeBar !== bar) return;
-    const r = canvas.getBoundingClientRect();
-    bar.style.left = (e.touches[0].clientX - r.left) + "px";
-    e.preventDefault();
-  }, { passive:false });
-
-  bar.addEventListener("touchend", () => activeBar = null);
+  placingBar = true;
+  setTool("select");
 };
 
-/* retour */
-undo.onclick = () => {
-  const a = history.pop();
-  if (a) a();
-};
-
-/* palette */
+/* ===== PALETTE ===== */
 [
   "a","b","c","d","e","f","g","h","j","k",
   "/a","//a","///a",
@@ -188,29 +197,80 @@ undo.onclick = () => {
   palette.appendChild(el);
 });
 
-/* placement symboles */
+/* ===== INTERACTIONS ===== */
 canvas.addEventListener("touchstart", e => {
-  if (tool !== "place" || !selectedSymbol) return;
-
   const r = canvas.getBoundingClientRect();
   const x = e.touches[0].clientX - r.left;
-  const yTouch = e.touches[0].clientY - r.top;
+  const y = e.touches[0].clientY - r.top;
 
-  const s = document.createElement("div");
-  s.className = "symbol";
-  s.textContent = selectedSymbol;
-  s.style.left = x + "px";
-  canvas.appendChild(s);
+  /* placement barre */
+  if (placingBar) {
+    placingBar = false;
+    const bar = document.createElement("div");
+    bar.className = "bar";
+    bar.style.left = x + "px";
+    bar.style.top = lines[0].y + "px";
+    bar.style.height = BAR_HEIGHT + "px";
+    canvas.appendChild(bar);
 
-  requestAnimationFrame(() => {
-    const h = s.offsetHeight || 34;
-    const sorted = [...lines].sort((a,b)=>a.y-b.y);
-    let target = sorted.find(l => yTouch < l.y) || sorted[sorted.length-1];
-    s.style.top = (target.y - h/2) + "px";
-  });
+    history.push(() => canvas.removeChild(bar));
 
-  history.push(() => canvas.removeChild(s));
+    bar.addEventListener("touchstart", ev => {
+      if (tool !== "select") return;
+      activeBar = bar;
+      ev.stopPropagation();
+    }, { passive:false });
+
+    bar.addEventListener("touchmove", ev => {
+      if (tool !== "select" || activeBar !== bar) return;
+      const rr = canvas.getBoundingClientRect();
+      bar.style.left = (ev.touches[0].clientX - rr.left) + "px";
+      ev.preventDefault();
+    }, { passive:false });
+
+    bar.addEventListener("touchend", () => activeBar = null);
+    return;
+  }
+
+  /* placement symbole */
+  if (tool === "place" && selectedSymbol) {
+    const s = document.createElement("div");
+    s.className = "symbol";
+    s.textContent = selectedSymbol;
+    s.style.left = x + "px";
+    canvas.appendChild(s);
+
+    requestAnimationFrame(() => {
+      const h = s.offsetHeight || 34;
+      const sorted = [...lines].sort((a,b)=>a.y-b.y);
+      const target = sorted.find(l => y < l.y) || sorted[sorted.length-1];
+      s.style.top = (target.y - h/2) + "px";
+    });
+
+    history.push(() => canvas.removeChild(s));
+
+    s.addEventListener("touchstart", ev => {
+      if (tool !== "select") return;
+      activeSymbol = s;
+      ev.stopPropagation();
+    }, { passive:false });
+
+    s.addEventListener("touchmove", ev => {
+      if (tool !== "select" || activeSymbol !== s) return;
+      const rr = canvas.getBoundingClientRect();
+      s.style.left = (ev.touches[0].clientX - rr.left) + "px";
+      ev.preventDefault();
+    }, { passive:false });
+
+    s.addEventListener("touchend", () => activeSymbol = null);
+  }
 }, { passive:false });
+
+/* ===== RETOUR ===== */
+undo.onclick = () => {
+  const a = history.pop();
+  if (a) a();
+};
 </script>
 
 </body>
