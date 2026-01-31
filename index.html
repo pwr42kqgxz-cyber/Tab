@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Tablature</title>
+<title>Tablature baroque</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
 <style>
@@ -16,14 +16,20 @@ html, body {
   touch-action: none;
 }
 
-#canvas {
-  position: relative;
-  height: 70vh;
-  touch-action: none;
+#toolbar {
+  display: flex;
+  gap: 8px;
+  padding: 6px;
+  border-bottom: 1px solid black;
 }
 
-#canvas.disabled {
-  pointer-events: none; /* ⬅ canvas totalement inerte */
+button {
+  font-size: 14px;
+}
+
+#canvas {
+  position: relative;
+  height: 65vh;
 }
 
 .line {
@@ -41,18 +47,14 @@ html, body {
   touch-action: none;
 }
 
-#controls {
-  padding: 6px;
-  border-top: 1px solid black;
-}
-
-button {
-  font-size: 16px;
+.bar {
+  position: absolute;
+  width: 2px;
+  background: black;
 }
 
 #palette {
-  height: 30vh;
-  overflow: auto;
+  height: 35vh;
   border-top: 1px solid black;
   padding: 8px;
   display: flex;
@@ -63,148 +65,137 @@ button {
   border: 1px solid black;
   padding: 6px;
   margin: 4px;
-  font-size: 20px;
+  font-size: 18px;
 }
 </style>
 </head>
 
 <body>
 
-<div id="canvas"></div>
-
-<div id="controls">
-  <button id="deleteToggle">🗑 Effacer : OFF</button>
+<div id="toolbar">
+  <button id="toolPlace">✍️ Placer</button>
+  <button id="toolSelect">🖐 Sélection</button>
+  <button id="toolDelete">🗑 Effacer</button>
+  <button id="addLine">➕ Ligne</button>
+  <button id="addBar">│ Barre</button>
 </div>
 
+<div id="canvas"></div>
 <div id="palette"></div>
 
 <script>
-// ⛔ BLOQUAGE TOTAL DU SCROLL iOS
+// ⛔ blocage scroll iOS
 document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
 
 const canvas = document.getElementById("canvas");
 const palette = document.getElementById("palette");
-const deleteBtn = document.getElementById("deleteToggle");
 
-let deleteMode = false;
-let selected = null;
+let tool = "place";
+let selectedSymbol = null;
+let selectedElement = null;
 
-// =======================
-// LIGNES
-// =======================
-const lineYs = [];
-for (let i = 0; i < 6; i++) {
-  const y = 60 + i * 40;
+const LINE_SPACING = 40;
+const WRITE_OFFSET = 18;
+const lines = [];
+
+// ================= LIGNES =================
+function addLine() {
+  const index = lines.length;
+  const y = 50 + index * LINE_SPACING;
+
   const line = document.createElement("div");
   line.className = "line";
   line.style.top = y + "px";
   canvas.appendChild(line);
-  lineYs.push(y);
+
+  lines.push({ y });
 }
+for (let i = 0; i < 6; i++) addLine();
 
-// =======================
-// AIMANTATION CENTRÉE
-// =======================
-function snapToLineCenter(y, el) {
-  let closest = lineYs[0];
-  let minDist = Math.abs(y - closest);
-  for (let ly of lineYs) {
-    const d = Math.abs(y - ly);
-    if (d < minDist) {
-      minDist = d;
-      closest = ly;
-    }
-  }
-  return closest - (el.offsetHeight || 22) / 2;
-}
+// ================= OUTILS =================
+document.getElementById("toolPlace").onclick = () => tool = "place";
+document.getElementById("toolSelect").onclick = () => tool = "select";
+document.getElementById("toolDelete").onclick = () => tool = "delete";
+document.getElementById("addLine").onclick = addLine;
 
-// =======================
-// MODE EFFACER (clé)
-// =======================
-deleteBtn.addEventListener("click", () => {
-  deleteMode = !deleteMode;
-  deleteBtn.textContent = deleteMode ? "🗑 Effacer : ON" : "🗑 Effacer : OFF";
-
-  // ⛔ désactivation totale du canvas
-  canvas.classList.toggle("disabled", deleteMode);
-});
-
-// =======================
-// PALETTE
-// =======================
+// ================= PALETTE =================
 const symbols = [
   "a","b","c","d","e","f","g","h","j","k",
   "/a","//a","///a",
-  "1","2","3","4","5","6","7","|"
+  "1","2","3","4","5","6","7"
 ];
 
 symbols.forEach(sym => {
-  const btn = document.createElement("div");
-  btn.className = "palette-item";
-  btn.textContent = sym;
-  btn.addEventListener("touchstart", e => {
-    e.preventDefault();
-    selected = sym;
-  }, { passive: false });
-  palette.appendChild(btn);
+  const el = document.createElement("div");
+  el.className = "palette-item";
+  el.textContent = sym;
+  el.onclick = () => selectedSymbol = sym;
+  palette.appendChild(el);
 });
 
-// =======================
-// CRÉATION (mode normal)
-// =======================
-canvas.addEventListener("touchstart", e => {
-  if (deleteMode || !selected) return;
+// ================= BARRE =================
+document.getElementById("addBar").onclick = () => {
+  const bar = document.createElement("div");
+  bar.className = "bar";
+  bar.style.left = "50%";
+  bar.style.top = lines[0].y + "px";
+  bar.style.height = (lines[lines.length-1].y - lines[0].y) + "px";
 
-  e.preventDefault();
-  const touch = e.touches[0];
+  bar.addEventListener("touchstart", e => {
+    if (tool === "delete") bar.remove();
+    selectedElement = bar;
+    e.stopPropagation();
+  }, { passive: false });
+
+  bar.addEventListener("touchmove", e => {
+    if (tool !== "select") return;
+    bar.style.left = e.touches[0].clientX + "px";
+  }, { passive: false });
+
+  canvas.appendChild(bar);
+};
+
+// ================= PLACEMENT =================
+canvas.addEventListener("touchstart", e => {
+  if (tool !== "place" || !selectedSymbol) return;
+
   const rect = canvas.getBoundingClientRect();
+  const yTouch = e.touches[0].clientY - rect.top;
+
+  let closest = lines[0];
+  let minDist = Math.abs(yTouch - closest.y);
+  for (const l of lines) {
+    const d = Math.abs(yTouch - l.y);
+    if (d < minDist) {
+      minDist = d;
+      closest = l;
+    }
+  }
 
   const s = document.createElement("div");
   s.className = "symbol";
-  s.textContent = selected;
-
-  s.style.left = (touch.clientX - rect.left) + "px";
-  canvas.appendChild(s);
-  s.style.top = snapToLineCenter(touch.clientY - rect.top, s) + "px";
-
-  let startX, startY, offsetX, offsetY;
+  s.textContent = selectedSymbol;
+  s.style.left = (e.touches[0].clientX - rect.left) + "px";
+  s.style.top = (closest.y + WRITE_OFFSET) + "px";
 
   s.addEventListener("touchstart", ev => {
-    ev.preventDefault();
-
-    // 🗑 SUPPRESSION GARANTIE
-    if (deleteMode) {
+    ev.stopPropagation();
+    if (tool === "delete") {
       s.remove();
       return;
     }
-
-    const t = ev.touches[0];
-    startX = t.clientX;
-    startY = t.clientY;
-    offsetX = s.offsetLeft;
-    offsetY = s.offsetTop;
+    selectedElement = s;
   }, { passive: false });
 
   s.addEventListener("touchmove", ev => {
-    if (deleteMode) return;
-    ev.preventDefault();
-    const t = ev.touches[0];
-    s.style.left = (offsetX + t.clientX - startX) + "px";
-    s.style.top = (offsetY + t.clientY - startY) + "px";
+    if (tool !== "select") return;
+    const r = canvas.getBoundingClientRect();
+    s.style.left = (ev.touches[0].clientX - r.left) + "px";
   }, { passive: false });
 
-  s.addEventListener("touchend", () => {
-    if (!deleteMode) {
-      s.style.top = snapToLineCenter(
-        s.offsetTop + s.offsetHeight / 2,
-        s
-      ) + "px";
-    }
-  });
-
+  canvas.appendChild(s);
 }, { passive: false });
 
 </script>
-
 </body>
 </html>
