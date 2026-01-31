@@ -95,6 +95,7 @@ button.active {
 <div id="palette"></div>
 
 <script>
+// blocage scroll iOS
 document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
 
 const canvas = document.getElementById("canvas");
@@ -174,16 +175,16 @@ canvas.addEventListener("touchstart", e => {
     const h = s.offsetHeight || 22;
 
     if (selectedSymbol === "|") {
-      // caractère libre
+      // barre libre
       s.style.top = (yTouch - h / 2) + "px";
     } else {
-      // aimantation sur la ligne BLANCHE la plus proche
-      const whiteLines = lines.filter(l => l.type === "white");
-      if (whiteLines.length === 0) return;
+      // aimantation sur la ligne NOIRE la plus proche
+      const blackLines = lines.filter(l => l.type === "black");
+      if (blackLines.length === 0) return;
 
-      let closest = whiteLines[0];
+      let closest = blackLines[0];
       let min = Math.abs(yTouch - closest.y);
-      for (const l of whiteLines) {
+      for (const l of blackLines) {
         const d = Math.abs(yTouch - l.y);
         if (d < min) {
           min = d;
