@@ -53,7 +53,7 @@ button.active {
 }
 
 .line.white {
-  background: transparent; /* invisible mais réelle */
+  background: transparent; /* invisible mais ÉCRIVABLE */
 }
 
 .symbol {
@@ -113,8 +113,7 @@ let selectedSymbol = null;
 const LINE_SPACING = 40;
 const history = [];
 
-const blackLines = [];
-const whiteLines = [];
+const allLines = []; // NOIR + BLANC, toutes écrivable
 const bars = [];
 
 // ===== outils =====
@@ -127,46 +126,32 @@ document.getElementById("toolPlace").onclick = () => setTool("place");
 document.getElementById("toolSelect").onclick = () => setTool("select");
 
 // ===== lignes =====
-function addBlackLine() {
-  const y = 60 + blackLines.length * LINE_SPACING;
+function addLine(type) {
+  const y = 60 + allLines.length * LINE_SPACING;
   const line = document.createElement("div");
-  line.className = "line black";
+  line.className = "line " + type;
   line.style.top = y + "px";
   canvas.appendChild(line);
-  blackLines.push({ y, el: line });
+  allLines.push({ y, el: line });
 
   history.push(() => {
     canvas.removeChild(line);
-    blackLines.pop();
-  });
-}
-
-function addWhiteLine() {
-  const y = 60 + (blackLines.length + whiteLines.length) * LINE_SPACING;
-  const line = document.createElement("div");
-  line.className = "line white";
-  line.style.top = y + "px";
-  canvas.appendChild(line);
-  whiteLines.push({ y, el: line });
-
-  history.push(() => {
-    canvas.removeChild(line);
-    whiteLines.pop();
+    allLines.pop();
   });
 }
 
 // 6 lignes noires initiales
-for (let i = 0; i < 6; i++) addBlackLine();
+for (let i = 0; i < 6; i++) addLine("black");
 
-document.getElementById("addBlack").onclick = addBlackLine;
-document.getElementById("addWhite").onclick = addWhiteLine;
+document.getElementById("addBlack").onclick = () => addLine("black");
+document.getElementById("addWhite").onclick = () => addLine("white");
 
 // ===== barre verticale =====
 document.getElementById("addBar").onclick = () => {
-  if (blackLines.length < 6) return;
+  if (allLines.length < 6) return;
 
-  const top = blackLines[0].y;
-  const bottom = blackLines[5].y;
+  const top = allLines[0].y;
+  const bottom = allLines[5].y;
   const height = bottom - top;
 
   const bar = document.createElement("div");
@@ -174,14 +159,9 @@ document.getElementById("addBar").onclick = () => {
   bar.style.left = "50%";
   bar.style.top = top + "px";
   bar.style.height = height + "px";
-
   canvas.appendChild(bar);
-  bars.push(bar);
 
-  history.push(() => {
-    canvas.removeChild(bar);
-    bars.pop();
-  });
+  history.push(() => canvas.removeChild(bar));
 
   bar.addEventListener("touchmove", e => {
     if (tool !== "select") return;
@@ -228,10 +208,10 @@ canvas.addEventListener("touchstart", e => {
   requestAnimationFrame(() => {
     const h = s.offsetHeight || 22;
 
-    let closest = blackLines[0];
+    let closest = allLines[0];
     let min = Math.abs(yTouch - closest.y);
 
-    for (const l of blackLines) {
+    for (const l of allLines) {
       const d = Math.abs(yTouch - l.y);
       if (d < min) {
         min = d;
