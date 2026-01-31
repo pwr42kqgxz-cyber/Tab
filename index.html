@@ -5,6 +5,11 @@
 <title>Tablature baroque</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
+<!-- Police historique -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English&display=swap" rel="stylesheet">
+
 <style>
 html, body {
   margin: 0;
@@ -12,7 +17,7 @@ html, body {
   height: 100%;
   overflow: hidden;
   background: white;
-  font-family: "Times New Roman", serif;
+  font-family: "IM Fell English", serif;
   touch-action: none;
 }
 
@@ -29,7 +34,6 @@ button {
   padding: 6px 10px;
   border: 1px solid black;
   background: white;
-  color: black;
 }
 
 button.active {
@@ -37,7 +41,7 @@ button.active {
   color: white;
 }
 
-/* ===== ZONE DE PORTÉE ===== */
+/* ===== PORTÉE ===== */
 #canvas {
   position: relative;
   height: 65vh;
@@ -50,24 +54,22 @@ button.active {
   right: 5%;
   height: 2px;
 }
-
 .line.black { background: black; }
-.line.white { background: transparent; } /* invisible mais active */
+.line.white { background: transparent; }
 
-/* ===== SYMBOLes SUR PORTÉE ===== */
+/* ===== SYMBOLes ===== */
 .symbol {
   position: absolute;
-  font-size: 32px;        /* 🔥 GROS, LISIBLE */
+  font-size: 34px;     /* volontairement large */
   line-height: 1;
   user-select: none;
   white-space: nowrap;
-  touch-action: none;
 }
 
-/* ===== BARRES VERTICALES ===== */
+/* ===== BARRE VERTICALE ===== */
 .bar {
   position: absolute;
-  width: 3px;             /* un peu plus visible */
+  width: 3px;
   background: black;
   touch-action: none;
 }
@@ -80,12 +82,11 @@ button.active {
   display: flex;
   flex-wrap: wrap;
 }
-
 .palette-item {
   border: 1px solid black;
   padding: 10px;
   margin: 4px;
-  font-size: 28px;        /* 🔥 palette bien grosse */
+  font-size: 30px;
 }
 </style>
 </head>
@@ -110,55 +111,53 @@ document.addEventListener("touchmove", e => e.preventDefault(), { passive: false
 const canvas = document.getElementById("canvas");
 const palette = document.getElementById("palette");
 
-const toolPlace = document.getElementById("toolPlace");
-const toolSelect = document.getElementById("toolSelect");
-
 let tool = "place";
 let selectedSymbol = null;
 let activeBar = null;
 
-const LINE_SPACING = 30;     // espacement resserré
+const LINE_SPACING = 30;
 const history = [];
-const allLines = [];
+const lines = [];
 
-/* ===== OUTILS ===== */
+/* ===== outils ===== */
+toolPlace.onclick = () => setTool("place");
+toolSelect.onclick = () => setTool("select");
+
 function setTool(t) {
   tool = t;
   toolPlace.classList.toggle("active", t === "place");
   toolSelect.classList.toggle("active", t === "select");
 }
-toolPlace.onclick = () => setTool("place");
-toolSelect.onclick = () => setTool("select");
 
-/* ===== LIGNES ===== */
+/* ===== lignes ===== */
 function addLine(type) {
-  const y = 60 + allLines.length * LINE_SPACING;
+  const y = 60 + lines.length * LINE_SPACING;
   const line = document.createElement("div");
   line.className = "line " + type;
   line.style.top = y + "px";
   canvas.appendChild(line);
-  allLines.push({ y, el: line });
-
+  lines.push({ y, type });
   history.push(() => canvas.removeChild(line));
 }
 
-/* 6 lignes noires initiales */
 for (let i = 0; i < 6; i++) addLine("black");
 
 addBlack.onclick = () => addLine("black");
 addWhite.onclick = () => addLine("white");
 
-/* ===== BARRE VERTICALE ===== */
+/* ===== BARRE VERTICALE (6 LIGNES) ===== */
 addBar.onclick = () => {
-  const sorted = [...allLines].sort((a, b) => a.y - b.y);
-  const top = sorted[0].y;
-  const bottom = sorted[sorted.length - 1].y;
+  const blackLines = lines.filter(l => l.type === "black");
+  if (blackLines.length < 6) return;
+
+  const top = blackLines[0].y;
+  const bottom = blackLines[5].y;
 
   const bar = document.createElement("div");
   bar.className = "bar";
-  bar.style.left = "50%";
   bar.style.top = top + "px";
   bar.style.height = (bottom - top) + "px";
+  bar.style.left = "50%";
   canvas.appendChild(bar);
 
   history.push(() => canvas.removeChild(bar));
@@ -179,32 +178,26 @@ addBar.onclick = () => {
   bar.addEventListener("touchend", () => activeBar = null);
 };
 
-/* ===== RETOUR ===== */
-undo.onclick = () => {
-  const a = history.pop();
-  if (a) a();
-};
-
-/* ===== PALETTE ===== */
+/* ===== palette ===== */
 [
   "a","b","c","d","e","f","g","h","j","k",
   "/a","//a","///a",
   "1","2","3","4","5","6","7"
-].forEach(sym => {
+].forEach(s => {
   const el = document.createElement("div");
   el.className = "palette-item";
-  el.textContent = sym;
-  el.onclick = () => selectedSymbol = sym;
+  el.textContent = s;
+  el.onclick = () => selectedSymbol = s;
   palette.appendChild(el);
 });
 
-/* ===== PLACEMENT DES SYMBOLes ===== */
+/* ===== placement ===== */
 canvas.addEventListener("touchstart", e => {
   if (tool !== "place" || !selectedSymbol) return;
 
-  const rect = canvas.getBoundingClientRect();
-  const x = e.touches[0].clientX - rect.left;
-  const yTouch = e.touches[0].clientY - rect.top;
+  const r = canvas.getBoundingClientRect();
+  const x = e.touches[0].clientX - r.left;
+  const yTouch = e.touches[0].clientY - r.top;
 
   const s = document.createElement("div");
   s.className = "symbol";
@@ -213,31 +206,15 @@ canvas.addEventListener("touchstart", e => {
   canvas.appendChild(s);
 
   requestAnimationFrame(() => {
-    const h = s.offsetHeight || 32;
-    const sorted = [...allLines].sort((a, b) => a.y - b.y);
+    const h = s.offsetHeight || 34;
+    const sorted = [...lines].sort((a,b)=>a.y-b.y);
 
-    let target = null;
-    for (const l of sorted) {
-      if (yTouch < l.y) {
-        target = l;
-        break;
-      }
-    }
-    if (!target) target = sorted[sorted.length - 1];
-
-    s.style.top = (target.y - h / 2) + "px";
+    let target = sorted.find(l => yTouch < l.y) || sorted[sorted.length-1];
+    s.style.top = (target.y - h/2) + "px";
   });
 
   history.push(() => canvas.removeChild(s));
-
-  s.addEventListener("touchmove", ev => {
-    if (tool !== "select") return;
-    const r = canvas.getBoundingClientRect();
-    s.style.left = (ev.touches[0].clientX - r.left) + "px";
-    ev.preventDefault();
-  }, { passive: false });
-
-}, { passive: false });
+}, { passive:false });
 </script>
 
 </body>
