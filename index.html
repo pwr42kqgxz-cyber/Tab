@@ -53,6 +53,7 @@ button.active {
   position: absolute;
   font-size: 22px;
   user-select: none;
+  white-space: nowrap;
   touch-action: none;
 }
 
@@ -93,7 +94,7 @@ button.active {
 <div id="palette"></div>
 
 <script>
-// blocage scroll iOS
+// ⛔ blocage scroll iOS
 document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
 
 const canvas = document.getElementById("canvas");
@@ -106,21 +107,20 @@ let tool = "place";
 let selectedSymbol = null;
 
 const LINE_SPACING = 40;
-const WRITE_OFFSET = 18;
+const WRITE_OFFSET = 16; // distance sous la ligne
 const lines = [];
 const history = [];
 
-// ======== gestion état boutons ========
+// ======== outils (état visible) ========
 function setTool(t) {
   tool = t;
   btnPlace.classList.toggle("active", t === "place");
   btnSelect.classList.toggle("active", t === "select");
 }
-
 btnPlace.onclick = () => setTool("place");
 btnSelect.onclick = () => setTool("select");
 
-// ================= LIGNES =================
+// ======== lignes ========
 function addLine(record = true) {
   const y = 50 + lines.length * LINE_SPACING;
   const line = document.createElement("div");
@@ -140,13 +140,13 @@ for (let i = 0; i < 6; i++) addLine(false);
 
 document.getElementById("addLine").onclick = () => addLine(true);
 
-// ================= RETOUR =================
+// ======== retour ========
 document.getElementById("undo").onclick = () => {
   const action = history.pop();
   if (action) action();
 };
 
-// ================= PALETTE =================
+// ======== palette ========
 const symbols = [
   "a","b","c","d","e","f","g","h","j","k",
   "/a","//a","///a",
@@ -161,13 +161,13 @@ symbols.forEach(sym => {
   palette.appendChild(el);
 });
 
-// ================= BARRE =================
+// ======== barre verticale ========
 document.getElementById("addBar").onclick = () => {
   const bar = document.createElement("div");
   bar.className = "bar";
   bar.style.left = "50%";
   bar.style.top = lines[0].y + "px";
-  bar.style.height = (lines[lines.length-1].y - lines[0].y) + "px";
+  bar.style.height = (lines[lines.length - 1].y - lines[0].y) + "px";
   canvas.appendChild(bar);
 
   history.push(() => canvas.removeChild(bar));
@@ -178,13 +178,14 @@ document.getElementById("addBar").onclick = () => {
   }, { passive: false });
 };
 
-// ================= PLACEMENT =================
+// ======== placement ========
 canvas.addEventListener("touchstart", e => {
   if (tool !== "place" || !selectedSymbol) return;
 
   const rect = canvas.getBoundingClientRect();
   const yTouch = e.touches[0].clientY - rect.top;
 
+  // ligne la plus proche
   let closest = lines[0];
   let minDist = Math.abs(yTouch - closest.y);
   for (const l of lines) {
@@ -199,8 +200,13 @@ canvas.addEventListener("touchstart", e => {
   s.className = "symbol";
   s.textContent = selectedSymbol;
   s.style.left = (e.touches[0].clientX - rect.left) + "px";
-  s.style.top = (closest.y + WRITE_OFFSET) + "px";
   canvas.appendChild(s);
+
+  // ⬇️ centrage exact sur la ligne d’écriture
+  requestAnimationFrame(() => {
+    const h = s.offsetHeight || 22;
+    s.style.top = (closest.y + WRITE_OFFSET - h / 2) + "px";
+  });
 
   history.push(() => canvas.removeChild(s));
 
