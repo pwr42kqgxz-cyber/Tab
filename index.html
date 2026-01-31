@@ -75,7 +75,7 @@ button {
 <div id="toolbar">
   <button id="toolPlace">✍️ Placer</button>
   <button id="toolSelect">🖐 Sélection</button>
-  <button id="toolDelete">🗑 Effacer</button>
+  <button id="undo">↩︎ Retour</button>
   <button id="addLine">➕ Ligne</button>
   <button id="addBar">│ Barre</button>
 </div>
@@ -84,7 +84,7 @@ button {
 <div id="palette"></div>
 
 <script>
-// ⛔ blocage scroll iOS
+// blocage scroll iOS
 document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
 
 const canvas = document.getElementById("canvas");
@@ -92,14 +92,14 @@ const palette = document.getElementById("palette");
 
 let tool = "place";
 let selectedSymbol = null;
-let selectedElement = null;
 
 const LINE_SPACING = 40;
 const WRITE_OFFSET = 18;
 const lines = [];
+const history = []; // pile d'annulation
 
 // ================= LIGNES =================
-function addLine() {
+function addLine(record = true) {
   const index = lines.length;
   const y = 50 + index * LINE_SPACING;
 
@@ -108,15 +108,27 @@ function addLine() {
   line.style.top = y + "px";
   canvas.appendChild(line);
 
-  lines.push({ y });
+  lines.push({ y, el: line });
+
+  if (record) {
+    history.push(() => {
+      canvas.removeChild(line);
+      lines.pop();
+    });
+  }
 }
-for (let i = 0; i < 6; i++) addLine();
+for (let i = 0; i < 6; i++) addLine(false);
 
 // ================= OUTILS =================
 document.getElementById("toolPlace").onclick = () => tool = "place";
 document.getElementById("toolSelect").onclick = () => tool = "select";
-document.getElementById("toolDelete").onclick = () => tool = "delete";
-document.getElementById("addLine").onclick = addLine;
+document.getElementById("addLine").onclick = () => addLine(true);
+
+// ================= RETOUR =================
+document.getElementById("undo").onclick = () => {
+  const action = history.pop();
+  if (action) action();
+};
 
 // ================= PALETTE =================
 const symbols = [
@@ -140,19 +152,14 @@ document.getElementById("addBar").onclick = () => {
   bar.style.left = "50%";
   bar.style.top = lines[0].y + "px";
   bar.style.height = (lines[lines.length-1].y - lines[0].y) + "px";
+  canvas.appendChild(bar);
 
-  bar.addEventListener("touchstart", e => {
-    if (tool === "delete") bar.remove();
-    selectedElement = bar;
-    e.stopPropagation();
-  }, { passive: false });
+  history.push(() => canvas.removeChild(bar));
 
   bar.addEventListener("touchmove", e => {
     if (tool !== "select") return;
     bar.style.left = e.touches[0].clientX + "px";
   }, { passive: false });
-
-  canvas.appendChild(bar);
 };
 
 // ================= PLACEMENT =================
@@ -177,15 +184,9 @@ canvas.addEventListener("touchstart", e => {
   s.textContent = selectedSymbol;
   s.style.left = (e.touches[0].clientX - rect.left) + "px";
   s.style.top = (closest.y + WRITE_OFFSET) + "px";
+  canvas.appendChild(s);
 
-  s.addEventListener("touchstart", ev => {
-    ev.stopPropagation();
-    if (tool === "delete") {
-      s.remove();
-      return;
-    }
-    selectedElement = s;
-  }, { passive: false });
+  history.push(() => canvas.removeChild(s));
 
   s.addEventListener("touchmove", ev => {
     if (tool !== "select") return;
@@ -193,7 +194,6 @@ canvas.addEventListener("touchstart", e => {
     s.style.left = (ev.touches[0].clientX - r.left) + "px";
   }, { passive: false });
 
-  canvas.appendChild(s);
 }, { passive: false });
 
 </script>
