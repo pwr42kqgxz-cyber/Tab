@@ -16,19 +16,21 @@ html,body{
   margin:0;
   padding:0;
   height:100%;
-  font-family:"IM Fell English",serif;
+  font-family:"IM Fell English", serif;
   background:white;
   overflow:hidden;
 }
 
-/* ===== TITRE ===== */
+/* ===== TITRE (EDITION) ===== */
 #title{
   width:100%;
   text-align:center;
-  font-size:34px;
+  font-size:36px;
+  line-height:1;
   padding:14px 0;
   border:none;
   outline:none;
+  font-family:"IM Fell English", serif;
 }
 
 /* ===== TOOLBAR FIXE ===== */
@@ -70,7 +72,7 @@ button.active{
 
 #canvas{
   position:relative;
-  min-height:1200px;
+  min-height:1400px;
   touch-action:manipulation;
 }
 
@@ -88,23 +90,23 @@ button.active{
 .symbol{
   position:absolute;
   font-size:36px;
+  line-height:1;
   white-space:nowrap;
 }
 
-/* ===== BARRES (hitbox large) ===== */
+/* ===== BARRES VERTICALES ===== */
 .bar{
   position:absolute;
-  width:12px;              /* hitbox large */
-  margin-left:-6px;
-  background:black;
+  width:8px;          /* hitbox confortable */
+  margin-left:-4px;
 }
 .bar::after{
   content:"";
   position:absolute;
-  left:4px;
-  width:3px;
+  left:3px;
   top:0;
   bottom:0;
+  width:2px;          /* trait fin */
   background:black;
 }
 
@@ -130,7 +132,7 @@ button.active{
   font-size:30px;
 }
 
-/* ===== SCROLL BUTTONS ===== */
+/* ===== BOUTONS SCROLL ===== */
 #scroll-buttons{
   position:fixed;
   right:8px;
@@ -140,13 +142,26 @@ button.active{
   gap:6px;
   z-index:20;
 }
+
+/* ===== ZONE IMPRIMABLE ===== */
+#print-area{
+  padding-top:40px; /* marge haute PDF */
+}
+#print-title{
+  text-align:center;
+  font-family:"IM Fell English", serif;
+  font-size:36px;
+  margin-bottom:40px;
+}
 </style>
 </head>
 
 <body>
 
+<!-- TITRE EDITABLE -->
 <input id="title" placeholder="Titre du morceau">
 
+<!-- TOOLBAR -->
 <div id="toolbar">
   <button id="toolPlace" class="active">✍️ Placer</button>
   <button id="toolSelect">🖐 Sélection</button>
@@ -158,33 +173,51 @@ button.active{
   <button id="exportPDF">📄 PDF</button>
 </div>
 
+<!-- CANVAS -->
 <div id="canvas-wrapper">
-  <div id="canvas"></div>
+  <div id="print-area">
+    <div id="print-title"></div>
+    <div id="canvas"></div>
+  </div>
 </div>
 
+<!-- PALETTE -->
 <div id="palette"></div>
 
+<!-- SCROLL -->
 <div id="scroll-buttons">
   <button id="scrollUp">⬆️</button>
   <button id="scrollDown">⬇️</button>
 </div>
 
 <script>
+/* ===== ANTI-ZOOM iOS ===== */
 ["gesturestart","gesturechange","gestureend","dblclick"].forEach(ev=>{
   document.addEventListener(ev,e=>e.preventDefault(),{passive:false});
 });
 
+/* ===== ELEMENTS ===== */
 const canvas=document.getElementById("canvas");
 const wrapper=document.getElementById("canvas-wrapper");
 const palette=document.getElementById("palette");
+const titleInput=document.getElementById("title");
+const printTitle=document.getElementById("print-title");
 
+/* sync titre */
+function syncTitle(){
+  printTitle.textContent = titleInput.value || " ";
+}
+titleInput.addEventListener("input",syncTitle);
+syncTitle();
+
+/* ===== ETAT ===== */
 let tool="place";
 let snap=true;
 let placingBar=false;
 let active=null;
 let history=[];
 
-/* outils */
+/* ===== OUTILS ===== */
 toolPlace.onclick=()=>setTool("place");
 toolSelect.onclick=()=>setTool("select");
 toggleSnap.onclick=()=>{
@@ -198,17 +231,17 @@ function setTool(t){
   toolSelect.classList.toggle("active",t==="select");
 }
 
-/* undo */
+/* ===== UNDO ===== */
 undo.onclick=()=>{
   const last=history.pop();
   if(last) last.remove();
 };
 
-/* scroll buttons */
+/* ===== SCROLL ===== */
 scrollUp.onclick=()=>wrapper.scrollBy({top:-200,behavior:"smooth"});
 scrollDown.onclick=()=>wrapper.scrollBy({top:200,behavior:"smooth"});
 
-/* lignes */
+/* ===== LIGNES ===== */
 let currentY=40;
 const LINE_SPACING=30;
 const lines=[];
@@ -227,7 +260,7 @@ for(let i=0;i<6;i++) addLine("black");
 addBlackLine.onclick=()=>addLine("black");
 addWhiteLine.onclick=()=>addLine("white");
 
-/* palette */
+/* ===== PALETTE ===== */
 let selected="a";
 [
 "a","b","c","d","e","f","g","h","j","k",
@@ -240,13 +273,13 @@ let selected="a";
   palette.appendChild(p);
 });
 
-/* barre */
+/* ===== BARRE ===== */
 addBar.onclick=()=>{
   placingBar=true;
   setTool("select");
 };
 
-/* interactions */
+/* ===== INTERACTIONS ===== */
 canvas.addEventListener("touchstart",e=>{
   const r=canvas.getBoundingClientRect();
   const x=e.touches[0].clientX-r.left;
@@ -270,13 +303,14 @@ canvas.addEventListener("touchstart",e=>{
     s.className="symbol";
     s.textContent=selected;
     s.style.left=x+"px";
-    s.style.top=(snap?nearestLine(y)-18:y)+"px"; // 🔑 centrage corrigé
+    s.style.top=(snap?nearestLine(y)-18:y)+"px";
     canvas.appendChild(s);
     history.push(s);
     makeDraggable(s);
   }
 },{passive:false});
 
+/* ===== DRAG ===== */
 function makeDraggable(el){
   el.addEventListener("touchstart",e=>{
     if(tool!=="select")return;
@@ -297,11 +331,12 @@ function makeDraggable(el){
   el.addEventListener("touchend",()=>active=null);
 }
 
+/* ===== SNAP ===== */
 function nearestLine(y){
   return lines.reduce((a,b)=>Math.abs(b-y)<Math.abs(a-y)?b:a);
 }
 
-/* export PDF propre */
+/* ===== EXPORT PDF PROPRE ===== */
 exportPDF.onclick=async()=>{
   document.getElementById("toolbar").style.display="none";
   document.getElementById("palette").style.display="none";
@@ -311,8 +346,12 @@ exportPDF.onclick=async()=>{
 
   const {jsPDF}=window.jspdf;
   const pdf=new jsPDF("p","mm","a4");
-  const img=await html2canvas(document.body,{scale:2,scrollY:-window.scrollY});
-  pdf.addImage(img.toDataURL("image/png"),"PNG",0,10,210,0); // 🔑 marge haute
+
+  const img=await html2canvas(document.getElementById("print-area"),{scale:2});
+  const w=210;
+  const h=img.height*w/img.width;
+
+  pdf.addImage(img.toDataURL("image/png"),"PNG",0,0,w,h);
   pdf.save("tablature.pdf");
 
   document.getElementById("toolbar").style.display="";
