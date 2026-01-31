@@ -11,8 +11,8 @@ html, body {
   padding: 0;
   height: 100%;
   overflow: hidden;
-  font-family: serif;
   background: white;
+  font-family: "Times New Roman", serif;
   touch-action: none;
 }
 
@@ -48,17 +48,13 @@ button.active {
   height: 2px;
 }
 
-.line.black {
-  background: black;
-}
-
-.line.white {
-  background: transparent; /* invisible mais ÉCRIVABLE */
-}
+.line.black { background: black; }
+.line.white { background: transparent; } /* invisible mais active */
 
 .symbol {
   position: absolute;
-  font-size: 22px;
+  font-size: 18px;
+  line-height: 1;
   user-select: none;
   white-space: nowrap;
   touch-action: none;
@@ -82,7 +78,7 @@ button.active {
   border: 1px solid black;
   padding: 6px;
   margin: 4px;
-  font-size: 18px;
+  font-size: 16px;
 }
 </style>
 </head>
@@ -102,28 +98,29 @@ button.active {
 <div id="palette"></div>
 
 <script>
-document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+document.addEventListener("touchmove", e => e.preventDefault(), { passive: false });
 
 const canvas = document.getElementById("canvas");
 const palette = document.getElementById("palette");
 
+const toolPlace = document.getElementById("toolPlace");
+const toolSelect = document.getElementById("toolSelect");
+
 let tool = "place";
 let selectedSymbol = null;
 
-const LINE_SPACING = 40;
+const LINE_SPACING = 30; // 🔑 ESPACEMENT RESSERRÉ
 const history = [];
-
-const allLines = []; // NOIR + BLANC, toutes écrivable
-const bars = [];
+const allLines = [];
 
 // ===== outils =====
 function setTool(t) {
   tool = t;
-  document.getElementById("toolPlace").classList.toggle("active", t === "place");
-  document.getElementById("toolSelect").classList.toggle("active", t === "select");
+  toolPlace.classList.toggle("active", t === "place");
+  toolSelect.classList.toggle("active", t === "select");
 }
-document.getElementById("toolPlace").onclick = () => setTool("place");
-document.getElementById("toolSelect").onclick = () => setTool("select");
+toolPlace.onclick = () => setTool("place");
+toolSelect.onclick = () => setTool("select");
 
 // ===== lignes =====
 function addLine(type) {
@@ -143,47 +140,44 @@ function addLine(type) {
 // 6 lignes noires initiales
 for (let i = 0; i < 6; i++) addLine("black");
 
-document.getElementById("addBlack").onclick = () => addLine("black");
-document.getElementById("addWhite").onclick = () => addLine("white");
+addBlack.onclick = () => addLine("black");
+addWhite.onclick = () => addLine("white");
 
 // ===== barre verticale =====
-document.getElementById("addBar").onclick = () => {
+addBar.onclick = () => {
   if (allLines.length < 6) return;
 
   const top = allLines[0].y;
   const bottom = allLines[5].y;
-  const height = bottom - top;
 
   const bar = document.createElement("div");
   bar.className = "bar";
   bar.style.left = "50%";
   bar.style.top = top + "px";
-  bar.style.height = height + "px";
+  bar.style.height = (bottom - top) + "px";
   canvas.appendChild(bar);
 
   history.push(() => canvas.removeChild(bar));
 
   bar.addEventListener("touchmove", e => {
     if (tool !== "select") return;
-    const rect = canvas.getBoundingClientRect();
-    bar.style.left = (e.touches[0].clientX - rect.left) + "px";
+    const r = canvas.getBoundingClientRect();
+    bar.style.left = (e.touches[0].clientX - r.left) + "px";
   }, { passive: false });
 };
 
 // ===== retour =====
-document.getElementById("undo").onclick = () => {
-  const action = history.pop();
-  if (action) action();
+undo.onclick = () => {
+  const a = history.pop();
+  if (a) a();
 };
 
 // ===== palette =====
-const symbols = [
+[
   "a","b","c","d","e","f","g","h","j","k",
   "/a","//a","///a",
   "1","2","3","4","5","6","7"
-];
-
-symbols.forEach(sym => {
+].forEach(sym => {
   const el = document.createElement("div");
   el.className = "palette-item";
   el.textContent = sym;
@@ -191,7 +185,7 @@ symbols.forEach(sym => {
   palette.appendChild(el);
 });
 
-// ===== placement =====
+// ===== placement (RÈGLE CORRECTE) =====
 canvas.addEventListener("touchstart", e => {
   if (tool !== "place" || !selectedSymbol) return;
 
@@ -206,19 +200,22 @@ canvas.addEventListener("touchstart", e => {
   canvas.appendChild(s);
 
   requestAnimationFrame(() => {
-    const h = s.offsetHeight || 22;
+    const h = s.offsetHeight || 18;
+    const sorted = [...allLines].sort((a, b) => a.y - b.y);
 
-    let closest = allLines[0];
-    let min = Math.abs(yTouch - closest.y);
+    let target = null;
 
-    for (const l of allLines) {
-      const d = Math.abs(yTouch - l.y);
-      if (d < min) {
-        min = d;
-        closest = l;
+    // 🔑 première ligne STRICTEMENT en dessous du clic
+    for (const l of sorted) {
+      if (yTouch < l.y) {
+        target = l;
+        break;
       }
     }
-    s.style.top = (closest.y - h / 2) + "px";
+
+    if (!target) target = sorted[sorted.length - 1];
+
+    s.style.top = (target.y - h / 2) + "px";
   });
 
   history.push(() => canvas.removeChild(s));
