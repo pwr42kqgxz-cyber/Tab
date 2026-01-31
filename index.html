@@ -15,6 +15,10 @@ user-scalable=no">
 <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English&display=swap" rel="stylesheet">
 
 <style>
+* {
+  touch-action: manipulation; /* 🔑 empêche le zoom */
+}
+
 html, body {
   margin: 0;
   padding: 0;
@@ -22,7 +26,6 @@ html, body {
   background: white;
   font-family: "IM Fell English", serif;
   overflow: hidden;
-  touch-action: none;
 }
 
 /* ===== TITRE ===== */
@@ -34,6 +37,7 @@ html, body {
   border: none;
   outline: none;
   font-family: "IM Fell English", serif;
+  touch-action: auto; /* clavier autorisé */
 }
 
 /* ===== BARRE OUTILS ===== */
@@ -80,7 +84,6 @@ button.active {
   line-height: 1;
   white-space: nowrap;
   user-select: none;
-  touch-action: none;
 }
 
 /* ===== BARRES ===== */
@@ -88,7 +91,6 @@ button.active {
   position: absolute;
   width: 3px;
   background: black;
-  touch-action: none;
 }
 
 /* ===== PALETTE ===== */
@@ -111,13 +113,12 @@ button.active {
 
 <body>
 
-<!-- TITRE EDITABLE CLAVIER -->
 <input id="title" placeholder="Titre du morceau">
 
 <div id="toolbar">
   <button id="toolPlace" class="active">✍️ Placer</button>
   <button id="toolSelect">🖐 Sélection</button>
-  <button id="undo">↩︎ Retour</button>
+  <button id="clear">🗑 Effacer</button>
   <button id="addBlack">➕ Ligne noire</button>
   <button id="addWhite">➕ Ligne blanche</button>
   <button id="addBar">➕ Barre</button>
@@ -127,7 +128,7 @@ button.active {
 <div id="palette"></div>
 
 <script>
-/* === BLOQUE ZOOM DOUBLE TAP (iOS SAFARI) === */
+/* ==== BLOQUE ZOOM DOUBLE TAP iOS ==== */
 let lastTouchEnd = 0;
 document.addEventListener("touchend", e => {
   const now = Date.now();
@@ -135,10 +136,9 @@ document.addEventListener("touchend", e => {
   lastTouchEnd = now;
 }, { passive:false });
 
-document.addEventListener("touchmove", e => e.preventDefault(), { passive:false });
-
+/* ==== VARIABLES ==== */
 const canvas = document.getElementById("canvas");
-const palette = document.getElementById("palette");
+const titleInput = document.getElementById("title");
 
 let tool = "place";
 let selectedSymbol = null;
@@ -149,10 +149,14 @@ let placingBar = false;
 const LINE_SPACING = 30;
 const BAR_HEIGHT = 5 * LINE_SPACING;
 
-const history = [];
-const lines = [];
+let state = {
+  title: "",
+  lines: [],
+  symbols: [],
+  bars: []
+};
 
-/* ===== outils ===== */
+/* ==== OUTILS ==== */
 toolPlace.onclick = () => setTool("place");
 toolSelect.onclick = () => setTool("select");
 
@@ -162,15 +166,41 @@ function setTool(t) {
   toolSelect.classList.toggle("active", t === "select");
 }
 
-/* ===== lignes ===== */
-function addLine(type) {
-  const y = 80 + lines.length * LINE_SPACING;
+/* ==== SAUVEGARDE ==== */
+function save() {
+  localStorage.setItem("tablature", JSON.stringify(state));
+}
+
+function load() {
+  const data = localStorage.getItem("tablature");
+  if (!data) return;
+  state = JSON.parse(data);
+  redraw();
+}
+
+/* ==== REDESSIN ==== */
+function redraw() {
+  canvas.innerHTML = "";
+  titleInput.value = state.title;
+
+  state.lines.forEach(l => drawLine(l.type, l.y));
+  state.symbols.forEach(s => drawSymbol(s));
+  state.bars.forEach(b => drawBar(b.x));
+}
+
+/* ==== LIGNES ==== */
+function drawLine(type, y) {
   const line = document.createElement("div");
   line.className = "line " + type;
   line.style.top = y + "px";
   canvas.appendChild(line);
-  lines.push({ y, type });
-  history.push(() => canvas.removeChild(line));
+}
+
+function addLine(type) {
+  const y = 80 + state.lines.length * LINE_SPACING;
+  state.lines.push({ type, y });
+  save();
+  redraw();
 }
 
 for (let i = 0; i < 6; i++) addLine("black");
@@ -178,99 +208,83 @@ for (let i = 0; i < 6; i++) addLine("black");
 addBlack.onclick = () => addLine("black");
 addWhite.onclick = () => addLine("white");
 
-/* ===== BARRE ===== */
-addBar.onclick = () => {
-  placingBar = true;
-  setTool("select");
-};
+/* ==== BARRES ==== */
+function drawBar(x) {
+  const bar = document.createElement("div");
+  bar.className = "bar";
+  bar.style.left = x + "px";
+  bar.style.top = state.lines[0].y + "px";
+  bar.style.height = BAR_HEIGHT + "px";
+  canvas.appendChild(bar);
+}
 
-/* ===== PALETTE ===== */
+addBar.onclick = () => placingBar = true;
+
+/* ==== SYMBOLes ==== */
+function drawSymbol(s) {
+  const el = document.createElement("div");
+  el.className = "symbol";
+  el.textContent = s.text;
+  el.style.left = s.x + "px";
+  el.style.top = s.y + "px";
+  canvas.appendChild(el);
+}
+
+/* ==== PALETTE ==== */
 [
   "a","b","c","d","e","f","g","h","j","k",
-  "/a","//a","///a",
-  "1","2","3","4","5","6","7"
-].forEach(s => {
+  "/a","//a","///a","1","2","3","4","5","6","7"
+].forEach(t => {
   const el = document.createElement("div");
   el.className = "palette-item";
-  el.textContent = s;
-  el.onclick = () => selectedSymbol = s;
+  el.textContent = t;
+  el.onclick = () => selectedSymbol = t;
   palette.appendChild(el);
 });
 
-/* ===== INTERACTIONS ===== */
+/* ==== INTERACTIONS ==== */
 canvas.addEventListener("touchstart", e => {
+  if (e.target === titleInput) return;
+
   const r = canvas.getBoundingClientRect();
   const x = e.touches[0].clientX - r.left;
   const y = e.touches[0].clientY - r.top;
 
-  /* placement barre */
   if (placingBar) {
     placingBar = false;
-    const bar = document.createElement("div");
-    bar.className = "bar";
-    bar.style.left = x + "px";
-    bar.style.top = lines[0].y + "px";
-    bar.style.height = BAR_HEIGHT + "px";
-    canvas.appendChild(bar);
-
-    history.push(() => canvas.removeChild(bar));
-
-    bar.addEventListener("touchstart", ev => {
-      if (tool !== "select") return;
-      activeBar = bar;
-      ev.stopPropagation();
-    }, { passive:false });
-
-    bar.addEventListener("touchmove", ev => {
-      if (tool !== "select" || activeBar !== bar) return;
-      const rr = canvas.getBoundingClientRect();
-      bar.style.left = (ev.touches[0].clientX - rr.left) + "px";
-      ev.preventDefault();
-    }, { passive:false });
-
-    bar.addEventListener("touchend", () => activeBar = null);
+    state.bars.push({ x });
+    save(); redraw();
     return;
   }
 
-  /* placement symbole */
   if (tool === "place" && selectedSymbol) {
-    const s = document.createElement("div");
-    s.className = "symbol";
-    s.textContent = selectedSymbol;
-    s.style.left = x + "px";
-    canvas.appendChild(s);
+    const linesSorted = [...state.lines].sort((a,b)=>a.y-b.y);
+    const target = linesSorted.find(l => y < l.y) || linesSorted.at(-1);
 
-    requestAnimationFrame(() => {
-      const h = s.offsetHeight || 34;
-      const sorted = [...lines].sort((a,b)=>a.y-b.y);
-      const target = sorted.find(l => y < l.y) || sorted[sorted.length-1];
-      s.style.top = (target.y - h/2) + "px";
+    state.symbols.push({
+      text: selectedSymbol,
+      x,
+      y: target.y - 17
     });
-
-    history.push(() => canvas.removeChild(s));
-
-    s.addEventListener("touchstart", ev => {
-      if (tool !== "select") return;
-      activeSymbol = s;
-      ev.stopPropagation();
-    }, { passive:false });
-
-    s.addEventListener("touchmove", ev => {
-      if (tool !== "select" || activeSymbol !== s) return;
-      const rr = canvas.getBoundingClientRect();
-      s.style.left = (ev.touches[0].clientX - rr.left) + "px";
-      ev.preventDefault();
-    }, { passive:false });
-
-    s.addEventListener("touchend", () => activeSymbol = null);
+    save(); redraw();
   }
 }, { passive:false });
 
-/* ===== RETOUR ===== */
-undo.onclick = () => {
-  const a = history.pop();
-  if (a) a();
+/* ==== TITRE ==== */
+titleInput.addEventListener("input", () => {
+  state.title = titleInput.value;
+  save();
+});
+
+/* ==== EFFACER ==== */
+clear.onclick = () => {
+  if (!confirm("Tout effacer ?")) return;
+  localStorage.removeItem("tablature");
+  location.reload();
 };
+
+/* ==== CHARGEMENT ==== */
+load();
 </script>
 
 </body>
