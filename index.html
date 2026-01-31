@@ -16,6 +16,7 @@ html, body {
   touch-action: none;
 }
 
+/* ===== BARRE D’OUTILS ===== */
 #toolbar {
   display: flex;
   gap: 8px;
@@ -36,11 +37,13 @@ button.active {
   color: white;
 }
 
+/* ===== ZONE DE PORTÉE ===== */
 #canvas {
   position: relative;
   height: 65vh;
 }
 
+/* ===== LIGNES ===== */
 .line {
   position: absolute;
   left: 5%;
@@ -49,24 +52,27 @@ button.active {
 }
 
 .line.black { background: black; }
-.line.white { background: transparent; }
+.line.white { background: transparent; } /* invisible mais active */
 
+/* ===== SYMBOLes SUR PORTÉE ===== */
 .symbol {
   position: absolute;
-  font-size: 24px;        /* 🔑 TAILLE AUGMENTÉE */
+  font-size: 32px;        /* 🔥 GROS, LISIBLE */
   line-height: 1;
   user-select: none;
   white-space: nowrap;
   touch-action: none;
 }
 
+/* ===== BARRES VERTICALES ===== */
 .bar {
   position: absolute;
-  width: 2px;
+  width: 3px;             /* un peu plus visible */
   background: black;
   touch-action: none;
 }
 
+/* ===== PALETTE ===== */
 #palette {
   height: 35vh;
   border-top: 1px solid black;
@@ -77,9 +83,9 @@ button.active {
 
 .palette-item {
   border: 1px solid black;
-  padding: 8px;
+  padding: 10px;
   margin: 4px;
-  font-size: 22px;        /* 🔑 PALETTE AGRANDIE */
+  font-size: 28px;        /* 🔥 palette bien grosse */
 }
 </style>
 </head>
@@ -111,11 +117,11 @@ let tool = "place";
 let selectedSymbol = null;
 let activeBar = null;
 
-const LINE_SPACING = 30;     // 🔑 ESPACEMENT
+const LINE_SPACING = 30;     // espacement resserré
 const history = [];
 const allLines = [];
 
-// ===== outils =====
+/* ===== OUTILS ===== */
 function setTool(t) {
   tool = t;
   toolPlace.classList.toggle("active", t === "place");
@@ -124,7 +130,7 @@ function setTool(t) {
 toolPlace.onclick = () => setTool("place");
 toolSelect.onclick = () => setTool("select");
 
-// ===== lignes =====
+/* ===== LIGNES ===== */
 function addLine(type) {
   const y = 60 + allLines.length * LINE_SPACING;
   const line = document.createElement("div");
@@ -136,13 +142,13 @@ function addLine(type) {
   history.push(() => canvas.removeChild(line));
 }
 
-// 6 lignes initiales
+/* 6 lignes noires initiales */
 for (let i = 0; i < 6; i++) addLine("black");
 
 addBlack.onclick = () => addLine("black");
 addWhite.onclick = () => addLine("white");
 
-// ===== barre verticale =====
+/* ===== BARRE VERTICALE ===== */
 addBar.onclick = () => {
   const sorted = [...allLines].sort((a, b) => a.y - b.y);
   const top = sorted[0].y;
@@ -170,18 +176,16 @@ addBar.onclick = () => {
     e.preventDefault();
   }, { passive: false });
 
-  bar.addEventListener("touchend", () => {
-    activeBar = null;
-  });
+  bar.addEventListener("touchend", () => activeBar = null);
 };
 
-// ===== retour =====
+/* ===== RETOUR ===== */
 undo.onclick = () => {
   const a = history.pop();
   if (a) a();
 };
 
-// ===== palette =====
+/* ===== PALETTE ===== */
 [
   "a","b","c","d","e","f","g","h","j","k",
   "/a","//a","///a",
@@ -194,7 +198,7 @@ undo.onclick = () => {
   palette.appendChild(el);
 });
 
-// ===== placement =====
+/* ===== PLACEMENT DES SYMBOLes ===== */
 canvas.addEventListener("touchstart", e => {
   if (tool !== "place" || !selectedSymbol) return;
 
@@ -209,7 +213,7 @@ canvas.addEventListener("touchstart", e => {
   canvas.appendChild(s);
 
   requestAnimationFrame(() => {
-    const h = s.offsetHeight || 24;
+    const h = s.offsetHeight || 32;
     const sorted = [...allLines].sort((a, b) => a.y - b.y);
 
     let target = null;
@@ -225,11 +229,6 @@ canvas.addEventListener("touchstart", e => {
   });
 
   history.push(() => canvas.removeChild(s));
-
-  s.addEventListener("touchstart", ev => {
-    if (tool !== "select") return;
-    ev.stopPropagation();
-  }, { passive: false });
 
   s.addEventListener("touchmove", ev => {
     if (tool !== "select") return;
