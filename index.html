@@ -25,6 +25,15 @@ html, body {
 
 button {
   font-size: 14px;
+  padding: 6px 10px;
+  border: 1px solid black;
+  background: white;
+  color: black;
+}
+
+button.active {
+  background: black;
+  color: white;
 }
 
 #canvas {
@@ -73,7 +82,7 @@ button {
 <body>
 
 <div id="toolbar">
-  <button id="toolPlace">✍️ Placer</button>
+  <button id="toolPlace" class="active">✍️ Placer</button>
   <button id="toolSelect">🖐 Sélection</button>
   <button id="undo">↩︎ Retour</button>
   <button id="addLine">➕ Ligne</button>
@@ -90,24 +99,34 @@ document.addEventListener('touchmove', e => e.preventDefault(), { passive: false
 const canvas = document.getElementById("canvas");
 const palette = document.getElementById("palette");
 
+const btnPlace = document.getElementById("toolPlace");
+const btnSelect = document.getElementById("toolSelect");
+
 let tool = "place";
 let selectedSymbol = null;
 
 const LINE_SPACING = 40;
 const WRITE_OFFSET = 18;
 const lines = [];
-const history = []; // pile d'annulation
+const history = [];
+
+// ======== gestion état boutons ========
+function setTool(t) {
+  tool = t;
+  btnPlace.classList.toggle("active", t === "place");
+  btnSelect.classList.toggle("active", t === "select");
+}
+
+btnPlace.onclick = () => setTool("place");
+btnSelect.onclick = () => setTool("select");
 
 // ================= LIGNES =================
 function addLine(record = true) {
-  const index = lines.length;
-  const y = 50 + index * LINE_SPACING;
-
+  const y = 50 + lines.length * LINE_SPACING;
   const line = document.createElement("div");
   line.className = "line";
   line.style.top = y + "px";
   canvas.appendChild(line);
-
   lines.push({ y, el: line });
 
   if (record) {
@@ -119,9 +138,6 @@ function addLine(record = true) {
 }
 for (let i = 0; i < 6; i++) addLine(false);
 
-// ================= OUTILS =================
-document.getElementById("toolPlace").onclick = () => tool = "place";
-document.getElementById("toolSelect").onclick = () => tool = "select";
 document.getElementById("addLine").onclick = () => addLine(true);
 
 // ================= RETOUR =================
