@@ -15,38 +15,47 @@ user-scalable=no">
 <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English&display=swap" rel="stylesheet">
 
 <style>
-* {
-  touch-action: manipulation; /* 🔑 empêche le zoom */
-}
-
-html, body {
+/* ===== BLOQUAGE ZOOM iOS (HORS TITRE) ===== */
+body {
   margin: 0;
   padding: 0;
   height: 100%;
   background: white;
   font-family: "IM Fell English", serif;
   overflow: hidden;
+  -webkit-text-size-adjust: 100%;
 }
 
-/* ===== TITRE ===== */
+/* tout sauf le titre */
+#canvas, #toolbar, #palette {
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ===== TITRE (ZONE TEXTE NORMALE) ===== */
 #title {
   width: 100%;
+  box-sizing: border-box;
   text-align: center;
   font-size: 34px;
   padding: 12px 0;
   border: none;
   outline: none;
   font-family: "IM Fell English", serif;
-  touch-action: auto; /* clavier autorisé */
+  touch-action: auto;          /* 🔑 autorise clavier */
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 /* ===== BARRE OUTILS ===== */
 #toolbar {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   padding: 6px;
   border-top: 1px solid black;
   border-bottom: 1px solid black;
+  flex-wrap: wrap;
 }
 
 button {
@@ -54,11 +63,6 @@ button {
   padding: 6px 10px;
   border: 1px solid black;
   background: white;
-}
-
-button.active {
-  background: black;
-  color: white;
 }
 
 /* ===== CANVAS ===== */
@@ -73,9 +77,8 @@ button.active {
   left: 5%;
   right: 5%;
   height: 2px;
+  background: black;
 }
-.line.black { background: black; }
-.line.white { background: transparent; }
 
 /* ===== SYMBOLES ===== */
 .symbol {
@@ -83,14 +86,16 @@ button.active {
   font-size: 34px;
   line-height: 1;
   white-space: nowrap;
-  user-select: none;
+  pointer-events: auto;
 }
 
-/* ===== BARRES ===== */
+/* ===== BARRE LIBRE ===== */
 .bar {
   position: absolute;
   width: 3px;
+  height: 150px;
   background: black;
+  pointer-events: auto;
 }
 
 /* ===== PALETTE ===== */
@@ -113,14 +118,12 @@ button.active {
 
 <body>
 
+<!-- TITRE : CLIQUE ICI POUR CLAVIER -->
 <input id="title" placeholder="Titre du morceau">
 
 <div id="toolbar">
-  <button id="toolPlace" class="active">✍️ Placer</button>
+  <button id="toolPlace">✍️ Placer</button>
   <button id="toolSelect">🖐 Sélection</button>
-  <button id="clear">🗑 Effacer</button>
-  <button id="addBlack">➕ Ligne noire</button>
-  <button id="addWhite">➕ Ligne blanche</button>
   <button id="addBar">➕ Barre</button>
 </div>
 
@@ -128,163 +131,98 @@ button.active {
 <div id="palette"></div>
 
 <script>
-/* ==== BLOQUE ZOOM DOUBLE TAP iOS ==== */
-let lastTouchEnd = 0;
-document.addEventListener("touchend", e => {
-  const now = Date.now();
-  if (now - lastTouchEnd <= 300) e.preventDefault();
-  lastTouchEnd = now;
-}, { passive:false });
+/* ===== BLOQUE ZOOM iOS DEFINITIF ===== */
+["gesturestart","gesturechange","gestureend","dblclick"].forEach(ev => {
+  document.addEventListener(ev, e => e.preventDefault(), { passive:false });
+});
 
-/* ==== VARIABLES ==== */
+/* ===== VARIABLES ===== */
 const canvas = document.getElementById("canvas");
-const titleInput = document.getElementById("title");
+const palette = document.getElementById("palette");
 
 let tool = "place";
-let selectedSymbol = null;
-let activeSymbol = null;
-let activeBar = null;
+let selectedSymbol = "a";
+let activeElement = null;
 let placingBar = false;
 
-const LINE_SPACING = 30;
-const BAR_HEIGHT = 5 * LINE_SPACING;
+/* ===== OUTILS ===== */
+toolPlace.onclick = () => tool = "place";
+toolSelect.onclick = () => tool = "select";
 
-let state = {
-  title: "",
-  lines: [],
-  symbols: [],
-  bars: []
-};
-
-/* ==== OUTILS ==== */
-toolPlace.onclick = () => setTool("place");
-toolSelect.onclick = () => setTool("select");
-
-function setTool(t) {
-  tool = t;
-  toolPlace.classList.toggle("active", t === "place");
-  toolSelect.classList.toggle("active", t === "select");
-}
-
-/* ==== SAUVEGARDE ==== */
-function save() {
-  localStorage.setItem("tablature", JSON.stringify(state));
-}
-
-function load() {
-  const data = localStorage.getItem("tablature");
-  if (!data) return;
-  state = JSON.parse(data);
-  redraw();
-}
-
-/* ==== REDESSIN ==== */
-function redraw() {
-  canvas.innerHTML = "";
-  titleInput.value = state.title;
-
-  state.lines.forEach(l => drawLine(l.type, l.y));
-  state.symbols.forEach(s => drawSymbol(s));
-  state.bars.forEach(b => drawBar(b.x));
-}
-
-/* ==== LIGNES ==== */
-function drawLine(type, y) {
-  const line = document.createElement("div");
-  line.className = "line " + type;
-  line.style.top = y + "px";
-  canvas.appendChild(line);
-}
-
-function addLine(type) {
-  const y = 80 + state.lines.length * LINE_SPACING;
-  state.lines.push({ type, y });
-  save();
-  redraw();
-}
-
-for (let i = 0; i < 6; i++) addLine("black");
-
-addBlack.onclick = () => addLine("black");
-addWhite.onclick = () => addLine("white");
-
-/* ==== BARRES ==== */
-function drawBar(x) {
-  const bar = document.createElement("div");
-  bar.className = "bar";
-  bar.style.left = x + "px";
-  bar.style.top = state.lines[0].y + "px";
-  bar.style.height = BAR_HEIGHT + "px";
-  canvas.appendChild(bar);
-}
-
-addBar.onclick = () => placingBar = true;
-
-/* ==== SYMBOLes ==== */
-function drawSymbol(s) {
-  const el = document.createElement("div");
-  el.className = "symbol";
-  el.textContent = s.text;
-  el.style.left = s.x + "px";
-  el.style.top = s.y + "px";
-  canvas.appendChild(el);
-}
-
-/* ==== PALETTE ==== */
-[
-  "a","b","c","d","e","f","g","h","j","k",
-  "/a","//a","///a","1","2","3","4","5","6","7"
-].forEach(t => {
+/* ===== PALETTE ===== */
+["a","b","c","d","e","f","g","/a","//a","1","2","3"].forEach(s => {
   const el = document.createElement("div");
   el.className = "palette-item";
-  el.textContent = t;
-  el.onclick = () => selectedSymbol = t;
+  el.textContent = s;
+  el.onclick = () => selectedSymbol = s;
   palette.appendChild(el);
 });
 
-/* ==== INTERACTIONS ==== */
-canvas.addEventListener("touchstart", e => {
-  if (e.target === titleInput) return;
+/* ===== BARRE ===== */
+addBar.onclick = () => {
+  placingBar = true;
+  tool = "select";
+};
 
+/* ===== INTERACTIONS CANVAS ===== */
+canvas.addEventListener("touchstart", e => {
   const r = canvas.getBoundingClientRect();
   const x = e.touches[0].clientX - r.left;
   const y = e.touches[0].clientY - r.top;
 
+  /* placer barre */
   if (placingBar) {
     placingBar = false;
-    state.bars.push({ x });
-    save(); redraw();
+    const bar = document.createElement("div");
+    bar.className = "bar";
+    bar.style.left = x + "px";
+    bar.style.top = y + "px";
+    canvas.appendChild(bar);
+
+    bar.addEventListener("touchstart", ev => {
+      if (tool !== "select") return;
+      activeElement = bar;
+      ev.stopPropagation();
+    }, { passive:false });
+
+    bar.addEventListener("touchmove", ev => {
+      if (tool !== "select" || activeElement !== bar) return;
+      const rr = canvas.getBoundingClientRect();
+      bar.style.left = (ev.touches[0].clientX - rr.left) + "px";
+      bar.style.top = (ev.touches[0].clientY - rr.top) + "px";
+      ev.preventDefault();
+    }, { passive:false });
+
+    bar.addEventListener("touchend", () => activeElement = null);
     return;
   }
 
-  if (tool === "place" && selectedSymbol) {
-    const linesSorted = [...state.lines].sort((a,b)=>a.y-b.y);
-    const target = linesSorted.find(l => y < l.y) || linesSorted.at(-1);
+  /* placer symbole */
+  if (tool === "place") {
+    const s = document.createElement("div");
+    s.className = "symbol";
+    s.textContent = selectedSymbol;
+    s.style.left = x + "px";
+    s.style.top = y + "px";
+    canvas.appendChild(s);
 
-    state.symbols.push({
-      text: selectedSymbol,
-      x,
-      y: target.y - 17
-    });
-    save(); redraw();
+    s.addEventListener("touchstart", ev => {
+      if (tool !== "select") return;
+      activeElement = s;
+      ev.stopPropagation();
+    }, { passive:false });
+
+    s.addEventListener("touchmove", ev => {
+      if (tool !== "select" || activeElement !== s) return;
+      const rr = canvas.getBoundingClientRect();
+      s.style.left = (ev.touches[0].clientX - rr.left) + "px";
+      s.style.top = (ev.touches[0].clientY - rr.top) + "px";
+      ev.preventDefault();
+    }, { passive:false });
+
+    s.addEventListener("touchend", () => activeElement = null);
   }
 }, { passive:false });
-
-/* ==== TITRE ==== */
-titleInput.addEventListener("input", () => {
-  state.title = titleInput.value;
-  save();
-});
-
-/* ==== EFFACER ==== */
-clear.onclick = () => {
-  if (!confirm("Tout effacer ?")) return;
-  localStorage.removeItem("tablature");
-  location.reload();
-};
-
-/* ==== CHARGEMENT ==== */
-load();
 </script>
 
 </body>
