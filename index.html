@@ -345,8 +345,18 @@ function setTool(t){
   toolPlace.classList.toggle("active",t==="place");
   toolSelect.classList.toggle("active",t==="select");
 }
+
 toolPlace.onclick=()=>setTool("place");
-toolSelect.onclick=()=>setTool("select");
+
+/* === MODIF 1 : Sélection = toggle de désélection === */
+toolSelect.onclick=()=>{
+  if(tool==="select" && selectedElement){
+    selectedElement.classList.remove("selected");
+    selectedElement=null;
+    return;
+  }
+  setTool("select");
+};
 
 toggleSnap.onclick=()=>{
   snap=!snap;
@@ -457,6 +467,7 @@ function makeDraggable(el){
 
 /* ================= DELETE / CLEAR ================= */
 deleteBtn.onclick=()=>{
+  setTool("select");           // === MODIF 2 ===
   if(!selectedElement) return;
   pushUndo();
   selectedElement.remove();
@@ -501,7 +512,7 @@ document.getElementById("scrollDown").onclick=()=>canvasWrapper.scrollTop+=100;
   palette.appendChild(p);
 });
 
-/* === CUSTOM CHARACTER INPUT (AJOUT DEMANDÉ) === */
+/* === CUSTOM CHARACTER INPUT === */
 const customInput=document.createElement("input");
 customInput.id="customChar";
 customInput.placeholder="✱";
