@@ -196,7 +196,7 @@ button.active{
 <button id="showUIBtn">⬅︎</button>
 
 <script>
-/* ===== DOM REFERENCES (CRUCIAL) ===== */
+/* ===== DOM REFERENCES ===== */
 const toolbar = document.getElementById("toolbar");
 const palette = document.getElementById("palette");
 const scrollButtons = document.getElementById("scroll-buttons");
@@ -214,14 +214,12 @@ toggleUI.onclick=()=>{
   palette.style.display="none";
   scrollButtons.style.display="none";
   showUIBtn.style.display="block";
-  uiHidden=true;
 };
 showUIBtn.onclick=()=>{
   toolbar.style.display="";
   palette.style.display="";
   scrollButtons.style.display="";
   showUIBtn.style.display="none";
-  uiHidden=false;
 };
 
 /* ===== BACKGROUND ===== */
@@ -255,14 +253,32 @@ function setTool(t){
   toolSelect.classList.toggle("active",t==="select");
 }
 
-/* ===== UNDO / DELETE ===== */
-undo.onclick=()=>{const el=history.pop();if(el){el.remove();saveState();}};
+/* ===== UNDO / DELETE (FIXED) ===== */
+undo.onclick = () => {
+  const el = history.pop();
+  if (!el) return;
+
+  if (el.classList.contains("line")) {
+    const top = parseFloat(el.style.top);
+    const idx = lines.lastIndexOf(top);
+    if (idx !== -1) lines.splice(idx, 1);
+    currentY -= LINE_SPACING;
+  }
+
+  el.remove();
+  saveState();
+};
+
 deleteBtn.onclick=()=>{if(selectedElement){selectedElement.remove();selectedElement=null;saveState();}};
 clearAllBtn.onclick=()=>{
   if(!confirm("Tout effacer ?"))return;
-  canvas.innerHTML="";localStorage.removeItem("tablature_state");
-  lines.length=0;history.length=0;currentY=40;
-  createInitialStructure();saveState();
+  canvas.innerHTML="";
+  localStorage.removeItem("tablature_state");
+  lines.length=0;
+  history.length=0;
+  currentY=40;
+  createInitialStructure();
+  saveState();
 };
 
 /* ===== SCROLL ===== */
@@ -275,8 +291,10 @@ function addLine(type){
   l.className="line "+type;
   l.style.top=currentY+"px";
   canvas.appendChild(l);
-  history.push(l);lines.push(currentY);
-  currentY+=LINE_SPACING;saveState();
+  history.push(l);
+  lines.push(currentY);
+  currentY+=LINE_SPACING;
+  saveState();
 }
 addBlackLine.onclick=()=>addLine("black");
 addWhiteLine.onclick=()=>addLine("white");
@@ -416,7 +434,7 @@ function restoreState(){
 }
 restoreState();
 
-/* ===== PDF (HD, COMME AVANT) ===== */
+/* ===== PDF ===== */
 exportPDF.onclick=async()=>{
   saveState();
   canvasWrapper.scrollTop=0;
