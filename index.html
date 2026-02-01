@@ -194,32 +194,28 @@ button.active{
 <button id="showUIBtn">⬅︎</button>
 
 <script>
-/* ============================================================
-   DOM
-============================================================ */
-const toolbar = document.getElementById("toolbar");
-const palette = document.getElementById("palette");
-const scrollButtons = document.getElementById("scroll-buttons");
-const showUIBtn = document.getElementById("showUIBtn");
-const toggleUI = document.getElementById("toggleUI");
-const canvasWrapper = document.getElementById("canvas-wrapper");
-const canvas = document.getElementById("canvas");
-const printTitle = document.getElementById("print-title");
-const bgColor = document.getElementById("bgColor");
-const toolPlace = document.getElementById("toolPlace");
-const toolSelect = document.getElementById("toolSelect");
-const undoBtn = document.getElementById("undo");
-const deleteBtn = document.getElementById("deleteBtn");
-const clearAllBtn = document.getElementById("clearAllBtn");
-const addBlackLine = document.getElementById("addBlackLine");
-const addWhiteLine = document.getElementById("addWhiteLine");
-const addBar = document.getElementById("addBar");
-const toggleSnap = document.getElementById("toggleSnap");
-const editTitle = document.getElementById("editTitle");
+/* ================= DOM ================= */
+const toolbar=document.getElementById("toolbar");
+const palette=document.getElementById("palette");
+const scrollButtons=document.getElementById("scroll-buttons");
+const showUIBtn=document.getElementById("showUIBtn");
+const toggleUI=document.getElementById("toggleUI");
+const canvasWrapper=document.getElementById("canvas-wrapper");
+const canvas=document.getElementById("canvas");
+const printTitle=document.getElementById("print-title");
+const bgColor=document.getElementById("bgColor");
+const toolPlace=document.getElementById("toolPlace");
+const toolSelect=document.getElementById("toolSelect");
+const undoBtn=document.getElementById("undo");
+const deleteBtn=document.getElementById("deleteBtn");
+const clearAllBtn=document.getElementById("clearAllBtn");
+const addBlackLine=document.getElementById("addBlackLine");
+const addWhiteLine=document.getElementById("addWhiteLine");
+const addBar=document.getElementById("addBar");
+const toggleSnap=document.getElementById("toggleSnap");
+const editTitle=document.getElementById("editTitle");
 
-/* ============================================================
-   UI VISIBILITY (GOLD)
-============================================================ */
+/* ================= UI VISIBILITY ================= */
 toggleUI.onclick=()=>{
   toolbar.style.display="none";
   palette.style.display="none";
@@ -233,24 +229,24 @@ showUIBtn.onclick=()=>{
   showUIBtn.style.display="none";
 };
 
-/* ============================================================
-   BACKGROUND (GOLD)
-============================================================ */
+/* ================= BACKGROUND ================= */
 function applyBg(c){
   document.body.style.background=c;
   canvasWrapper.style.background=c;
   canvas.style.background=c;
 }
 const savedBg=localStorage.getItem("bg_color");
-if(savedBg){ bgColor.value=savedBg; applyBg(savedBg); }
+if(savedBg){
+  bgColor.value=savedBg;
+  applyBg(savedBg);
+}
 bgColor.oninput=()=>{
   applyBg(bgColor.value);
   localStorage.setItem("bg_color",bgColor.value);
+  saveState();
 };
 
-/* ============================================================
-   STATE
-============================================================ */
+/* ================= STATE ================= */
 let tool="place", snap=true, placingBar=false;
 let selected="a", selectedElement=null, active=null;
 let currentY=40;
@@ -261,8 +257,8 @@ const lines=[];
 const undoStack=[];
 const MAX_UNDO=40;
 
-function pushUndo(){
-  undoStack.push(JSON.stringify({
+function serializeState(){
+  return JSON.stringify({
     title:printTitle.textContent,
     bg:bgColor.value,
     elements:[...canvas.children].map(el=>({
@@ -272,17 +268,35 @@ function pushUndo(){
       top:el.style.top,
       height:el.style.height||""
     }))
-  }));
+  });
+}
+
+function pushUndo(){
+  undoStack.push(serializeState());
   if(undoStack.length>MAX_UNDO) undoStack.shift();
 }
 
-function restoreUndo(state){
-  const s=JSON.parse(state);
+undoBtn.onclick=()=>{
+  if(!undoStack.length) return;
+  restoreState(undoStack.pop(),false);
+};
+
+/* ================= PERSISTENCE ================= */
+function saveState(){
+  localStorage.setItem("tablature_state",serializeState());
+}
+
+function restoreState(raw,save=true){
+  const s=typeof raw==="string"?JSON.parse(raw):raw;
   canvas.innerHTML="";
   lines.length=0;
   currentY=40;
+
   printTitle.textContent=s.title||"";
-  if(s.bg){ bgColor.value=s.bg; applyBg(s.bg); }
+  if(s.bg){
+    bgColor.value=s.bg;
+    applyBg(s.bg);
+  }
 
   s.elements.forEach(e=>{
     const el=document.createElement("div");
@@ -301,26 +315,30 @@ function restoreUndo(state){
       makeDraggable(el);
     }
   });
+
+  if(save) saveState();
 }
 
-undoBtn.onclick=()=>{
-  if(undoStack.length===0) return;
-  restoreUndo(undoStack.pop());
-};
+function restoreFromStorage(){
+  const raw=localStorage.getItem("tablature_state");
+  if(raw){
+    restoreState(raw,false);
+  }else{
+    createInitialStructure();
+    saveState();
+  }
+}
 
-/* ============================================================
-   TITLE EDIT (AJOUT DEMANDÉ)
-============================================================ */
+/* ================= TITLE ================= */
 editTitle.onclick=()=>{
-  const t = prompt("Titre du morceau :", printTitle.textContent || "");
+  const t=prompt("Titre du morceau :",printTitle.textContent||"");
   if(t===null) return;
   pushUndo();
-  printTitle.textContent = t.trim();
+  printTitle.textContent=t.trim();
+  saveState();
 };
 
-/* ============================================================
-   TOOLS
-============================================================ */
+/* ================= TOOLS ================= */
 function setTool(t){
   tool=t;
   toolPlace.classList.toggle("active",t==="place");
@@ -334,9 +352,7 @@ toggleSnap.onclick=()=>{
   toggleSnap.classList.toggle("active",snap);
 };
 
-/* ============================================================
-   STRUCTURE INIT
-============================================================ */
+/* ================= STRUCTURE ================= */
 function addLine(type){
   const l=document.createElement("div");
   l.className="line "+type;
@@ -356,66 +372,45 @@ function createInitialStructure(){
 addBlackLine.onclick=()=>{
   pushUndo();
   addLine("black");
+  saveState();
 };
 addWhiteLine.onclick=()=>{
   pushUndo();
   addLine("white");
+  saveState();
 };
 
-/* ============================================================
-   PALETTE
-============================================================ */
-[
- "a","b","c","d","e","f","g","h","j","k",
- "l","m","n",
- "/a","//a","///a","4","5","6",
- ",",".",":",";","(",")","[","]","~","⌒","|"
-].forEach(s=>{
-  const p=document.createElement("div");
-  p.className="palette-item";
-  p.textContent=s;
-  p.onclick=()=>{
-    selected=s;
-    setTool("place");
-  };
-  palette.appendChild(p);
-});
-
-/* ============================================================
-   SNAP
-============================================================ */
+/* ================= SNAP ================= */
 function nearestLine(y){
   return lines.reduce((a,b)=>Math.abs(b-y)<Math.abs(a-y)?b:a);
 }
 function snapY(y,s){
-  if(!snap || lines.length===0) return y;
+  if(!snap||!lines.length) return y;
   const b=nearestLine(y);
   if(s.startsWith("///")) return b+LINE_SPACING*0.55;
-  if(s.startsWith("//"))  return b+LINE_SPACING*0.40;
-  if(s.startsWith("/"))   return b+LINE_SPACING*0.25;
+  if(s.startsWith("//")) return b+LINE_SPACING*0.40;
+  if(s.startsWith("/")) return b+LINE_SPACING*0.25;
   return b+LINE_SPACING*0.15;
 }
 
-/* ============================================================
-   INTERACTION
-============================================================ */
+/* ================= INTERACTION ================= */
 canvas.addEventListener("touchstart",e=>{
   const r=canvas.getBoundingClientRect();
   const x=e.touches[0].clientX-r.left;
-  const y=e.touches[0].clientY-r.top - 8;
+  const y=e.touches[0].clientY-r.top-8;
 
   pushUndo();
 
   if(placingBar){
     placingBar=false;
-    const top=nearestLine(y);
     const b=document.createElement("div");
     b.className="bar";
     b.style.left=x+"px";
-    b.style.top=top+"px";
+    b.style.top=nearestLine(y)+"px";
     b.style.height=(5*LINE_SPACING)+"px";
     canvas.appendChild(b);
     makeDraggable(b);
+    saveState();
     return;
   }
 
@@ -427,12 +422,11 @@ canvas.addEventListener("touchstart",e=>{
     s.style.top=snapY(y,selected)+"px";
     canvas.appendChild(s);
     makeDraggable(s);
+    saveState();
   }
 },{passive:false});
 
-/* ============================================================
-   DRAG / SELECT
-============================================================ */
+/* ================= DRAG ================= */
 function makeDraggable(el){
   el.addEventListener("touchstart",e=>{
     if(tool!=="select") return;
@@ -454,17 +448,19 @@ function makeDraggable(el){
     e.preventDefault();
   },{passive:false});
 
-  el.addEventListener("touchend",()=>active=null);
+  el.addEventListener("touchend",()=>{
+    active=null;
+    saveState();
+  });
 }
 
-/* ============================================================
-   DELETE / CLEAR
-============================================================ */
+/* ================= DELETE / CLEAR ================= */
 deleteBtn.onclick=()=>{
   if(!selectedElement) return;
   pushUndo();
   selectedElement.remove();
   selectedElement=null;
+  saveState();
 };
 
 clearAllBtn.onclick=()=>{
@@ -474,30 +470,21 @@ clearAllBtn.onclick=()=>{
   lines.length=0;
   currentY=40;
   createInitialStructure();
+  saveState();
 };
 
-/* ============================================================
-   BAR BUTTON
-============================================================ */
+/* ================= BAR ================= */
 addBar.onclick=()=>{
   placingBar=true;
   setTool("place");
 };
 
-/* ============================================================
-   SCROLL BUTTONS
-============================================================ */
-document.getElementById("scrollUp").onclick=()=>{
-  canvasWrapper.scrollTop-=100;
-};
-document.getElementById("scrollDown").onclick=()=>{
-  canvasWrapper.scrollTop+=100;
-};
+/* ================= SCROLL ================= */
+document.getElementById("scrollUp").onclick=()=>canvasWrapper.scrollTop-=100;
+document.getElementById("scrollDown").onclick=()=>canvasWrapper.scrollTop+=100;
 
-/* ============================================================
-   INIT
-============================================================ */
-createInitialStructure();
+/* ================= INIT ================= */
+restoreFromStorage();
 pushUndo();
 </script>
 
