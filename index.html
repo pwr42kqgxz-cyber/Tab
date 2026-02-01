@@ -147,6 +147,17 @@ button.active{
   text-align:center;
   border:1px solid black;
 }
+
+/* ===== SCROLL ===== */
+#scroll-buttons{
+  position:fixed;
+  right:8px;
+  bottom:130px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  z-index:10;
+}
 </style>
 </head>
 
@@ -164,6 +175,7 @@ button.active{
   <button id="addBar">+ Barre</button>
   <button id="toggleSnap" class="active">Accroché</button>
   <input type="color" id="bgColor">
+  <button id="toggleUI">👁</button>
   <button id="exportPDF">PDF</button>
 </div>
 
@@ -174,10 +186,26 @@ button.active{
 
 <div id="palette"></div>
 
+<div id="scroll-buttons">
+  <button id="scrollUp">⬆</button>
+  <button id="scrollDown">⬇</button>
+</div>
+
+<button id="showUIBtn">⬅︎</button>
+
 <script>
-/* ================= DOM ================= */
+/* ============================================================
+   DOM
+============================================================ */
+const toolbar = document.getElementById("toolbar");
+const palette = document.getElementById("palette");
+const scrollButtons = document.getElementById("scroll-buttons");
+const showUIBtn = document.getElementById("showUIBtn");
+const toggleUI = document.getElementById("toggleUI");
+const canvasWrapper = document.getElementById("canvas-wrapper");
 const canvas = document.getElementById("canvas");
 const printTitle = document.getElementById("print-title");
+const bgColor = document.getElementById("bgColor");
 const toolPlace = document.getElementById("toolPlace");
 const toolSelect = document.getElementById("toolSelect");
 const undoBtn = document.getElementById("undo");
@@ -188,20 +216,54 @@ const addWhiteLine = document.getElementById("addWhiteLine");
 const addBar = document.getElementById("addBar");
 const toggleSnap = document.getElementById("toggleSnap");
 
-/* ================= STATE ================= */
+/* ============================================================
+   UI VISIBILITY (GOLD)
+============================================================ */
+toggleUI.onclick=()=>{
+  toolbar.style.display="none";
+  palette.style.display="none";
+  scrollButtons.style.display="none";
+  showUIBtn.style.display="block";
+};
+showUIBtn.onclick=()=>{
+  toolbar.style.display="";
+  palette.style.display="";
+  scrollButtons.style.display="";
+  showUIBtn.style.display="none";
+};
+
+/* ============================================================
+   BACKGROUND (GOLD)
+============================================================ */
+function applyBg(c){
+  document.body.style.background=c;
+  canvasWrapper.style.background=c;
+  canvas.style.background=c;
+}
+const savedBg=localStorage.getItem("bg_color");
+if(savedBg){ bgColor.value=savedBg; applyBg(savedBg); }
+bgColor.oninput=()=>{
+  applyBg(bgColor.value);
+  localStorage.setItem("bg_color",bgColor.value);
+};
+
+/* ============================================================
+   STATE
+============================================================ */
 let tool="place", snap=true, placingBar=false;
 let selected="a", selectedElement=null, active=null;
 let currentY=40;
 const LINE_SPACING=28;
 const lines=[];
 
-/* ================= UNDO ================= */
+/* ================= UNDO (AJOUT UNIQUE) ================= */
 const undoStack=[];
-const MAX_UNDO=30;
+const MAX_UNDO=40;
 
 function pushUndo(){
   undoStack.push(JSON.stringify({
     title:printTitle.textContent,
+    bg:bgColor.value,
     elements:[...canvas.children].map(el=>({
       class:el.className,
       text:el.textContent||"",
@@ -219,6 +281,7 @@ function restoreUndo(state){
   lines.length=0;
   currentY=40;
   printTitle.textContent=s.title||"";
+  if(s.bg){ bgColor.value=s.bg; applyBg(s.bg); }
 
   s.elements.forEach(e=>{
     const el=document.createElement("div");
@@ -244,7 +307,25 @@ undoBtn.onclick=()=>{
   restoreUndo(undoStack.pop());
 };
 
-/* ================= STRUCTURE INIT ================= */
+/* ============================================================
+   TOOLS
+============================================================ */
+function setTool(t){
+  tool=t;
+  toolPlace.classList.toggle("active",t==="place");
+  toolSelect.classList.toggle("active",t==="select");
+}
+toolPlace.onclick=()=>setTool("place");
+toolSelect.onclick=()=>setTool("select");
+
+toggleSnap.onclick=()=>{
+  snap=!snap;
+  toggleSnap.classList.toggle("active",snap);
+};
+
+/* ============================================================
+   STRUCTURE INIT (GOLD)
+============================================================ */
 function addLine(type){
   const l=document.createElement("div");
   l.className="line "+type;
@@ -261,15 +342,18 @@ function createInitialStructure(){
   }
 }
 
-/* ================= TOOLS ================= */
-toolPlace.onclick=()=>tool="place";
-toolSelect.onclick=()=>tool="select";
-toggleSnap.onclick=()=>{
-  snap=!snap;
-  toggleSnap.classList.toggle("active",snap);
+addBlackLine.onclick=()=>{
+  pushUndo();
+  addLine("black");
+};
+addWhiteLine.onclick=()=>{
+  pushUndo();
+  addLine("white");
 };
 
-/* ================= PALETTE ================= */
+/* ============================================================
+   PALETTE (GOLD)
+============================================================ */
 [
  "a","b","c","d","e","f","g","h","j","k",
  "l","m","n",
@@ -279,11 +363,16 @@ toggleSnap.onclick=()=>{
   const p=document.createElement("div");
   p.className="palette-item";
   p.textContent=s;
-  p.onclick=()=>{selected=s; tool="place";};
-  document.getElementById("palette").appendChild(p);
+  p.onclick=()=>{
+    selected=s;
+    setTool("place");
+  };
+  palette.appendChild(p);
 });
 
-/* ================= SNAP ================= */
+/* ============================================================
+   SNAP (GOLD)
+============================================================ */
 function nearestLine(y){
   return lines.reduce((a,b)=>Math.abs(b-y)<Math.abs(a-y)?b:a);
 }
@@ -296,11 +385,13 @@ function snapY(y,s){
   return b+LINE_SPACING*0.15;
 }
 
-/* ================= INTERACTION ================= */
+/* ============================================================
+   INTERACTION (GOLD)
+============================================================ */
 canvas.addEventListener("touchstart",e=>{
   const r=canvas.getBoundingClientRect();
   const x=e.touches[0].clientX-r.left;
-  const y=e.touches[0].clientY-r.top;
+  const y=e.touches[0].clientY-r.top - 8;
 
   pushUndo();
 
@@ -328,7 +419,9 @@ canvas.addEventListener("touchstart",e=>{
   }
 },{passive:false});
 
-/* ================= DRAG ================= */
+/* ============================================================
+   DRAG / SELECT (GOLD)
+============================================================ */
 function makeDraggable(el){
   el.addEventListener("touchstart",e=>{
     if(tool!=="select") return;
@@ -353,7 +446,9 @@ function makeDraggable(el){
   el.addEventListener("touchend",()=>active=null);
 }
 
-/* ================= DELETE / CLEAR ================= */
+/* ============================================================
+   DELETE / CLEAR (GOLD)
+============================================================ */
 deleteBtn.onclick=()=>{
   if(!selectedElement) return;
   pushUndo();
@@ -370,13 +465,27 @@ clearAllBtn.onclick=()=>{
   createInitialStructure();
 };
 
-/* ================= BAR BUTTON ================= */
+/* ============================================================
+   BAR BUTTON
+============================================================ */
 addBar.onclick=()=>{
   placingBar=true;
-  tool="place";
+  setTool("place");
 };
 
-/* ================= INIT ================= */
+/* ============================================================
+   SCROLL BUTTONS (GOLD)
+============================================================ */
+document.getElementById("scrollUp").onclick=()=>{
+  canvasWrapper.scrollTop-=100;
+};
+document.getElementById("scrollDown").onclick=()=>{
+  canvasWrapper.scrollTop+=100;
+};
+
+/* ============================================================
+   INIT
+============================================================ */
 createInitialStructure();
 pushUndo();
 </script>
