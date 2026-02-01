@@ -568,43 +568,15 @@ canvas.addEventListener("touchend",()=>{
 
 /* ================= DRAG ================= */
 function makeDraggable(el){
-
-  el.addEventListener("touchstart", e => {
-    // on doit être en mode sélection
-    if (tool !== "select") return;
-
-    // libère systématiquement l'ancien drag
-    active = null;
-
+  el.addEventListener("touchstart",e=>{
+    if(tool!=="select" && !el.classList.contains("draw")) return;
     pushUndo();
-
-    // retire la sélection précédente
-    if (selectedElement && selectedElement !== el) {
-      selectedElement.classList.remove("selected");
-    }
-
-    // sélectionne le nouvel élément
-    selectedElement = el;
+    if(selectedElement) selectedElement.classList.remove("selected");
+    selectedElement=el;
     el.classList.add("selected");
-    active = el;
-
+    active=el;
     e.stopPropagation();
-  }, { passive:false });
-
-  el.addEventListener("touchmove", e => {
-    if (!active) return;
-    e.preventDefault();
-
-    const r = canvas.getBoundingClientRect();
-    active.style.left = (e.touches[0].clientX - r.left) + "px";
-    active.style.top  = (e.touches[0].clientY - r.top)  + "px";
-  }, { passive:false });
-
-  el.addEventListener("touchend", () => {
-    active = null;
-    saveState();
-  });
-}
+  },{passive:false});
 
   el.addEventListener("touchmove",e=>{
     if(!active) return;
