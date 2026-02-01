@@ -21,7 +21,12 @@ html,body{
   overflow:hidden;
 }
 
-/* ===== TITRE (EDITION) ===== */
+/* ===== CONSTANTES VISUELLES ===== */
+:root{
+  --a4-height:1122px;
+}
+
+/* ===== TITRE ===== */
 #title{
   width:100%;
   text-align:center;
@@ -33,7 +38,7 @@ html,body{
   font-family:"IM Fell English", serif;
 }
 
-/* ===== TOOLBAR FIXE ===== */
+/* ===== TOOLBAR ===== */
 #toolbar{
   position:fixed;
   top:0;
@@ -54,26 +59,34 @@ button{
   background:white;
   font-size:14px;
 }
-
 button.active{
   background:black;
   color:white;
 }
 
-/* ===== CANVAS SCROLLABLE ===== */
+/* ===== CANVAS PAGINÉ ===== */
 #canvas-wrapper{
   position:absolute;
   top:120px;
   bottom:180px;
   left:0;
   right:0;
-  overflow-y:auto;
+  overflow:hidden;
 }
 
 #canvas{
   position:relative;
-  min-height:1400px;
+  height:calc(var(--a4-height) * 4); /* 4 pages A4 */
   touch-action:manipulation;
+}
+
+/* ===== SÉPARATEURS DE PAGE ===== */
+.page-separator{
+  position:absolute;
+  left:0;
+  right:0;
+  height:1px;
+  background:#ccc;
 }
 
 /* ===== LIGNES ===== */
@@ -94,10 +107,10 @@ button.active{
   white-space:nowrap;
 }
 
-/* ===== BARRES VERTICALES ===== */
+/* ===== BARRES ===== */
 .bar{
   position:absolute;
-  width:8px;          /* hitbox confortable */
+  width:8px;
   margin-left:-4px;
 }
 .bar::after{
@@ -106,11 +119,11 @@ button.active{
   left:3px;
   top:0;
   bottom:0;
-  width:2px;          /* trait fin */
+  width:2px;
   background:black;
 }
 
-/* ===== PALETTE FIXE ===== */
+/* ===== PALETTE ===== */
 #palette{
   position:fixed;
   bottom:0;
@@ -124,7 +137,6 @@ button.active{
   flex-wrap:wrap;
   z-index:10;
 }
-
 .palette-item{
   border:1px solid black;
   padding:10px;
@@ -132,7 +144,7 @@ button.active{
   font-size:30px;
 }
 
-/* ===== BOUTONS SCROLL ===== */
+/* ===== SCROLL PAGE ===== */
 #scroll-buttons{
   position:fixed;
   right:8px;
@@ -143,13 +155,10 @@ button.active{
   z-index:20;
 }
 
-/* ===== ZONE IMPRIMABLE ===== */
-#print-area{
-  padding-top:40px; /* marge haute PDF */
-}
+/* ===== IMPRIMABLE ===== */
+#print-area{ padding-top:40px; }
 #print-title{
   text-align:center;
-  font-family:"IM Fell English", serif;
   font-size:36px;
   margin-bottom:40px;
 }
@@ -158,10 +167,8 @@ button.active{
 
 <body>
 
-<!-- TITRE EDITABLE -->
 <input id="title" placeholder="Titre du morceau">
 
-<!-- TOOLBAR -->
 <div id="toolbar">
   <button id="toolPlace" class="active">✍️ Placer</button>
   <button id="toolSelect">🖐 Sélection</button>
@@ -173,7 +180,6 @@ button.active{
   <button id="exportPDF">📄 PDF</button>
 </div>
 
-<!-- CANVAS -->
 <div id="canvas-wrapper">
   <div id="print-area">
     <div id="print-title"></div>
@@ -181,10 +187,8 @@ button.active{
   </div>
 </div>
 
-<!-- PALETTE -->
 <div id="palette"></div>
 
-<!-- SCROLL -->
 <div id="scroll-buttons">
   <button id="scrollUp">⬆️</button>
   <button id="scrollDown">⬇️</button>
@@ -196,6 +200,10 @@ button.active{
   document.addEventListener(ev,e=>e.preventDefault(),{passive:false});
 });
 
+/* ===== CONSTANTES ===== */
+const A4_HEIGHT = 1122;
+const TOTAL_PAGES = 4;
+
 /* ===== ELEMENTS ===== */
 const canvas=document.getElementById("canvas");
 const wrapper=document.getElementById("canvas-wrapper");
@@ -203,11 +211,11 @@ const palette=document.getElementById("palette");
 const titleInput=document.getElementById("title");
 const printTitle=document.getElementById("print-title");
 
-/* sync titre */
+/* ===== TITRE ===== */
 function syncTitle(){
   printTitle.textContent = titleInput.value || " ";
 }
-titleInput.addEventListener("input",syncTitle);
+titleInput.addEventListener("input",()=>{syncTitle();saveState();});
 syncTitle();
 
 /* ===== ETAT ===== */
@@ -216,6 +224,10 @@ let snap=true;
 let placingBar=false;
 let active=null;
 let history=[];
+let currentY=40;
+const LINE_SPACING=30;
+const lines=[];
+let currentPage=0;
 
 /* ===== OUTILS ===== */
 toolPlace.onclick=()=>setTool("place");
@@ -233,19 +245,29 @@ function setTool(t){
 
 /* ===== UNDO ===== */
 undo.onclick=()=>{
-  const last=history.pop();
-  if(last) last.remove();
+  const el=history.pop();
+  if(el){ el.remove(); saveState(); }
 };
 
-/* ===== SCROLL ===== */
-scrollUp.onclick=()=>wrapper.scrollBy({top:-200,behavior:"smooth"});
-scrollDown.onclick=()=>wrapper.scrollBy({top:200,behavior:"smooth"});
+/* ===== SCROLL PAR PAGE ===== */
+scrollUp.onclick=()=>{
+  currentPage=Math.max(0,currentPage-1);
+  wrapper.scrollTo({top:currentPage*A4_HEIGHT,behavior:"smooth"});
+};
+scrollDown.onclick=()=>{
+  currentPage=Math.min(TOTAL_PAGES-1,currentPage+1);
+  wrapper.scrollTo({top:currentPage*A4_HEIGHT,behavior:"smooth"});
+};
+
+/* ===== SÉPARATEURS A4 ===== */
+for(let i=1;i<TOTAL_PAGES;i++){
+  const sep=document.createElement("div");
+  sep.className="page-separator";
+  sep.style.top=(i*A4_HEIGHT)+"px";
+  canvas.appendChild(sep);
+}
 
 /* ===== LIGNES ===== */
-let currentY=40;
-const LINE_SPACING=30;
-const lines=[];
-
 function addLine(type){
   const l=document.createElement("div");
   l.className="line "+type;
@@ -256,9 +278,13 @@ function addLine(type){
   currentY+=LINE_SPACING;
 }
 
-for(let i=0;i<6;i++) addLine("black");
-addBlackLine.onclick=()=>addLine("black");
-addWhiteLine.onclick=()=>addLine("white");
+/* ===== STRUCTURE INITIALE ===== */
+function createInitialStructure(){
+  for(let bloc=0;bloc<4;bloc++){
+    for(let i=0;i<6;i++) addLine("black");
+    if(bloc<3) addLine("white");
+  }
+}
 
 /* ===== PALETTE ===== */
 let selected="a";
@@ -274,10 +300,7 @@ let selected="a";
 });
 
 /* ===== BARRE ===== */
-addBar.onclick=()=>{
-  placingBar=true;
-  setTool("select");
-};
+addBar.onclick=()=>{placingBar=true;setTool("select");};
 
 /* ===== INTERACTIONS ===== */
 canvas.addEventListener("touchstart",e=>{
@@ -295,6 +318,7 @@ canvas.addEventListener("touchstart",e=>{
     canvas.appendChild(b);
     history.push(b);
     makeDraggable(b);
+    saveState();
     return;
   }
 
@@ -307,6 +331,7 @@ canvas.addEventListener("touchstart",e=>{
     canvas.appendChild(s);
     history.push(s);
     makeDraggable(s);
+    saveState();
   }
 },{passive:false});
 
@@ -324,11 +349,14 @@ function makeDraggable(el){
     const x=e.touches[0].clientX-r.left;
     const y=e.touches[0].clientY-r.top;
     active.style.left=x+"px";
-    active.style.top=(snap && el.classList.contains("symbol")?nearestLine(y)-18:y)+"px";
+    active.style.top=(snap&&el.classList.contains("symbol")?nearestLine(y)-18:y)+"px";
     e.preventDefault();
   },{passive:false});
 
-  el.addEventListener("touchend",()=>active=null);
+  el.addEventListener("touchend",()=>{
+    active=null;
+    saveState();
+  });
 }
 
 /* ===== SNAP ===== */
@@ -336,27 +364,79 @@ function nearestLine(y){
   return lines.reduce((a,b)=>Math.abs(b-y)<Math.abs(a-y)?b:a);
 }
 
-/* ===== EXPORT PDF PROPRE ===== */
+/* ===== SAUVEGARDE ===== */
+function saveState(){
+  const state={
+    title:titleInput.value,
+    elements:Array.from(canvas.children).map(el=>({
+      class:el.className,
+      text:el.textContent||"",
+      left:el.style.left,
+      top:el.style.top,
+      height:el.style.height||""
+    }))
+  };
+  localStorage.setItem("tablature_state",JSON.stringify(state));
+}
+
+/* ===== RESTAURATION ===== */
+function restoreState(){
+  const raw=localStorage.getItem("tablature_state");
+  if(!raw){
+    createInitialStructure();
+    return;
+  }
+
+  const state=JSON.parse(raw);
+  titleInput.value=state.title||"";
+  syncTitle();
+
+  canvas.innerHTML="";
+  lines.length=0;
+  currentY=40;
+
+  state.elements.forEach(e=>{
+    const el=document.createElement("div");
+    el.className=e.class;
+    el.textContent=e.text;
+    el.style.left=e.left;
+    el.style.top=e.top;
+    if(e.height)el.style.height=e.height;
+    canvas.appendChild(el);
+
+    if(el.classList.contains("line")){
+      lines.push(parseFloat(e.top));
+      currentY=parseFloat(e.top)+LINE_SPACING;
+    }
+    if(el.classList.contains("symbol")||el.classList.contains("bar")){
+      makeDraggable(el);
+    }
+  });
+}
+restoreState();
+
+/* ===== EXPORT PDF ===== */
 exportPDF.onclick=async()=>{
-  document.getElementById("toolbar").style.display="none";
-  document.getElementById("palette").style.display="none";
-  document.getElementById("scroll-buttons").style.display="none";
+  saveState();
+
+  toolbar.style.display="none";
+  palette.style.display="none";
+  scroll-buttons.style.display="none";
 
   await new Promise(r=>setTimeout(r,100));
 
   const {jsPDF}=window.jspdf;
   const pdf=new jsPDF("p","mm","a4");
-
   const img=await html2canvas(document.getElementById("print-area"),{scale:2});
+
   const w=210;
   const h=img.height*w/img.width;
-
   pdf.addImage(img.toDataURL("image/png"),"PNG",0,0,w,h);
   pdf.save("tablature.pdf");
 
-  document.getElementById("toolbar").style.display="";
-  document.getElementById("palette").style.display="";
-  document.getElementById("scroll-buttons").style.display="";
+  toolbar.style.display="";
+  palette.style.display="";
+  scroll-buttons.style.display="";
 };
 </script>
 
