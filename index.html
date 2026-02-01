@@ -175,24 +175,27 @@ button.active{
 <div id="palette"></div>
 
 <script>
-/* ===== DOM ===== */
+/* ================= DOM ================= */
 const canvas = document.getElementById("canvas");
 const printTitle = document.getElementById("print-title");
+const toolPlace = document.getElementById("toolPlace");
+const toolSelect = document.getElementById("toolSelect");
 const undoBtn = document.getElementById("undo");
 const deleteBtn = document.getElementById("deleteBtn");
 const clearAllBtn = document.getElementById("clearAllBtn");
-const toolPlace = document.getElementById("toolPlace");
-const toolSelect = document.getElementById("toolSelect");
+const addBlackLine = document.getElementById("addBlackLine");
+const addWhiteLine = document.getElementById("addWhiteLine");
+const addBar = document.getElementById("addBar");
 const toggleSnap = document.getElementById("toggleSnap");
 
-/* ===== STATE ===== */
+/* ================= STATE ================= */
 let tool="place", snap=true, placingBar=false;
 let selected="a", selectedElement=null, active=null;
 let currentY=40;
 const LINE_SPACING=28;
 const lines=[];
 
-/* ===== UNDO STACK ===== */
+/* ================= UNDO ================= */
 const undoStack=[];
 const MAX_UNDO=30;
 
@@ -210,12 +213,13 @@ function pushUndo(){
   if(undoStack.length>MAX_UNDO) undoStack.shift();
 }
 
-function restoreState(state){
+function restoreUndo(state){
   const s=JSON.parse(state);
   canvas.innerHTML="";
   lines.length=0;
   currentY=40;
   printTitle.textContent=s.title||"";
+
   s.elements.forEach(e=>{
     const el=document.createElement("div");
     el.className=e.class;
@@ -224,6 +228,7 @@ function restoreState(state){
     el.style.top=e.top;
     if(e.height) el.style.height=e.height;
     canvas.appendChild(el);
+
     if(el.classList.contains("line")){
       lines.push(parseFloat(e.top));
       currentY=parseFloat(e.top)+LINE_SPACING;
@@ -234,13 +239,29 @@ function restoreState(state){
   });
 }
 
-/* ===== UNDO BUTTON ===== */
 undoBtn.onclick=()=>{
   if(undoStack.length===0) return;
-  restoreState(undoStack.pop());
+  restoreUndo(undoStack.pop());
 };
 
-/* ===== TOOLS ===== */
+/* ================= STRUCTURE INIT ================= */
+function addLine(type){
+  const l=document.createElement("div");
+  l.className="line "+type;
+  l.style.top=currentY+"px";
+  canvas.appendChild(l);
+  lines.push(currentY);
+  currentY+=LINE_SPACING;
+}
+
+function createInitialStructure(){
+  for(let r=0;r<4;r++){
+    for(let i=0;i<3;i++) addLine("white");
+    for(let i=0;i<6;i++) addLine("black");
+  }
+}
+
+/* ================= TOOLS ================= */
 toolPlace.onclick=()=>tool="place";
 toolSelect.onclick=()=>tool="select";
 toggleSnap.onclick=()=>{
@@ -248,7 +269,7 @@ toggleSnap.onclick=()=>{
   toggleSnap.classList.toggle("active",snap);
 };
 
-/* ===== PALETTE ===== */
+/* ================= PALETTE ================= */
 [
  "a","b","c","d","e","f","g","h","j","k",
  "l","m","n",
@@ -262,36 +283,52 @@ toggleSnap.onclick=()=>{
   document.getElementById("palette").appendChild(p);
 });
 
-/* ===== SNAP ===== */
+/* ================= SNAP ================= */
 function nearestLine(y){
   return lines.reduce((a,b)=>Math.abs(b-y)<Math.abs(a-y)?b:a);
 }
 function snapY(y,s){
-  if(!snap) return y;
+  if(!snap || lines.length===0) return y;
   const b=nearestLine(y);
   if(s.startsWith("///")) return b+LINE_SPACING*0.55;
-  if(s.startsWith("//")) return b+LINE_SPACING*0.40;
-  if(s.startsWith("/")) return b+LINE_SPACING*0.25;
+  if(s.startsWith("//"))  return b+LINE_SPACING*0.40;
+  if(s.startsWith("/"))   return b+LINE_SPACING*0.25;
   return b+LINE_SPACING*0.15;
 }
 
-/* ===== INTERACTION ===== */
+/* ================= INTERACTION ================= */
 canvas.addEventListener("touchstart",e=>{
-  if(tool!=="place") return;
-  pushUndo();
   const r=canvas.getBoundingClientRect();
   const x=e.touches[0].clientX-r.left;
   const y=e.touches[0].clientY-r.top;
-  const s=document.createElement("div");
-  s.className="symbol";
-  s.textContent=selected;
-  s.style.left=x+"px";
-  s.style.top=snapY(y,selected)+"px";
-  canvas.appendChild(s);
-  makeDraggable(s);
+
+  pushUndo();
+
+  if(placingBar){
+    placingBar=false;
+    const top=nearestLine(y);
+    const b=document.createElement("div");
+    b.className="bar";
+    b.style.left=x+"px";
+    b.style.top=top+"px";
+    b.style.height=(5*LINE_SPACING)+"px";
+    canvas.appendChild(b);
+    makeDraggable(b);
+    return;
+  }
+
+  if(tool==="place"){
+    const s=document.createElement("div");
+    s.className="symbol";
+    s.textContent=selected;
+    s.style.left=x+"px";
+    s.style.top=snapY(y,selected)+"px";
+    canvas.appendChild(s);
+    makeDraggable(s);
+  }
 },{passive:false});
 
-/* ===== DRAG ===== */
+/* ================= DRAG ================= */
 function makeDraggable(el){
   el.addEventListener("touchstart",e=>{
     if(tool!=="select") return;
@@ -307,14 +344,16 @@ function makeDraggable(el){
     if(!active) return;
     const r=canvas.getBoundingClientRect();
     active.style.left=e.touches[0].clientX-r.left+"px";
-    active.style.top=e.touches[0].clientY-r.top+"px";
+    active.style.top=el.classList.contains("bar")
+      ? nearestLine(e.touches[0].clientY-r.top)+"px"
+      : snapY(e.touches[0].clientY-r.top,el.textContent)+"px";
     e.preventDefault();
   },{passive:false});
 
   el.addEventListener("touchend",()=>active=null);
 }
 
-/* ===== DELETE ===== */
+/* ================= DELETE / CLEAR ================= */
 deleteBtn.onclick=()=>{
   if(!selectedElement) return;
   pushUndo();
@@ -322,14 +361,24 @@ deleteBtn.onclick=()=>{
   selectedElement=null;
 };
 
-/* ===== CLEAR ALL ===== */
 clearAllBtn.onclick=()=>{
   if(!confirm("Effacer toute la tablature ?")) return;
   pushUndo();
   canvas.innerHTML="";
   lines.length=0;
   currentY=40;
+  createInitialStructure();
 };
+
+/* ================= BAR BUTTON ================= */
+addBar.onclick=()=>{
+  placingBar=true;
+  tool="place";
+};
+
+/* ================= INIT ================= */
+createInitialStructure();
+pushUndo();
 </script>
 
 </body>
