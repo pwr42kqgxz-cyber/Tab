@@ -215,6 +215,7 @@ const addBlackLine = document.getElementById("addBlackLine");
 const addWhiteLine = document.getElementById("addWhiteLine");
 const addBar = document.getElementById("addBar");
 const toggleSnap = document.getElementById("toggleSnap");
+const editTitle = document.getElementById("editTitle");
 
 /* ============================================================
    UI VISIBILITY (GOLD)
@@ -256,7 +257,7 @@ let currentY=40;
 const LINE_SPACING=28;
 const lines=[];
 
-/* ================= UNDO (AJOUT UNIQUE) ================= */
+/* ================= UNDO ================= */
 const undoStack=[];
 const MAX_UNDO=40;
 
@@ -308,6 +309,16 @@ undoBtn.onclick=()=>{
 };
 
 /* ============================================================
+   TITLE EDIT (AJOUT DEMANDÉ)
+============================================================ */
+editTitle.onclick=()=>{
+  const t = prompt("Titre du morceau :", printTitle.textContent || "");
+  if(t===null) return;
+  pushUndo();
+  printTitle.textContent = t.trim();
+};
+
+/* ============================================================
    TOOLS
 ============================================================ */
 function setTool(t){
@@ -324,7 +335,7 @@ toggleSnap.onclick=()=>{
 };
 
 /* ============================================================
-   STRUCTURE INIT (GOLD)
+   STRUCTURE INIT
 ============================================================ */
 function addLine(type){
   const l=document.createElement("div");
@@ -352,7 +363,7 @@ addWhiteLine.onclick=()=>{
 };
 
 /* ============================================================
-   PALETTE (GOLD)
+   PALETTE
 ============================================================ */
 [
  "a","b","c","d","e","f","g","h","j","k",
@@ -371,7 +382,7 @@ addWhiteLine.onclick=()=>{
 });
 
 /* ============================================================
-   SNAP (GOLD)
+   SNAP
 ============================================================ */
 function nearestLine(y){
   return lines.reduce((a,b)=>Math.abs(b-y)<Math.abs(a-y)?b:a);
@@ -386,7 +397,7 @@ function snapY(y,s){
 }
 
 /* ============================================================
-   INTERACTION (GOLD)
+   INTERACTION
 ============================================================ */
 canvas.addEventListener("touchstart",e=>{
   const r=canvas.getBoundingClientRect();
@@ -420,7 +431,7 @@ canvas.addEventListener("touchstart",e=>{
 },{passive:false});
 
 /* ============================================================
-   DRAG / SELECT (GOLD)
+   DRAG / SELECT
 ============================================================ */
 function makeDraggable(el){
   el.addEventListener("touchstart",e=>{
@@ -447,7 +458,7 @@ function makeDraggable(el){
 }
 
 /* ============================================================
-   DELETE / CLEAR (GOLD)
+   DELETE / CLEAR
 ============================================================ */
 deleteBtn.onclick=()=>{
   if(!selectedElement) return;
@@ -474,7 +485,7 @@ addBar.onclick=()=>{
 };
 
 /* ============================================================
-   SCROLL BUTTONS (GOLD)
+   SCROLL BUTTONS
 ============================================================ */
 document.getElementById("scrollUp").onclick=()=>{
   canvasWrapper.scrollTop-=100;
