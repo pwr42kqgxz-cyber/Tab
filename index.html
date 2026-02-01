@@ -56,7 +56,7 @@ button.active{
 #canvas-wrapper{
   position:absolute;
   top:70px;
-  bottom:190px;
+  bottom:230px;
   left:0;
   right:0;
   overflow-y:auto;
@@ -107,11 +107,12 @@ button.active{
   bottom:0;
   left:0;
   right:0;
-  height:180px;
+  height:230px;
   border-top:1px solid black;
   padding:8px;
   display:flex;
   flex-wrap:wrap;
+  align-items:flex-start;
 }
 
 .palette-item{
@@ -119,13 +120,29 @@ button.active{
   padding:10px;
   margin:4px;
   font-size:30px;
+  min-width:36px;
+  text-align:center;
+}
+
+/* ===== CUSTOM SYMBOL ===== */
+#customSymbolBox{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin:4px;
+}
+
+#customSymbol{
+  width:60px;
+  font-size:28px;
+  text-align:center;
 }
 
 /* ===== SCROLL ===== */
 #scroll-buttons{
   position:fixed;
   right:10px;
-  bottom:210px;
+  bottom:260px;
   display:flex;
   flex-direction:column;
   gap:8px;
@@ -157,7 +174,7 @@ button.active{
   <button id="addWhiteLine">➕ Ligne blanche</button>
   <button id="addBar">➕ Barre</button>
   <button id="toggleSnap" class="active">🧲 Accroché</button>
-  <input type="color" id="bgColor" title="Teinte de la page">
+  <input type="color" id="bgColor">
   <button id="exportPDF">📄 PDF</button>
 </div>
 
@@ -177,44 +194,27 @@ button.active{
 
 <script>
 /* ===== ELEMENTS ===== */
-const body = document.body;
-const canvasWrapper = document.getElementById("canvas-wrapper");
-const canvas = document.getElementById("canvas");
-const palette = document.getElementById("palette");
-const printTitle = document.getElementById("print-title");
+const body=document.body;
+const canvasWrapper=document.getElementById("canvas-wrapper");
+const canvas=document.getElementById("canvas");
+const palette=document.getElementById("palette");
+const printTitle=document.getElementById("print-title");
+const bgColor=document.getElementById("bgColor");
 
-const bgColor = document.getElementById("bgColor");
-const editTitle = document.getElementById("editTitle");
-const deleteBtn = document.getElementById("deleteBtn");
-const clearAllBtn = document.getElementById("clearAllBtn");
-const toolbar = document.getElementById("toolbar");
-const scrollButtons = document.getElementById("scroll-buttons");
-
-/* ===== BACKGROUND COLOR (GLOBAL) ===== */
-function applyBg(color){
-  body.style.background = color;
-  canvasWrapper.style.background = color;
-  canvas.style.background = color;
+/* ===== BACKGROUND ===== */
+function applyBg(c){
+  body.style.background=c;
+  canvasWrapper.style.background=c;
+  canvas.style.background=c;
 }
-
-const savedBg = localStorage.getItem("bg_color");
-if(savedBg){
-  bgColor.value = savedBg;
-  applyBg(savedBg);
-}
-
-bgColor.oninput = () => {
-  applyBg(bgColor.value);
-  localStorage.setItem("bg_color", bgColor.value);
-};
+const savedBg=localStorage.getItem("bg_color");
+if(savedBg){ bgColor.value=savedBg; applyBg(savedBg); }
+bgColor.oninput=()=>{ applyBg(bgColor.value); localStorage.setItem("bg_color",bgColor.value); };
 
 /* ===== TITLE ===== */
-editTitle.onclick = () => {
-  const t = prompt("Titre du morceau :", printTitle.textContent || "");
-  if(t !== null){
-    printTitle.textContent = t.trim();
-    saveState();
-  }
+editTitle.onclick=()=>{
+  const t=prompt("Titre du morceau :",printTitle.textContent||"");
+  if(t!==null){ printTitle.textContent=t.trim(); saveState(); }
 };
 
 /* ===== STATE ===== */
@@ -231,10 +231,7 @@ const lines=[];
 /* ===== TOOLS ===== */
 toolPlace.onclick=()=>setTool("place");
 toolSelect.onclick=()=>setTool("select");
-toggleSnap.onclick=()=>{
-  snap=!snap;
-  toggleSnap.classList.toggle("active",snap);
-};
+toggleSnap.onclick=()=>{ snap=!snap; toggleSnap.classList.toggle("active",snap); };
 function setTool(t){
   tool=t;
   toolPlace.classList.toggle("active",t==="place");
@@ -242,19 +239,8 @@ function setTool(t){
 }
 
 /* ===== UNDO / DELETE / CLEAR ===== */
-undo.onclick=()=>{
-  const el=history.pop();
-  if(el){ el.remove(); saveState(); }
-};
-
-deleteBtn.onclick=()=>{
-  if(selectedElement){
-    selectedElement.remove();
-    selectedElement=null;
-    saveState();
-  }
-};
-
+undo.onclick=()=>{ const el=history.pop(); if(el){ el.remove(); saveState(); } };
+deleteBtn.onclick=()=>{ if(selectedElement){ selectedElement.remove(); selectedElement=null; saveState(); } };
 clearAllBtn.onclick=()=>{
   if(!confirm("Tout effacer ?")) return;
   canvas.innerHTML="";
@@ -285,18 +271,20 @@ addBlackLine.onclick=()=>addLine("black");
 addWhiteLine.onclick=()=>addLine("white");
 
 function createInitialStructure(){
-  for(let bloc=0;bloc<4;bloc++){
+  for(let b=0;b<4;b++){
     for(let i=0;i<6;i++) addLine("black");
-    if(bloc<3) addLine("white");
+    if(b<3) addLine("white");
   }
 }
 
 /* ===== PALETTE ===== */
 let selected="a";
-[
-"a","b","c","d","e","f","g","h","j","k",
-"/a","//a","///a","1","2","3","4","5","6","7"
-].forEach(s=>{
+const symbols=[
+ "a","b","c","d","e","f","g","h","j","k",
+ "/a","//a","///a","1","2","3","4","5","6","7"
+];
+
+symbols.forEach(s=>{
   const p=document.createElement("div");
   p.className="palette-item";
   p.textContent=s;
@@ -304,17 +292,39 @@ let selected="a";
   palette.appendChild(p);
 });
 
+/* ===== CUSTOM SYMBOL INPUT ===== */
+const customBox=document.createElement("div");
+customBox.id="customSymbolBox";
+
+const customInput=document.createElement("input");
+customInput.id="customSymbol";
+customInput.placeholder="✱";
+
+const customBtn=document.createElement("button");
+customBtn.textContent="OK";
+
+customBtn.onclick=()=>{
+  if(customInput.value.trim()){
+    selected=customInput.value.trim();
+    customInput.value="";
+  }
+};
+
+customBox.appendChild(customInput);
+customBox.appendChild(customBtn);
+palette.appendChild(customBox);
+
 /* ===== BAR ===== */
 addBar.onclick=()=>{ placingBar=true; setTool("select"); };
 
 /* ===== SNAP ===== */
-function snapY(rawY, symbol){
-  const base = nearestLine(rawY);
+function snapY(rawY,symbol){
+  const base=nearestLine(rawY);
   if(!snap) return rawY;
-  if(symbol.startsWith("///")) return base + 18;
-  if(symbol.startsWith("//"))  return base + 14;
-  if(symbol.startsWith("/"))   return base + 10;
-  return base - 16;
+  if(symbol.startsWith("///")) return base+18;
+  if(symbol.startsWith("//"))  return base+14;
+  if(symbol.startsWith("/"))   return base+10;
+  return base-16;
 }
 
 /* ===== INTERACTION ===== */
@@ -353,29 +363,26 @@ canvas.addEventListener("touchstart",e=>{
 /* ===== DRAG ===== */
 function makeDraggable(el){
   el.addEventListener("touchstart",e=>{
-    if(tool!=="select")return;
+    if(tool!=="select") return;
     active=el;
     selectedElement=el;
     e.stopPropagation();
   },{passive:false});
 
   el.addEventListener("touchmove",e=>{
-    if(!active)return;
+    if(!active) return;
     const r=canvas.getBoundingClientRect();
     const x=e.touches[0].clientX-r.left;
     const y=e.touches[0].clientY-r.top;
     active.style.left=x+"px";
-    active.style.top=el.classList.contains("symbol") ? snapY(y,el.textContent)+"px" : y+"px";
+    active.style.top=el.classList.contains("symbol")?snapY(y,el.textContent)+"px":y+"px";
     e.preventDefault();
   },{passive:false});
 
-  el.addEventListener("touchend",()=>{
-    active=null;
-    saveState();
-  });
+  el.addEventListener("touchend",()=>{ active=null; saveState(); });
 }
 
-/* ===== NEAREST LINE ===== */
+/* ===== UTILS ===== */
 function nearestLine(y){
   return lines.reduce((a,b)=>Math.abs(b-y)<Math.abs(a-y)?b:a);
 }
@@ -384,7 +391,7 @@ function nearestLine(y){
 function saveState(){
   const state={
     title:printTitle.textContent,
-    bg: bgColor.value,
+    bg:bgColor.value,
     elements:Array.from(canvas.children).map(el=>({
       class:el.className,
       text:el.textContent||"",
@@ -398,23 +405,16 @@ function saveState(){
 
 function restoreState(){
   const raw=localStorage.getItem("tablature_state");
-  if(!raw){
-    createInitialStructure();
-    return;
-  }
-  const state=JSON.parse(raw);
-  printTitle.textContent=state.title||"";
-
-  if(state.bg){
-    bgColor.value=state.bg;
-    applyBg(state.bg);
-  }
+  if(!raw){ createInitialStructure(); return; }
+  const s=JSON.parse(raw);
+  printTitle.textContent=s.title||"";
+  if(s.bg){ bgColor.value=s.bg; applyBg(s.bg); }
 
   canvas.innerHTML="";
   lines.length=0;
   currentY=40;
 
-  state.elements.forEach(e=>{
+  s.elements.forEach(e=>{
     const el=document.createElement("div");
     el.className=e.class;
     el.textContent=e.text;
