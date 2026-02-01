@@ -30,6 +30,7 @@ html,body{
   padding:14px 0;
   border:none;
   outline:none;
+  font-family:"IM Fell English", serif;
 }
 
 /* ===== TOOLBAR ===== */
@@ -53,6 +54,7 @@ button{
   background:white;
   font-size:14px;
 }
+
 button.active{
   background:black;
   color:white;
@@ -67,9 +69,10 @@ button.active{
   right:0;
   overflow-y:auto;
 }
+
 #canvas{
   position:relative;
-  min-height:2000px;
+  min-height:1600px;
   touch-action:manipulation;
 }
 
@@ -121,6 +124,7 @@ button.active{
   flex-wrap:wrap;
   z-index:10;
 }
+
 .palette-item{
   border:1px solid black;
   padding:10px;
@@ -179,25 +183,26 @@ button.active{
 </div>
 
 <script>
-/* ===== ANTI-ZOOM ===== */
-["gesturestart","gesturechange","gestureend","dblclick"].forEach(ev=>{
-  document.addEventListener(ev,e=>e.preventDefault(),{passive:false});
+/* ===== ANTI ZOOM ===== */
+["gesturestart","gesturechange","gestureend","dblclick"].forEach(e=>{
+  document.addEventListener(e,ev=>ev.preventDefault(),{passive:false});
 });
 
-const canvas = document.getElementById("canvas");
-const wrapper = document.getElementById("canvas-wrapper");
-const palette = document.getElementById("palette");
-const titleInput = document.getElementById("title");
-const printTitle = document.getElementById("print-title");
+/* ===== ELEMENTS ===== */
+const canvas=document.getElementById("canvas");
+const wrapper=document.getElementById("canvas-wrapper");
+const palette=document.getElementById("palette");
+const titleInput=document.getElementById("title");
+const printTitle=document.getElementById("print-title");
 
 /* ===== TITRE ===== */
 function syncTitle(){
-  printTitle.textContent = titleInput.value || " ";
+  printTitle.textContent=titleInput.value||" ";
 }
 titleInput.addEventListener("input",()=>{syncTitle();saveState();});
 syncTitle();
 
-/* ===== ÉTAT ===== */
+/* ===== ETAT ===== */
 let tool="place";
 let snap=true;
 let placingBar=false;
@@ -215,6 +220,7 @@ toggleSnap.onclick=()=>{
   toggleSnap.textContent=snap?"🧲 Accroché":"🔓 Libre";
   toggleSnap.classList.toggle("active",snap);
 };
+
 function setTool(t){
   tool=t;
   toolPlace.classList.toggle("active",t==="place");
@@ -231,7 +237,7 @@ undo.onclick=()=>{
 scrollUp.onclick=()=>wrapper.scrollBy({top:-200,behavior:"smooth"});
 scrollDown.onclick=()=>wrapper.scrollBy({top:200,behavior:"smooth"});
 
-/* ===== LIGNES INITIALES ===== */
+/* ===== LIGNES ===== */
 function addLine(type){
   const l=document.createElement("div");
   l.className="line "+type;
@@ -240,14 +246,11 @@ function addLine(type){
   history.push(l);
   lines.push(currentY);
   currentY+=LINE_SPACING;
+  saveState();
 }
-
-function createInitialStructure(){
-  for(let bloc=0; bloc<4; bloc++){
-    for(let i=0;i<6;i++) addLine("black");
-    if(bloc<3) addLine("white");
-  }
-}
+for(let i=0;i<6;i++) addLine("black");
+addBlackLine.onclick=()=>addLine("black");
+addWhiteLine.onclick=()=>addLine("white");
 
 /* ===== PALETTE ===== */
 let selected="a";
@@ -312,7 +315,7 @@ function makeDraggable(el){
     const x=e.touches[0].clientX-r.left;
     const y=e.touches[0].clientY-r.top;
     active.style.left=x+"px";
-    active.style.top=(snap && el.classList.contains("symbol")?nearestLine(y)-18:y)+"px";
+    active.style.top=(snap&&el.classList.contains("symbol")?nearestLine(y)-18:y)+"px";
     e.preventDefault();
   },{passive:false});
 
@@ -345,10 +348,7 @@ function saveState(){
 /* ===== RESTAURATION ===== */
 function restoreState(){
   const raw=localStorage.getItem("tablature_state");
-  if(!raw){
-    createInitialStructure();
-    return;
-  }
+  if(!raw)return;
 
   const state=JSON.parse(raw);
   titleInput.value=state.title||"";
