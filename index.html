@@ -2,12 +2,17 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
+
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+
 <title>Tablature baroque</title>
 
 <meta name="viewport"
 content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?familyIM+Fell+English&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
@@ -150,7 +155,7 @@ button.active{
   z-index:10;
 }
 
-/* ===== SHOW UI BUTTON ===== */
+/* ===== SHOW UI ===== */
 #showUIBtn{
   position:fixed;
   bottom:20px;
@@ -198,81 +203,63 @@ button.active{
 <button id="showUIBtn">⬅︎</button>
 
 <script>
-/* ===== ELEMENTS ===== */
-const toolbar=document.getElementById("toolbar");
-const canvas=document.getElementById("canvas");
-const wrapper=document.getElementById("canvas-wrapper");
-const palette=document.getElementById("palette");
-const scrollButtons=document.getElementById("scroll-buttons");
-const printTitle=document.getElementById("print-title");
-const bgColor=document.getElementById("bgColor");
-const toggleUIBtn=document.getElementById("toggleUI");
-const showUIBtn=document.getElementById("showUIBtn");
+/* ================= UI VISIBILITY ================= */
+let uiHidden=false;
+toggleUI.onclick=()=>{
+  toolbar.style.display="none";
+  palette.style.display="none";
+  scrollButtons.style.display="none";
+  showUIBtn.style.display="block";
+  uiHidden=true;
+};
+showUIBtn.onclick=()=>{
+  toolbar.style.display="";
+  palette.style.display="";
+  scrollButtons.style.display="";
+  showUIBtn.style.display="none";
+  uiHidden=false;
+};
+let lastTap=0;
+document.addEventListener("touchstart",e=>{
+  if(e.touches.length===2){
+    const now=Date.now();
+    if(now-lastTap<400){ uiHidden?showUIBtn.onclick():toggleUI.onclick(); }
+    lastTap=now;
+  }
+});
 
-/* ===== BACKGROUND ===== */
+/* ================= BACKGROUND ================= */
 function applyBg(c){
   document.body.style.background=c;
-  wrapper.style.background=c;
+  canvasWrapper.style.background=c;
   canvas.style.background=c;
 }
 const savedBg=localStorage.getItem("bg_color");
 if(savedBg){ bgColor.value=savedBg; applyBg(savedBg); }
 bgColor.oninput=()=>{ applyBg(bgColor.value); localStorage.setItem("bg_color",bgColor.value); };
 
-/* ===== TITLE ===== */
+/* ================= TITLE ================= */
 editTitle.onclick=()=>{
   const t=prompt("Titre du morceau :",printTitle.textContent||"");
   if(t!==null){ printTitle.textContent=t.trim(); saveState(); }
 };
 
-/* ===== UI TOGGLE ===== */
-let uiHidden=false;
-
-function hideUI(){
-  toolbar.style.display="none";
-  palette.style.display="none";
-  scrollButtons.style.display="none";
-  showUIBtn.style.display="block";
-  uiHidden=true;
-}
-
-function showUI(){
-  toolbar.style.display="";
-  palette.style.display="";
-  scrollButtons.style.display="";
-  showUIBtn.style.display="none";
-  uiHidden=false;
-}
-
-toggleUIBtn.onclick=hideUI;
-showUIBtn.onclick=showUI;
-
-/* double tap à deux doigts */
-let lastTap=0;
-document.addEventListener("touchstart",e=>{
-  if(e.touches.length===2){
-    const now=Date.now();
-    if(now-lastTap<400){
-      uiHidden?showUI():hideUI();
-    }
-    lastTap=now;
-  }
-});
-
-/* ===== STATE / EDITOR (identique à version stable) ===== */
+/* ================= STATE ================= */
 let tool="place",snap=true,placingBar=false,active=null,selectedElement=null;
 let history=[],currentY=40;
 const LINE_SPACING=28,lines=[];
 
+/* ================= TOOLS ================= */
 toolPlace.onclick=()=>setTool("place");
 toolSelect.onclick=()=>setTool("select");
-toggleSnap.onclick=()=>{snap=!snap;toggleSnap.classList.toggle("active",snap);};
+toggleSnap.onclick=()=>{snap=!snap;toggleSnap.classList.toggle("active",snap);}
 function setTool(t){
   tool=t;
   toolPlace.classList.toggle("active",t==="place");
   toolSelect.classList.toggle("active",t==="select");
 }
 
+/* ================= UNDO / DELETE ================= */
 undo.onclick=()=>{const el=history.pop();if(el){el.remove();saveState();}};
 deleteBtn.onclick=()=>{if(selectedElement){selectedElement.remove();selectedElement=null;saveState();}};
 clearAllBtn.onclick=()=>{
@@ -282,9 +269,11 @@ clearAllBtn.onclick=()=>{
   createInitialStructure();saveState();
 };
 
-scrollUp.onclick=()=>wrapper.scrollBy({top:-200,behavior:"smooth"});
-scrollDown.onclick=()=>wrapper.scrollBy({top:200,behavior:"smooth"});
+/* ================= SCROLL ================= */
+scrollUp.onclick=()=>canvasWrapper.scrollBy({top:-200,behavior:"smooth"});
+scrollDown.onclick=()=>canvasWrapper.scrollBy({top:200,behavior:"smooth"});
 
+/* ================= LINES ================= */
 function addLine(type){
   const l=document.createElement("div");
   l.className="line "+type;
@@ -295,7 +284,6 @@ function addLine(type){
 }
 addBlackLine.onclick=()=>addLine("black");
 addWhiteLine.onclick=()=>addLine("white");
-
 function createInitialStructure(){
   for(let b=0;b<4;b++){
     for(let i=0;i<6;i++) addLine("black");
@@ -303,27 +291,20 @@ function createInitialStructure(){
   }
 }
 
+/* ================= PALETTE ================= */
 let selected="a";
 ["a","b","c","d","e","f","g","h","j","k","/a","//a","///a","4","5","6"]
 .forEach(s=>{
   const p=document.createElement("div");
-  p.className="palette-item";
-  p.textContent=s;
-  p.onclick=()=>selected=s;
-  palette.appendChild(p);
+  p.className="palette-item";p.textContent=s;
+  p.onclick=()=>selected=s;palette.appendChild(p);
 });
+customSymbol.onchange=()=>{if(customSymbol.value)selected=customSymbol.value;};
 
-const custom=document.createElement("input");
-custom.id="customSymbol";custom.placeholder="✱";
-palette.appendChild(custom);
-
-const ok=document.createElement("button");
-ok.textContent="OK";
-ok.onclick=()=>{if(custom.value.trim()){selected=custom.value.trim();custom.value="";}};
-palette.appendChild(ok);
-
+/* ================= BAR ================= */
 addBar.onclick=()=>{placingBar=true;setTool("select");};
 
+/* ================= SNAP ================= */
 function snapY(y,s){
   const b=nearestLine(y);
   if(!snap)return y;
@@ -333,19 +314,17 @@ function snapY(y,s){
   return b-16;
 }
 
+/* ================= INTERACTION ================= */
 canvas.addEventListener("touchstart",e=>{
   const r=canvas.getBoundingClientRect();
   const x=e.touches[0].clientX-r.left;
   const y=e.touches[0].clientY-r.top;
-
   if(placingBar){
     placingBar=false;
     const b=document.createElement("div");
-    b.className="bar";
-    b.style.left=x+"px";b.style.top=y+"px";b.style.height="160px";
+    b.className="bar";b.style.left=x+"px";b.style.top=y+"px";b.style.height="160px";
     canvas.appendChild(b);history.push(b);makeDraggable(b);saveState();return;
   }
-
   if(tool==="place"){
     const s=document.createElement("div");
     s.className="symbol";s.textContent=selected;
@@ -375,6 +354,7 @@ function nearestLine(y){
   return lines.reduce((a,b)=>Math.abs(b-y)<Math.abs(a-y)?b:a);
 }
 
+/* ================= SAVE / RESTORE ================= */
 function saveState(){
   localStorage.setItem("tablature_state",JSON.stringify({
     title:printTitle.textContent,bg:bgColor.value,
@@ -384,7 +364,6 @@ function saveState(){
     }))
   }));
 }
-
 function restoreState(){
   const raw=localStorage.getItem("tablature_state");
   if(!raw){createInitialStructure();return;}
@@ -401,20 +380,30 @@ function restoreState(){
     if(el.classList.contains("line")){
       lines.push(parseFloat(e.top));currentY=parseFloat(e.top)+LINE_SPACING;
     }
-    if(el.classList.contains("symbol")||el.classList.contains("bar")) makeDraggable(el);
+    if(el.classList.contains("symbol")||el.classList.contains("bar"))makeDraggable(el);
   });
 }
 restoreState();
 
-/* ===== PDF ===== */
+/* ================= PDF (MAX QUALITY HTML) ================= */
 exportPDF.onclick=async()=>{
-  saveState();wrapper.scrollTop=0;
+  saveState();canvasWrapper.scrollTop=0;
   const clone=document.createElement("div");
-  clone.style.width="794px";clone.style.background="white";clone.style.padding="40px 0";
+  clone.style.width="794px";
+  clone.style.background="white";
+  clone.style.padding="40px 0";
+  clone.style.webkitFontSmoothing="antialiased";
   clone.innerHTML=printTitle.outerHTML+canvas.outerHTML;
   document.body.appendChild(clone);
-  const img=await html2canvas(clone,{scale:2,backgroundColor:"#fff"});
-  const w=210,h=img.height*w/img.width;
+
+  const img=await html2canvas(clone,{
+    scale:3,
+    backgroundColor:"#fff",
+    useCORS:true
+  });
+
+  const w=210;
+  const h=img.height*w/img.width;
   const pdf=new window.jspdf.jsPDF("p","mm","a4");
   pdf.addImage(img.toDataURL("image/png"),"PNG",0,0,w,h);
   pdf.save("tablature.pdf");
