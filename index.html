@@ -187,18 +187,20 @@ button.active{
 });
 
 /* ===== ELEMENTS ===== */
-const canvas=document.getElementById("canvas");
-const wrapper=document.getElementById("canvas-wrapper");
-const palette=document.getElementById("palette");
-const titleInput=document.getElementById("title");
-const printTitle=document.getElementById("print-title");
-const deleteBtn=document.getElementById("deleteBtn");
+const canvas = document.getElementById("canvas");
+const wrapper = document.getElementById("canvas-wrapper");
+const palette = document.getElementById("palette");
+const titleInput = document.getElementById("title");
+const printTitle = document.getElementById("print-title");
+const deleteBtn = document.getElementById("deleteBtn");
+const toolbar = document.getElementById("toolbar");
+const scrollButtons = document.getElementById("scroll-buttons");
 
 /* ===== TITRE ===== */
 function syncTitle(){
   printTitle.textContent = titleInput.value || " ";
 }
-titleInput.addEventListener("input",()=>{syncTitle();saveState();});
+titleInput.addEventListener("input",()=>{ syncTitle(); saveState(); });
 syncTitle();
 
 /* ===== ÉTAT ===== */
@@ -278,7 +280,7 @@ let selected="a";
 });
 
 /* ===== BARRE ===== */
-addBar.onclick=()=>{placingBar=true;setTool("select");};
+addBar.onclick=()=>{ placingBar=true; setTool("select"); };
 
 /* ===== INTERACTIONS ===== */
 canvas.addEventListener("touchstart",e=>{
@@ -328,7 +330,7 @@ function makeDraggable(el){
     const x=e.touches[0].clientX-r.left;
     const y=e.touches[0].clientY-r.top;
     active.style.left=x+"px";
-    active.style.top=(snap&&el.classList.contains("symbol")?nearestLine(y)-18:y)+"px";
+    active.style.top=(snap && el.classList.contains("symbol")?nearestLine(y)-18:y)+"px";
     e.preventDefault();
   },{passive:false});
 
@@ -395,27 +397,31 @@ function restoreState(){
 restoreState();
 
 /* ===== EXPORT PDF ===== */
-exportPDF.onclick=async()=>{
+exportPDF.onclick = async () => {
   saveState();
 
-  toolbar.style.display="none";
-  palette.style.display="none";
-  document.getElementById("scroll-buttons").style.display="none";
+  toolbar.style.display = "none";
+  palette.style.display = "none";
+  scrollButtons.style.display = "none";
 
-  await new Promise(r=>setTimeout(r,100));
+  await new Promise(r => setTimeout(r, 100));
 
-  const {jsPDF}=window.jspdf;
-  const pdf=new jsPDF("p","mm","a4");
-  const img=await html2canvas(document.getElementById("print-area"),{scale:2});
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF("p", "mm", "a4");
 
-  const w=210;
-  const h=img.height*w/img.width;
-  pdf.addImage(img.toDataURL("image/png"),"PNG",0,0,w,h);
+  const img = await html2canvas(
+    document.getElementById("print-area"),
+    { scale: 2 }
+  );
+
+  const w = 210;
+  const h = img.height * w / img.width;
+  pdf.addImage(img.toDataURL("image/png"), "PNG", 0, 0, w, h);
   pdf.save("tablature.pdf");
 
-  toolbar.style.display="";
-  palette.style.display="";
-  document.getElementById("scroll-buttons").style.display="";
+  toolbar.style.display = "";
+  palette.style.display = "";
+  scrollButtons.style.display = "";
 };
 </script>
 
