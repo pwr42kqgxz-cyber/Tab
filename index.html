@@ -71,14 +71,14 @@ button.active{
   min-height:1800px;
 }
 
-/* ===== DRAW LAYER ===== */
+/* ===== DRAW ===== */
 .draw{
   position:absolute;
   left:0;
   top:0;
   width:100%;
   height:100%;
-  pointer-events:none;
+  pointer-events:auto;
 }
 
 .draw svg{
@@ -121,7 +121,7 @@ button.active{
   font-size:34px;
   white-space:nowrap;
   line-height:1;
-  transform:translateY(-0.85em);
+  transform:translateY(-0.88em);
 }
 
 /* ===== BAR ===== */
@@ -178,7 +178,7 @@ button.active{
   border:1px solid black;
 }
 
-/* ===== SCROLL ===== */
+/* ===== SCROLL + LOCK ===== */
 #scroll-buttons{
   position:fixed;
   right:8px;
@@ -187,6 +187,10 @@ button.active{
   flex-direction:column;
   gap:6px;
   z-index:10;
+}
+
+#lockBtn{
+  font-size:18px;
 }
 </style>
 </head>
@@ -218,6 +222,7 @@ button.active{
 <div id="scroll-buttons">
   <button id="scrollUp">⬆</button>
   <button id="scrollDown">⬇</button>
+  <button id="lockBtn">🔒</button>
 </div>
 
 <button id="showUIBtn">⬅︎</button>
@@ -243,6 +248,7 @@ const addWhiteLine=document.getElementById("addWhiteLine");
 const addBar=document.getElementById("addBar");
 const toggleSnap=document.getElementById("toggleSnap");
 const editTitle=document.getElementById("editTitle");
+const lockBtn=document.getElementById("lockBtn");
 
 /* ================= UI VISIBILITY ================= */
 toggleUI.onclick=()=>{
@@ -282,9 +288,18 @@ let currentY=40;
 const LINE_SPACING=28;
 const lines=[];
 
-/* ===== DRAW STATE ===== */
+/* ===== DRAW / LOCK STATE ===== */
 let drawing=false;
 let currentDrawPath=null;
+let locked=false;
+
+/* ================= LOCK ================= */
+function setLock(v){
+  locked=v;
+  lockBtn.classList.toggle("active",locked);
+  canvasWrapper.style.overflowY = locked ? "hidden" : "auto";
+}
+lockBtn.onclick=()=>setLock(!locked);
 
 /* ================= UNDO ================= */
 const undoStack=[];
@@ -296,10 +311,7 @@ function serializeState(){
     bg:bgColor.value,
     elements:[...canvas.children].map(el=>{
       if(el.classList.contains("draw")){
-        return{
-          class:"draw",
-          d:el.querySelector("path").getAttribute("d")
-        };
+        return{class:"draw",d:el.querySelector("path").getAttribute("d")};
       }
       return{
         class:el.className,
@@ -311,12 +323,10 @@ function serializeState(){
     })
   });
 }
-
 function pushUndo(){
   undoStack.push(serializeState());
   if(undoStack.length>MAX_UNDO) undoStack.shift();
 }
-
 undoBtn.onclick=()=>{
   if(!undoStack.length) return;
   restoreState(undoStack.pop(),false);
@@ -326,7 +336,6 @@ undoBtn.onclick=()=>{
 function saveState(){
   localStorage.setItem("tablature_state",serializeState());
 }
-
 function restoreState(raw,save=true){
   const s=typeof raw==="string"?JSON.parse(raw):raw;
   canvas.innerHTML="";
@@ -334,21 +343,19 @@ function restoreState(raw,save=true){
   currentY=40;
   printTitle.textContent=s.title||"";
   if(s.bg){bgColor.value=s.bg;applyBg(s.bg);}
-
   s.elements.forEach(e=>{
     if(e.class==="draw"){
-      const wrapper=document.createElement("div");
-      wrapper.className="draw";
+      const w=document.createElement("div");
+      w.className="draw";
       const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
-      const path=document.createElementNS("http://www.w3.org/2000/svg","path");
-      path.setAttribute("d",e.d);
-      svg.appendChild(path);
-      wrapper.appendChild(svg);
-      canvas.appendChild(wrapper);
-      makeDraggable(wrapper);
+      const p=document.createElementNS("http://www.w3.org/2000/svg","path");
+      p.setAttribute("d",e.d);
+      svg.appendChild(p);
+      w.appendChild(svg);
+      canvas.appendChild(w);
+      makeDraggable(w);
       return;
     }
-
     const el=document.createElement("div");
     el.className=e.class;
     el.textContent=e.text;
@@ -356,7 +363,6 @@ function restoreState(raw,save=true){
     el.style.top=e.top;
     if(e.height) el.style.height=e.height;
     canvas.appendChild(el);
-
     if(el.classList.contains("line")){
       lines.push(parseFloat(e.top));
       currentY=parseFloat(e.top)+LINE_SPACING;
@@ -365,17 +371,12 @@ function restoreState(raw,save=true){
       makeDraggable(el);
     }
   });
-
   if(save) saveState();
 }
-
 function restoreFromStorage(){
   const raw=localStorage.getItem("tablature_state");
   if(raw) restoreState(raw,false);
-  else{
-    createInitialStructure();
-    saveState();
-  }
+  else{createInitialStructure();saveState();}
 }
 
 /* ================= TITLE ================= */
@@ -392,9 +393,9 @@ function setTool(t){
   tool=t;
   toolPlace.classList.toggle("active",t==="place");
   toolSelect.classList.toggle("active",t==="select");
+  if(t!=="place" || selected!=="__draw__") setLock(false);
 }
 toolPlace.onclick=()=>setTool("place");
-
 toolSelect.onclick=()=>{
   if(tool==="select" && selectedElement){
     selectedElement.classList.remove("selected");
@@ -403,7 +404,6 @@ toolSelect.onclick=()=>{
   }
   setTool("select");
 };
-
 toggleSnap.onclick=()=>{
   snap=!snap;
   toggleSnap.classList.toggle("active",snap);
@@ -418,14 +418,12 @@ function addLine(type){
   lines.push(currentY);
   currentY+=LINE_SPACING;
 }
-
 function createInitialStructure(){
   for(let r=0;r<4;r++){
     for(let i=0;i<3;i++) addLine("white");
     for(let i=0;i<6;i++) addLine("black");
   }
 }
-
 addBlackLine.onclick=()=>{pushUndo();addLine("black");saveState();};
 addWhiteLine.onclick=()=>{pushUndo();addLine("white");saveState();};
 
@@ -436,10 +434,7 @@ function nearestLine(y){
 function snapY(y,s){
   if(!snap||!lines.length) return y;
   const b=nearestLine(y);
-  if(s.startsWith("///")) return b+LINE_SPACING*0.55;
-  if(s.startsWith("//"))  return b+LINE_SPACING*0.40;
-  if(s.startsWith("/"))   return b+LINE_SPACING*0.25;
-  return b+LINE_SPACING*0.15;
+  return b+LINE_SPACING*0.5;
 }
 
 /* ================= INTERACTION ================= */
@@ -447,21 +442,21 @@ canvas.addEventListener("touchstart",e=>{
   const r=canvas.getBoundingClientRect();
   const x=e.touches[0].clientX-r.left;
   const y=e.touches[0].clientY-r.top;
-
   pushUndo();
 
   if(selected==="__draw__"){
+    setLock(true);
     drawing=true;
-    const wrapper=document.createElement("div");
-    wrapper.className="draw";
+    const w=document.createElement("div");
+    w.className="draw selected";
     const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
-    const path=document.createElementNS("http://www.w3.org/2000/svg","path");
-    path.setAttribute("d",`M ${x} ${y}`);
-    svg.appendChild(path);
-    wrapper.appendChild(svg);
-    canvas.appendChild(wrapper);
-    currentDrawPath=path;
-    selectedElement=wrapper;
+    const p=document.createElementNS("http://www.w3.org/2000/svg","path");
+    p.setAttribute("d",`M ${x} ${y}`);
+    svg.appendChild(p);
+    w.appendChild(svg);
+    canvas.appendChild(w);
+    currentDrawPath=p;
+    selectedElement=w;
     return;
   }
 
@@ -491,12 +486,14 @@ canvas.addEventListener("touchstart",e=>{
 },{passive:false});
 
 canvas.addEventListener("touchmove",e=>{
-  if(!drawing || !currentDrawPath) return;
-  const r=canvas.getBoundingClientRect();
-  const x=e.touches[0].clientX-r.left;
-  const y=e.touches[0].clientY-r.top;
-  const d=currentDrawPath.getAttribute("d");
-  currentDrawPath.setAttribute("d",d+` L ${x} ${y}`);
+  if(drawing){
+    e.preventDefault();
+    const r=canvas.getBoundingClientRect();
+    const x=e.touches[0].clientX-r.left;
+    const y=e.touches[0].clientY-r.top;
+    const d=currentDrawPath.getAttribute("d");
+    currentDrawPath.setAttribute("d",d+` L ${x} ${y}`);
+  }
 },{passive:false});
 
 canvas.addEventListener("touchend",()=>{
@@ -516,17 +513,13 @@ function makeDraggable(el){
     active=el;
     e.stopPropagation();
   },{passive:false});
-
   el.addEventListener("touchmove",e=>{
     if(!active) return;
+    e.preventDefault();
     const r=canvas.getBoundingClientRect();
     active.style.left=e.touches[0].clientX-r.left+"px";
-    active.style.top=el.classList.contains("bar")
-      ?nearestLine(e.touches[0].clientY-r.top)+"px"
-      :snapY(e.touches[0].clientY-r.top,el.textContent)+"px";
-    e.preventDefault();
+    active.style.top=e.touches[0].clientY-r.top+"px";
   },{passive:false});
-
   el.addEventListener("touchend",()=>{
     active=null;
     saveState();
@@ -542,7 +535,6 @@ deleteBtn.onclick=()=>{
   selectedElement=null;
   saveState();
 };
-
 clearAllBtn.onclick=()=>{
   if(!confirm("Effacer toute la tablature ?")) return;
   pushUndo();
@@ -576,6 +568,7 @@ scrollDown.onclick=()=>canvasWrapper.scrollTop+=100;
   p.onclick=()=>{
     selected=(s==="✎")?"__draw__":s;
     setTool("place");
+    if(selected==="__draw__") setLock(true);
   };
   palette.appendChild(p);
 });
@@ -589,6 +582,7 @@ customInput.oninput=()=>{
   if(customInput.value.trim()!==""){
     selected=customInput.value.trim();
     setTool("place");
+    setLock(false);
   }
 };
 palette.appendChild(customInput);
