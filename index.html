@@ -234,7 +234,8 @@ editTitle.onclick=()=>{
 let tool="place",snap=true,placingBar=false;
 let active=null,selectedElement=null;
 let history=[],currentY=40;
-const LINE_SPACING=28,lines=[];
+const LINE_SPACING=28;
+const lines=[];
 
 /* ===== TOOLS ===== */
 function setTool(t){
@@ -245,7 +246,7 @@ function setTool(t){
 toolPlace.onclick=()=>setTool("place");
 toolSelect.onclick=()=>setTool("select");
 
-/* ===== UNDO FIX ===== */
+/* ===== UNDO ===== */
 undo.onclick=()=>{
   const el=history.pop();
   if(!el) return;
@@ -260,12 +261,16 @@ undo.onclick=()=>{
   saveState();
 };
 
+/* ===== DELETE (FIXÉ) ===== */
 deleteBtn.onclick=()=>{
-  if(selectedElement){
-    selectedElement.remove();
-    selectedElement=null;
-    saveState();
-  }
+  if(!selectedElement) return;
+
+  const idx = history.indexOf(selectedElement);
+  if(idx !== -1) history.splice(idx,1);
+
+  selectedElement.remove();
+  selectedElement = null;
+  saveState();
 };
 
 clearAllBtn.onclick=()=>{
@@ -297,7 +302,7 @@ function addLine(type){
   l.style.top=currentY+"px";
   canvas.appendChild(l);
   history.push(l);
-  if(type==="black") lines.push(currentY);
+  lines.push(currentY); // ✔️ lignes blanches incluses
   currentY+=LINE_SPACING;
   saveState();
 }
@@ -317,7 +322,7 @@ let selected="a";
   p.textContent=s;
   p.onclick=()=>{
     selected=s;
-    setTool("place"); // auto placer
+    setTool("place");
   };
   palette.appendChild(p);
 });
@@ -334,7 +339,7 @@ customInput.oninput=()=>{
 };
 palette.appendChild(customInput);
 
-/* ===== BAR AIMANTÉE ===== */
+/* ===== BAR ===== */
 addBar.onclick=()=>{
   placingBar=true;
   setTool("place");
@@ -342,6 +347,16 @@ addBar.onclick=()=>{
 
 function nearestLine(y){
   return lines.reduce((a,b)=>Math.abs(b-y)<Math.abs(a-y)?b:a);
+}
+
+/* ===== SNAP ===== */
+function snapY(y,s){
+  if(!snap) return y;
+  const b=nearestLine(y);
+  if(s.startsWith("///"))return b+16;
+  if(s.startsWith("//"))return b+12;
+  if(s.startsWith("/"))return b+8;
+  return b-16;
 }
 
 /* ===== INTERACTION ===== */
@@ -360,7 +375,7 @@ canvas.addEventListener("touchstart",e=>{
     b.style.height=(6*LINE_SPACING)+"px";
     canvas.appendChild(b);
     history.push(b);
-    makeSelectable(b);
+    makeDraggable(b);
     saveState();
     return;
   }
@@ -370,39 +385,53 @@ canvas.addEventListener("touchstart",e=>{
     s.className="symbol";
     s.textContent=selected;
     s.style.left=x+"px";
-    s.style.top=(nearestLine(y)-16)+"px";
+    s.style.top=snapY(y,selected)+"px";
     canvas.appendChild(s);
     history.push(s);
-    makeSelectable(s);
+    makeDraggable(s);
     saveState();
   }
 },{passive:false});
 
-/* ===== SELECTION VISUELLE ===== */
-function makeSelectable(el){
+/* ===== DRAG + AIMANTATION ===== */
+function makeDraggable(el){
   el.addEventListener("touchstart",e=>{
-    if(tool!=="select") return;
+    if(tool!=="select")return;
     if(selectedElement) selectedElement.classList.remove("selected");
     selectedElement=el;
     el.classList.add("selected");
+    active=el;
     e.stopPropagation();
+  },{passive:false});
+
+  el.addEventListener("touchmove",e=>{
+    if(!active)return;
+
+    const r=canvas.getBoundingClientRect();
+    const x=e.touches[0].clientX-r.left;
+    const y=e.touches[0].clientY-r.top;
+
+    active.style.left=x+"px";
+
+    if(active.classList.contains("bar")){
+      active.style.top=nearestLine(y)+"px";
+    }else{
+      active.style.top=snapY(y,active.textContent)+"px";
+    }
+    e.preventDefault();
+  },{passive:false});
+
+  el.addEventListener("touchend",()=>{
+    active=null;
+    saveState();
   });
 }
-
-document.body.addEventListener("touchstart",()=>{
-  if(selectedElement){
-    selectedElement.classList.remove("selected");
-    selectedElement=null;
-  }
-});
 
 /* ===== SAVE / RESTORE ===== */
 function saveState(){
   localStorage.setItem("tablature_state",JSON.stringify({
     title:printTitle.textContent,
     bg:bgColor.value,
-    currentY,
-    lines,
     elements:[...canvas.children].map(el=>({
       class:el.className,
       text:el.textContent||"",
@@ -432,12 +461,12 @@ function restoreState(){
     if(e.height) el.style.height=e.height;
     canvas.appendChild(el);
 
-    if(el.classList.contains("line") && el.classList.contains("black")){
+    if(el.classList.contains("line")){
       lines.push(parseFloat(e.top));
       currentY=parseFloat(e.top)+LINE_SPACING;
     }
     if(el.classList.contains("symbol")||el.classList.contains("bar")){
-      makeSelectable(el);
+      makeDraggable(el);
     }
   });
 }
