@@ -429,16 +429,18 @@ toolPlace.onclick=()=>{
   }
 };
 
-toolSelect.onclick=()=>{
-  // 🔒 on neutralise le dernier caractère choisi
-  selected = null;
+toolSelect.onclick = () => {
+  // forcer le mode sélection, sans conditions
+  tool = "select";
 
-  if(tool==="select" && selectedElement){
+  toolSelect.classList.add("active");
+  toolPlace.classList.remove("active");
+
+  // on libère juste la sélection précédente
+  if (selectedElement) {
     selectedElement.classList.remove("selected");
-    selectedElement=null;
-    return;
+    selectedElement = null;
   }
-  setTool("select");
 };
 
 toggleSnap.onclick=()=>{
