@@ -20,9 +20,7 @@ user-scalable=no">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
-*{
-  touch-action: manipulation;
-}
+*{ touch-action: manipulation; }
 
 html,body{
   margin:0;
@@ -79,16 +77,11 @@ button.active{
   min-height:1800px;
 }
 
-/* ===== DRAW (LOCAL, AUTO SIZE) ===== */
+/* ===== DRAW ===== */
 .draw{
   position:absolute;
   pointer-events:auto;
 }
-
-.draw svg{
-  display:block;
-}
-
 .draw path{
   fill:none;
   stroke:black;
@@ -96,7 +89,6 @@ button.active{
   stroke-linecap:round;
   stroke-linejoin:round;
 }
-
 .draw.selected{
   outline:2px dashed black;
 }
@@ -172,7 +164,6 @@ button.active{
   cursor:pointer;
 }
 
-/* ===== CUSTOM CHAR ===== */
 #customChar{
   margin-left:auto;
   width:60px;
@@ -191,12 +182,9 @@ button.active{
   gap:6px;
   z-index:10;
 }
-
-#lockBtn{
-  font-size:18px;
-}
 </style>
 </head>
+
 <body>
 
 <div id="toolbar">
@@ -229,7 +217,6 @@ button.active{
 </div>
 
 <button id="showUIBtn">⬅︎</button>
-
 <script>
 /* ================= DOM ================= */
 const toolbar = document.getElementById("toolbar");
@@ -305,6 +292,10 @@ let currentPath=null;
 let drawStart={x:0,y:0};
 let locked=false;
 
+/* ===== DRAW SIZE (AJOUT UNIQUE) ===== */
+const DRAW_W = 80;
+const DRAW_H = 60;
+
 /* ================= LOCK ================= */
 function setLock(v){
   locked=v;
@@ -372,6 +363,9 @@ function restoreState(raw,save=true){
       w.style.top=e.top;
 
       const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
+      svg.setAttribute("width",DRAW_W);
+      svg.setAttribute("height",DRAW_H);
+
       const p=document.createElementNS("http://www.w3.org/2000/svg","path");
       p.setAttribute("d",e.d);
       svg.appendChild(p);
@@ -479,12 +473,15 @@ canvas.addEventListener("touchstart",e=>{
 
     const w=document.createElement("div");
     w.className="draw selected";
-    w.style.left=x+"px";
-    w.style.top=y+"px";
+    w.style.left=(x - DRAW_W/2)+"px";
+    w.style.top =(y - DRAW_H/2)+"px";
 
     const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
+    svg.setAttribute("width",DRAW_W);
+    svg.setAttribute("height",DRAW_H);
+
     const p=document.createElementNS("http://www.w3.org/2000/svg","path");
-    p.setAttribute("d","M 0 0");
+    p.setAttribute("d",`M ${DRAW_W/2} ${DRAW_H/2}`);
     svg.appendChild(p);
     w.appendChild(svg);
     canvas.appendChild(w);
@@ -524,11 +521,11 @@ canvas.addEventListener("touchmove",e=>{
   e.preventDefault();
 
   const r=canvas.getBoundingClientRect();
-  const x=e.touches[0].clientX-r.left - drawStart.x;
-  const y=e.touches[0].clientY-r.top - drawStart.y;
+  const dx=e.touches[0].clientX-r.left-drawStart.x+DRAW_W/2;
+  const dy=e.touches[0].clientY-r.top -drawStart.y+DRAW_H/2;
 
   const d=currentPath.getAttribute("d");
-  currentPath.setAttribute("d",d+` L ${x} ${y}`);
+  currentPath.setAttribute("d",d+` L ${dx} ${dy}`);
 },{passive:false});
 
 canvas.addEventListener("touchend",()=>{
