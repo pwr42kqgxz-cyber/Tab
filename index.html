@@ -21,44 +21,39 @@ html,body{
   overflow:hidden;
 }
 
-/* ===== TITRE ===== */
 #title{
   width:100%;
   text-align:center;
   font-size:36px;
-  line-height:1;
   padding:14px 0;
   border:none;
   outline:none;
 }
 
-/* ===== TOOLBAR ===== */
 #toolbar{
   position:fixed;
   top:0;
   left:0;
   right:0;
-  z-index:10;
   display:flex;
   flex-wrap:wrap;
   gap:6px;
   padding:6px;
   background:white;
   border-bottom:1px solid black;
+  z-index:10;
 }
 
 button{
   padding:6px 10px;
   border:1px solid black;
   background:white;
-  font-size:14px;
 }
 button.active{
   background:black;
   color:white;
 }
 
-/* ===== CANVAS ===== */
 #canvas-wrapper{
   position:absolute;
   top:120px;
@@ -71,10 +66,8 @@ button.active{
 #canvas{
   position:relative;
   min-height:2000px;
-  touch-action:manipulation;
 }
 
-/* ===== LIGNES ===== */
 .line{
   position:absolute;
   left:5%;
@@ -84,7 +77,6 @@ button.active{
 .line.black{ background:black; }
 .line.white{ background:transparent; }
 
-/* ===== SYMBOLES ===== */
 .symbol{
   position:absolute;
   font-size:36px;
@@ -92,7 +84,6 @@ button.active{
   white-space:nowrap;
 }
 
-/* ===== BARRES ===== */
 .bar{
   position:absolute;
   width:8px;
@@ -108,7 +99,6 @@ button.active{
   background:black;
 }
 
-/* ===== PALETTE ===== */
 #palette{
   position:fixed;
   bottom:0;
@@ -122,6 +112,7 @@ button.active{
   flex-wrap:wrap;
   z-index:10;
 }
+
 .palette-item{
   border:1px solid black;
   padding:10px;
@@ -129,7 +120,6 @@ button.active{
   font-size:30px;
 }
 
-/* ===== SCROLL ===== */
 #scroll-buttons{
   position:fixed;
   right:8px;
@@ -137,10 +127,8 @@ button.active{
   display:flex;
   flex-direction:column;
   gap:6px;
-  z-index:20;
 }
 
-/* ===== IMPRIMABLE ===== */
 #print-area{ padding-top:40px; }
 #print-title{
   text-align:center;
@@ -182,7 +170,7 @@ button.active{
 </div>
 
 <script>
-/* ===== ANTI-ZOOM iOS ===== */
+/* ===== ANTI ZOOM ===== */
 ["gesturestart","gesturechange","gestureend","dblclick"].forEach(ev=>{
   document.addEventListener(ev,e=>e.preventDefault(),{passive:false});
 });
@@ -198,14 +186,14 @@ const clearAllBtn = document.getElementById("clearAllBtn");
 const toolbar = document.getElementById("toolbar");
 const scrollButtons = document.getElementById("scroll-buttons");
 
-/* ===== TITRE ===== */
+/* ===== TITLE ===== */
 function syncTitle(){
   printTitle.textContent = titleInput.value || " ";
 }
 titleInput.addEventListener("input",()=>{syncTitle();saveState();});
 syncTitle();
 
-/* ===== ÉTAT ===== */
+/* ===== STATE ===== */
 let tool="place";
 let snap=true;
 let placingBar=false;
@@ -216,7 +204,7 @@ let currentY=40;
 const LINE_SPACING=30;
 const lines=[];
 
-/* ===== OUTILS ===== */
+/* ===== TOOLS ===== */
 toolPlace.onclick=()=>setTool("place");
 toolSelect.onclick=()=>setTool("select");
 toggleSnap.onclick=()=>{
@@ -245,9 +233,9 @@ deleteBtn.onclick=()=>{
   }
 };
 
-/* ===== CLEAR ALL ===== */
+/* ===== CLEAR ===== */
 clearAllBtn.onclick=()=>{
-  if(!confirm("Tout effacer ? Cette action est irréversible.")) return;
+  if(!confirm("Tout effacer ?")) return;
   canvas.innerHTML="";
   localStorage.removeItem("tablature_state");
   lines.length=0;
@@ -261,7 +249,7 @@ clearAllBtn.onclick=()=>{
 scrollUp.onclick=()=>wrapper.scrollBy({top:-200,behavior:"smooth"});
 scrollDown.onclick=()=>wrapper.scrollBy({top:200,behavior:"smooth"});
 
-/* ===== LIGNES ===== */
+/* ===== LINES ===== */
 function addLine(type){
   const l=document.createElement("div");
   l.className="line "+type;
@@ -272,11 +260,10 @@ function addLine(type){
   currentY+=LINE_SPACING;
   saveState();
 }
-
 addBlackLine.onclick=()=>addLine("black");
 addWhiteLine.onclick=()=>addLine("white");
 
-/* ===== STRUCTURE INITIALE ===== */
+/* ===== INITIAL STRUCTURE ===== */
 function createInitialStructure(){
   for(let bloc=0;bloc<4;bloc++){
     for(let i=0;i<6;i++) addLine("black");
@@ -297,10 +284,21 @@ let selected="a";
   palette.appendChild(p);
 });
 
-/* ===== BARRE ===== */
+/* ===== BAR ===== */
 addBar.onclick=()=>{ placingBar=true; setTool("select"); };
 
-/* ===== INTERACTIONS ===== */
+/* ===== SNAP LOGIC (IMPORTANT) ===== */
+function snapY(rawY, symbol){
+  const base = nearestLine(rawY);
+  if(!snap) return rawY;
+
+  if(symbol.startsWith("///")) return base + 18;
+  if(symbol.startsWith("//"))  return base + 14;
+  if(symbol.startsWith("/"))   return base + 10;
+  return base - 16; // lettre / chiffre
+}
+
+/* ===== INTERACTION ===== */
 canvas.addEventListener("touchstart",e=>{
   const r=canvas.getBoundingClientRect();
   const x=e.touches[0].clientX-r.left;
@@ -325,7 +323,7 @@ canvas.addEventListener("touchstart",e=>{
     s.className="symbol";
     s.textContent=selected;
     s.style.left=x+"px";
-    s.style.top=(snap?nearestLine(y)-18:y)+"px";
+    s.style.top=snapY(y,selected)+"px";
     canvas.appendChild(s);
     history.push(s);
     makeDraggable(s);
@@ -348,7 +346,11 @@ function makeDraggable(el){
     const x=e.touches[0].clientX-r.left;
     const y=e.touches[0].clientY-r.top;
     active.style.left=x+"px";
-    active.style.top=(snap && el.classList.contains("symbol")?nearestLine(y)-18:y)+"px";
+    if(el.classList.contains("symbol")){
+      active.style.top=snapY(y,el.textContent)+"px";
+    }else{
+      active.style.top=y+"px";
+    }
     e.preventDefault();
   },{passive:false});
 
@@ -358,12 +360,12 @@ function makeDraggable(el){
   });
 }
 
-/* ===== SNAP ===== */
+/* ===== NEAREST LINE ===== */
 function nearestLine(y){
   return lines.reduce((a,b)=>Math.abs(b-y)<Math.abs(a-y)?b:a);
 }
 
-/* ===== SAUVEGARDE ===== */
+/* ===== SAVE / RESTORE ===== */
 function saveState(){
   const state={
     title:titleInput.value,
@@ -378,21 +380,18 @@ function saveState(){
   localStorage.setItem("tablature_state",JSON.stringify(state));
 }
 
-/* ===== RESTAURATION ===== */
 function restoreState(){
   const raw=localStorage.getItem("tablature_state");
   if(!raw){
     createInitialStructure();
     return;
   }
-
   const state=JSON.parse(raw);
   titleInput.value=state.title||"";
   syncTitle();
 
   canvas.innerHTML="";
   lines.length=0;
-  history.length=0;
   currentY=40;
 
   state.elements.forEach(e=>{
@@ -415,23 +414,18 @@ function restoreState(){
 }
 restoreState();
 
-/* ===== EXPORT PDF ===== */
-exportPDF.onclick = async () => {
+/* ===== PDF ===== */
+exportPDF.onclick=async()=>{
   saveState();
-
   toolbar.style.display="none";
   palette.style.display="none";
   scrollButtons.style.display="none";
 
   await new Promise(r=>setTimeout(r,100));
 
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF("p","mm","a4");
-
-  const img = await html2canvas(
-    document.getElementById("print-area"),
-    { scale: 2 }
-  );
+  const {jsPDF}=window.jspdf;
+  const pdf=new jsPDF("p","mm","a4");
+  const img=await html2canvas(document.getElementById("print-area"),{scale:2});
 
   const w=210;
   const h=img.height*w/img.width;
