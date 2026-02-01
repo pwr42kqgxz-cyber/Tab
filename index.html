@@ -159,6 +159,7 @@ button.active{
   <button id="toolSelect">🖐 Sélection</button>
   <button id="undo">↩️ Retour</button>
   <button id="deleteBtn">❌ Effacer</button>
+  <button id="clearAllBtn">🗑️ Tout effacer</button>
   <button id="addBlackLine">➕ Ligne noire</button>
   <button id="addWhiteLine">➕ Ligne blanche</button>
   <button id="addBar">➕ Barre</button>
@@ -193,6 +194,7 @@ const palette = document.getElementById("palette");
 const titleInput = document.getElementById("title");
 const printTitle = document.getElementById("print-title");
 const deleteBtn = document.getElementById("deleteBtn");
+const clearAllBtn = document.getElementById("clearAllBtn");
 const toolbar = document.getElementById("toolbar");
 const scrollButtons = document.getElementById("scroll-buttons");
 
@@ -200,7 +202,7 @@ const scrollButtons = document.getElementById("scroll-buttons");
 function syncTitle(){
   printTitle.textContent = titleInput.value || " ";
 }
-titleInput.addEventListener("input",()=>{ syncTitle(); saveState(); });
+titleInput.addEventListener("input",()=>{syncTitle();saveState();});
 syncTitle();
 
 /* ===== ÉTAT ===== */
@@ -243,6 +245,18 @@ deleteBtn.onclick=()=>{
   }
 };
 
+/* ===== CLEAR ALL ===== */
+clearAllBtn.onclick=()=>{
+  if(!confirm("Tout effacer ? Cette action est irréversible.")) return;
+  canvas.innerHTML="";
+  localStorage.removeItem("tablature_state");
+  lines.length=0;
+  history.length=0;
+  currentY=40;
+  createInitialStructure();
+  saveState();
+};
+
 /* ===== SCROLL ===== */
 scrollUp.onclick=()=>wrapper.scrollBy({top:-200,behavior:"smooth"});
 scrollDown.onclick=()=>wrapper.scrollBy({top:200,behavior:"smooth"});
@@ -256,7 +270,11 @@ function addLine(type){
   history.push(l);
   lines.push(currentY);
   currentY+=LINE_SPACING;
+  saveState();
 }
+
+addBlackLine.onclick=()=>addLine("black");
+addWhiteLine.onclick=()=>addLine("white");
 
 /* ===== STRUCTURE INITIALE ===== */
 function createInitialStructure(){
@@ -374,6 +392,7 @@ function restoreState(){
 
   canvas.innerHTML="";
   lines.length=0;
+  history.length=0;
   currentY=40;
 
   state.elements.forEach(e=>{
@@ -400,28 +419,28 @@ restoreState();
 exportPDF.onclick = async () => {
   saveState();
 
-  toolbar.style.display = "none";
-  palette.style.display = "none";
-  scrollButtons.style.display = "none";
+  toolbar.style.display="none";
+  palette.style.display="none";
+  scrollButtons.style.display="none";
 
-  await new Promise(r => setTimeout(r, 100));
+  await new Promise(r=>setTimeout(r,100));
 
   const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF("p", "mm", "a4");
+  const pdf = new jsPDF("p","mm","a4");
 
   const img = await html2canvas(
     document.getElementById("print-area"),
     { scale: 2 }
   );
 
-  const w = 210;
-  const h = img.height * w / img.width;
-  pdf.addImage(img.toDataURL("image/png"), "PNG", 0, 0, w, h);
+  const w=210;
+  const h=img.height*w/img.width;
+  pdf.addImage(img.toDataURL("image/png"),"PNG",0,0,w,h);
   pdf.save("tablature.pdf");
 
-  toolbar.style.display = "";
-  palette.style.display = "";
-  scrollButtons.style.display = "";
+  toolbar.style.display="";
+  palette.style.display="";
+  scrollButtons.style.display="";
 };
 </script>
 
