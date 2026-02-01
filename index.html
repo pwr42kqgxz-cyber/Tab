@@ -140,6 +140,7 @@ button.active{
   cursor:pointer;
 }
 
+/* ===== CUSTOM CHAR ===== */
 #customChar{
   margin-left:auto;
   width:60px;
@@ -483,7 +484,7 @@ addBar.onclick=()=>{
 document.getElementById("scrollUp").onclick=()=>canvasWrapper.scrollTop-=100;
 document.getElementById("scrollDown").onclick=()=>canvasWrapper.scrollTop+=100;
 
-/* ================= PALETTE (GOLD – RESTAURÉE) ================= */
+/* ================= PALETTE ================= */
 [
  "a","b","c","d","e","f","g","h","j","k",
  "l","m","n",
@@ -499,6 +500,19 @@ document.getElementById("scrollDown").onclick=()=>canvasWrapper.scrollTop+=100;
   };
   palette.appendChild(p);
 });
+
+/* === CUSTOM CHARACTER INPUT (AJOUT DEMANDÉ) === */
+const customInput=document.createElement("input");
+customInput.id="customChar";
+customInput.placeholder="✱";
+customInput.maxLength=3;
+customInput.oninput=()=>{
+  if(customInput.value.trim()!==""){
+    selected=customInput.value.trim();
+    setTool("place");
+  }
+};
+palette.appendChild(customInput);
 
 /* ================= INIT ================= */
 restoreFromStorage();
