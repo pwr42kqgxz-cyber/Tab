@@ -196,25 +196,25 @@ button.active{
 
 <script>
 /* ================= DOM ================= */
-const toolbar = document.getElementById("toolbar");
-const palette = document.getElementById("palette");
-const scrollButtons = document.getElementById("scroll-buttons");
-const showUIBtn = document.getElementById("showUIBtn");
-const toggleUI = document.getElementById("toggleUI");
-const canvasWrapper = document.getElementById("canvas-wrapper");
-const canvas = document.getElementById("canvas");
-const printTitle = document.getElementById("print-title");
-const bgColor = document.getElementById("bgColor");
-const toolPlace = document.getElementById("toolPlace");
-const toolSelect = document.getElementById("toolSelect");
-const undoBtn = document.getElementById("undo");
-const deleteBtn = document.getElementById("deleteBtn");
-const clearAllBtn = document.getElementById("clearAllBtn");
-const addBlackLine = document.getElementById("addBlackLine");
-const addWhiteLine = document.getElementById("addWhiteLine");
-const addBar = document.getElementById("addBar");
-const toggleSnap = document.getElementById("toggleSnap");
-const editTitle = document.getElementById("editTitle");
+const toolbar=document.getElementById("toolbar");
+const palette=document.getElementById("palette");
+const scrollButtons=document.getElementById("scroll-buttons");
+const showUIBtn=document.getElementById("showUIBtn");
+const toggleUI=document.getElementById("toggleUI");
+const canvasWrapper=document.getElementById("canvas-wrapper");
+const canvas=document.getElementById("canvas");
+const printTitle=document.getElementById("print-title");
+const bgColor=document.getElementById("bgColor");
+const toolPlace=document.getElementById("toolPlace");
+const toolSelect=document.getElementById("toolSelect");
+const undoBtn=document.getElementById("undo");
+const deleteBtn=document.getElementById("deleteBtn");
+const clearAllBtn=document.getElementById("clearAllBtn");
+const addBlackLine=document.getElementById("addBlackLine");
+const addWhiteLine=document.getElementById("addWhiteLine");
+const addBar=document.getElementById("addBar");
+const toggleSnap=document.getElementById("toggleSnap");
+const editTitle=document.getElementById("editTitle");
 
 /* ================= UI VISIBILITY ================= */
 toggleUI.onclick=()=>{
@@ -248,8 +248,8 @@ bgColor.oninput=()=>{
 };
 
 /* ================= STATE ================= */
-let tool="place", snap=true, placingBar=false;
-let selected="a", selectedElement=null, active=null;
+let tool="place",snap=true,placingBar=false;
+let selected="a",selectedElement=null,active=null;
 let currentY=40;
 const LINE_SPACING=28;
 const lines=[];
@@ -271,14 +271,12 @@ function serializeState(){
     }))
   });
 }
-
 function pushUndo(){
   undoStack.push(serializeState());
   if(undoStack.length>MAX_UNDO) undoStack.shift();
 }
-
 undoBtn.onclick=()=>{
-  if(!undoStack.length) return;
+  if(!undoStack.length)return;
   restoreState(undoStack.pop(),false);
 };
 
@@ -286,28 +284,21 @@ undoBtn.onclick=()=>{
 function saveState(){
   localStorage.setItem("tablature_state",serializeState());
 }
-
 function restoreState(raw,save=true){
   const s=typeof raw==="string"?JSON.parse(raw):raw;
   canvas.innerHTML="";
   lines.length=0;
   currentY=40;
-
   printTitle.textContent=s.title||"";
-  if(s.bg){
-    bgColor.value=s.bg;
-    applyBg(s.bg);
-  }
-
+  if(s.bg){bgColor.value=s.bg;applyBg(s.bg);}
   s.elements.forEach(e=>{
     const el=document.createElement("div");
     el.className=e.class;
     el.textContent=e.text;
     el.style.left=e.left;
     el.style.top=e.top;
-    if(e.height) el.style.height=e.height;
+    if(e.height)el.style.height=e.height;
     canvas.appendChild(el);
-
     if(el.classList.contains("line")){
       lines.push(parseFloat(e.top));
       currentY=parseFloat(e.top)+LINE_SPACING;
@@ -316,24 +307,18 @@ function restoreState(raw,save=true){
       makeDraggable(el);
     }
   });
-
-  if(save) saveState();
+  if(save)saveState();
 }
-
 function restoreFromStorage(){
   const raw=localStorage.getItem("tablature_state");
-  if(raw){
-    restoreState(raw,false);
-  }else{
-    createInitialStructure();
-    saveState();
-  }
+  if(raw)restoreState(raw,false);
+  else{createInitialStructure();saveState();}
 }
 
 /* ================= TITLE ================= */
 editTitle.onclick=()=>{
   const t=prompt("Titre du morceau :",printTitle.textContent||"");
-  if(t===null) return;
+  if(t===null)return;
   pushUndo();
   printTitle.textContent=t.trim();
   saveState();
@@ -345,19 +330,15 @@ function setTool(t){
   toolPlace.classList.toggle("active",t==="place");
   toolSelect.classList.toggle("active",t==="select");
 }
-
 toolPlace.onclick=()=>setTool("place");
-
-/* === MODIF 1 : Sélection = toggle de désélection === */
 toolSelect.onclick=()=>{
-  if(tool==="select" && selectedElement){
+  if(tool==="select"&&selectedElement){
     selectedElement.classList.remove("selected");
     selectedElement=null;
     return;
   }
   setTool("select");
 };
-
 toggleSnap.onclick=()=>{
   snap=!snap;
   toggleSnap.classList.toggle("active",snap);
@@ -372,43 +353,33 @@ function addLine(type){
   lines.push(currentY);
   currentY+=LINE_SPACING;
 }
-
 function createInitialStructure(){
   for(let r=0;r<4;r++){
-    for(let i=0;i<3;i++) addLine("white");
-    for(let i=0;i<6;i++) addLine("black");
+    for(let i=0;i<3;i++)addLine("white");
+    for(let i=0;i<6;i++)addLine("black");
   }
 }
-
-addBlackLine.onclick=()=>{
-  pushUndo();
-  addLine("black");
-  saveState();
-};
-addWhiteLine.onclick=()=>{
-  pushUndo();
-  addLine("white");
-  saveState();
-};
+addBlackLine.onclick=()=>{pushUndo();addLine("black");saveState();};
+addWhiteLine.onclick=()=>{pushUndo();addLine("white");saveState();};
 
 /* ================= SNAP ================= */
 function nearestLine(y){
   return lines.reduce((a,b)=>Math.abs(b-y)<Math.abs(a-y)?b:a);
 }
 function snapY(y,s){
-  if(!snap||!lines.length) return y;
+  if(!snap||!lines.length)return y;
   const b=nearestLine(y);
-  if(s.startsWith("///")) return b+LINE_SPACING*0.55;
-  if(s.startsWith("//")) return b+LINE_SPACING*0.40;
-  if(s.startsWith("/")) return b+LINE_SPACING*0.25;
+  if(s.startsWith("///"))return b+LINE_SPACING*0.55;
+  if(s.startsWith("//"))return b+LINE_SPACING*0.40;
+  if(s.startsWith("/"))return b+LINE_SPACING*0.25;
   return b+LINE_SPACING*0.15;
 }
 
-/* ================= INTERACTION ================= */
+/* ================= INTERACTION (CORRIGÉE) ================= */
 canvas.addEventListener("touchstart",e=>{
   const r=canvas.getBoundingClientRect();
   const x=e.touches[0].clientX-r.left;
-  const y=e.touches[0].clientY-r.top-8;
+  const y=e.touches[0].clientY-r.top;   /* ← correction ici */
 
   pushUndo();
 
@@ -424,7 +395,6 @@ canvas.addEventListener("touchstart",e=>{
     saveState();
     return;
   }
-
   if(tool==="place"){
     const s=document.createElement("div");
     s.className="symbol";
@@ -440,43 +410,37 @@ canvas.addEventListener("touchstart",e=>{
 /* ================= DRAG ================= */
 function makeDraggable(el){
   el.addEventListener("touchstart",e=>{
-    if(tool!=="select") return;
+    if(tool!=="select")return;
     pushUndo();
-    if(selectedElement) selectedElement.classList.remove("selected");
+    if(selectedElement)selectedElement.classList.remove("selected");
     selectedElement=el;
     el.classList.add("selected");
     active=el;
     e.stopPropagation();
   },{passive:false});
-
   el.addEventListener("touchmove",e=>{
-    if(!active) return;
+    if(!active)return;
     const r=canvas.getBoundingClientRect();
     active.style.left=e.touches[0].clientX-r.left+"px";
     active.style.top=el.classList.contains("bar")
-      ? nearestLine(e.touches[0].clientY-r.top)+"px"
-      : snapY(e.touches[0].clientY-r.top,el.textContent)+"px";
+      ?nearestLine(e.touches[0].clientY-r.top)+"px"
+      :snapY(e.touches[0].clientY-r.top,el.textContent)+"px";
     e.preventDefault();
   },{passive:false});
-
-  el.addEventListener("touchend",()=>{
-    active=null;
-    saveState();
-  });
+  el.addEventListener("touchend",()=>{active=null;saveState();});
 }
 
 /* ================= DELETE / CLEAR ================= */
 deleteBtn.onclick=()=>{
-  setTool("select");           // === MODIF 2 ===
-  if(!selectedElement) return;
+  setTool("select");
+  if(!selectedElement)return;
   pushUndo();
   selectedElement.remove();
   selectedElement=null;
   saveState();
 };
-
 clearAllBtn.onclick=()=>{
-  if(!confirm("Effacer toute la tablature ?")) return;
+  if(!confirm("Effacer toute la tablature ?"))return;
   pushUndo();
   canvas.innerHTML="";
   lines.length=0;
@@ -486,33 +450,24 @@ clearAllBtn.onclick=()=>{
 };
 
 /* ================= BAR ================= */
-addBar.onclick=()=>{
-  placingBar=true;
-  setTool("place");
-};
+addBar.onclick=()=>{placingBar=true;setTool("place");};
 
 /* ================= SCROLL ================= */
-document.getElementById("scrollUp").onclick=()=>canvasWrapper.scrollTop-=100;
-document.getElementById("scrollDown").onclick=()=>canvasWrapper.scrollTop+=100;
+scrollUp.onclick=()=>canvasWrapper.scrollTop-=100;
+scrollDown.onclick=()=>canvasWrapper.scrollTop+=100;
 
 /* ================= PALETTE ================= */
 [
- "a","b","c","d","e","f","g","h","j","k",
- "l","m","n",
- "/a","//a","///a","4","5","6",
- ",",".",":",";","(",")","[","]","~","⌒","|"
+"a","b","c","d","e","f","g","h","j","k",
+"l","m","n","/a","//a","///a","4","5","6",
+",",".",":",";","(",")","[","]","~","⌒","|"
 ].forEach(s=>{
   const p=document.createElement("div");
   p.className="palette-item";
   p.textContent=s;
-  p.onclick=()=>{
-    selected=s;
-    setTool("place");
-  };
+  p.onclick=()=>{selected=s;setTool("place");};
   palette.appendChild(p);
 });
-
-/* === CUSTOM CHARACTER INPUT === */
 const customInput=document.createElement("input");
 customInput.id="customChar";
 customInput.placeholder="✱";
