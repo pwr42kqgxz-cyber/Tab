@@ -292,7 +292,7 @@ let currentPath=null;
 let drawStart={x:0,y:0};
 let locked=false;
 
-/* ===== DRAW SIZE (AJOUT UNIQUE) ===== */
+/* ===== DRAW SIZE ===== */
 const DRAW_W = 80;
 const DRAW_H = 60;
 
@@ -531,6 +531,13 @@ canvas.addEventListener("touchmove",e=>{
 canvas.addEventListener("touchend",()=>{
   drawing=false;
   currentPath=null;
+
+  /* === DÉSÉLECTION AUTOMATIQUE DU DESSIN === */
+  if(selectedElement && selected==="__draw__"){
+    selectedElement.classList.remove("selected");
+    selectedElement=null;
+  }
+
   saveState();
 });
 
