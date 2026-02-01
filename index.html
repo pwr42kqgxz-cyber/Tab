@@ -135,6 +135,15 @@ button.active{
   font-size:26px;
   min-width:32px;
   text-align:center;
+  cursor:pointer;
+}
+
+#customChar{
+  margin-left:auto;
+  width:60px;
+  font-size:26px;
+  text-align:center;
+  border:1px solid black;
 }
 
 /* ===== SCROLL ===== */
@@ -196,7 +205,7 @@ button.active{
 <button id="showUIBtn">⬅︎</button>
 
 <script>
-/* ===== DOM REFERENCES ===== */
+/* ===== DOM ===== */
 const toolbar = document.getElementById("toolbar");
 const palette = document.getElementById("palette");
 const scrollButtons = document.getElementById("scroll-buttons");
@@ -208,7 +217,6 @@ const printTitle = document.getElementById("print-title");
 const bgColor = document.getElementById("bgColor");
 
 /* ===== UI VISIBILITY ===== */
-let uiHidden=false;
 toggleUI.onclick=()=>{
   toolbar.style.display="none";
   palette.style.display="none";
@@ -253,7 +261,7 @@ function setTool(t){
   toolSelect.classList.toggle("active",t==="select");
 }
 
-/* ===== UNDO / DELETE (FIXED) ===== */
+/* ===== UNDO FIX ===== */
 undo.onclick = () => {
   const el = history.pop();
   if (!el) return;
@@ -274,9 +282,7 @@ clearAllBtn.onclick=()=>{
   if(!confirm("Tout effacer ?"))return;
   canvas.innerHTML="";
   localStorage.removeItem("tablature_state");
-  lines.length=0;
-  history.length=0;
-  currentY=40;
+  lines.length=0;history.length=0;currentY=40;
   createInitialStructure();
   saveState();
 };
@@ -308,14 +314,29 @@ function createInitialStructure(){
 
 /* ===== PALETTE ===== */
 let selected="a";
-["a","b","c","d","e","f","g","h","j","k","/a","//a","///a","4","5","6"]
-.forEach(s=>{
+[
+  "a","b","c","d","e","f","g","h","j","k",
+  "l","m","n",
+  "/a","//a","///a","4","5","6"
+].forEach(s=>{
   const p=document.createElement("div");
   p.className="palette-item";
   p.textContent=s;
   p.onclick=()=>selected=s;
   palette.appendChild(p);
 });
+
+/* Champ caractère libre */
+const customInput=document.createElement("input");
+customInput.id="customChar";
+customInput.placeholder="✱";
+customInput.maxLength=3;
+customInput.oninput=()=>{
+  if(customInput.value.trim()!==""){
+    selected=customInput.value.trim();
+  }
+};
+palette.appendChild(customInput);
 
 /* ===== BAR ===== */
 addBar.onclick=()=>{placingBar=true;setTool("select");};
