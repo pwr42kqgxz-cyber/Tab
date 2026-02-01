@@ -25,7 +25,6 @@ html,body{
   background:white;
 }
 
-/* ===== TOOLBAR ===== */
 #toolbar{
   position:fixed;
   top:0;
@@ -45,19 +44,7 @@ button{
   background:white;
   font-size:14px;
 }
-button.active{
-  background:black;
-  color:white;
-}
 
-#bgColor{
-  width:34px;
-  height:34px;
-  border:1px solid black;
-  padding:0;
-}
-
-/* ===== CANVAS ===== */
 #canvas-wrapper{
   position:absolute;
   top:54px;
@@ -69,51 +56,29 @@ button.active{
 
 #canvas{
   position:relative;
-  min-height:1800px;
+  min-height:1600px;
 }
 
-/* ===== TITLE ===== */
 #print-title{
   text-align:center;
   font-size:34px;
   margin:40px 0 50px;
 }
 
-/* ===== LINES ===== */
 .line{
   position:absolute;
   left:6%;
   right:6%;
   height:2px;
-}
-.line.black{ background:black; }
-.line.white{ background:transparent; }
-
-/* ===== SYMBOLS ===== */
-.symbol{
-  position:absolute;
-  font-size:34px;
-  line-height:1;
-  white-space:nowrap;
-}
-
-/* ===== BAR ===== */
-.bar{
-  position:absolute;
-  width:6px;
-  margin-left:-3px;
-}
-.bar::after{
-  content:"";
-  position:absolute;
-  left:2px;
-  top:0;
-  bottom:0;
-  width:2px;
   background:black;
 }
 
-/* ===== PALETTE ===== */
+.symbol{
+  position:absolute;
+  font-size:34px;
+  white-space:nowrap;
+}
+
 #palette{
   position:fixed;
   bottom:0;
@@ -124,28 +89,14 @@ button.active{
   background:white;
   display:flex;
   align-items:center;
+  gap:6px;
   padding:6px;
-  gap:4px;
-  z-index:10;
 }
 
 .palette-item{
   border:1px solid black;
   padding:10px 12px;
   font-size:26px;
-  min-width:32px;
-  text-align:center;
-}
-
-/* ===== SCROLL ===== */
-#scroll-buttons{
-  position:fixed;
-  right:8px;
-  bottom:130px;
-  display:flex;
-  flex-direction:column;
-  gap:6px;
-  z-index:10;
 }
 </style>
 </head>
@@ -153,110 +104,70 @@ button.active{
 <body>
 
 <div id="toolbar">
-  <button id="editTitle">Titre</button>
-  <button id="toolPlace" class="active">Placer</button>
-  <button id="toolSelect">Sélection</button>
-  <button id="undo">Retour</button>
-  <button id="deleteBtn">Effacer</button>
-  <button id="clearAllBtn">Tout effacer</button>
-  <button id="addSystemBtn">+ Système</button>
-  <button id="addBar">+ Barre</button>
-  <button id="toggleSnap" class="active">Accroché</button>
-  <input type="color" id="bgColor">
   <button id="exportPDF">PDF</button>
 </div>
 
 <div id="canvas-wrapper">
-  <div id="print-title"></div>
+  <div id="print-title">Titre</div>
   <div id="canvas"></div>
 </div>
 
 <div id="palette"></div>
 
-<div id="scroll-buttons">
-  <button id="scrollUp">⬆</button>
-  <button id="scrollDown">⬇</button>
-</div>
-
 <script>
-/* ===== DOM ===== */
 const canvas = document.getElementById("canvas");
-const canvasWrapper = document.getElementById("canvas-wrapper");
+const palette = document.getElementById("palette");
 const printTitle = document.getElementById("print-title");
 
-/* ===== STATE ===== */
-let tool="place", snap=true, placingBar=false;
-let active=null, selectedElement=null;
-let history=[], currentY=40;
-const LINE_SPACING=28;
-let lines=[];
+let currentY = 40;
+const spacing = 28;
+const lines = [];
 
-/* ===== SYSTEM ===== */
-function addSystem(){
-  for(let i=0;i<6;i++) addLine("black");
-  addLine("white");
-  saveState();
+/* ===== INIT LINES ===== */
+for(let block=0; block<4; block++){
+  for(let i=0;i<6;i++){
+    const l=document.createElement("div");
+    l.className="line";
+    l.style.top=currentY+"px";
+    canvas.appendChild(l);
+    lines.push(currentY);
+    currentY+=spacing;
+  }
+  currentY+=spacing;
 }
 
-function addLine(type){
-  const l=document.createElement("div");
-  l.className="line "+type;
-  l.style.top=currentY+"px";
-  canvas.appendChild(l);
-  lines.push(currentY);
-  history.push(l);
-  currentY+=LINE_SPACING;
+/* ===== PALETTE ===== */
+let selected="a";
+["a","b","c","d","e","f","g","h","j","k","/a","//a","///a","4","5","6"]
+.forEach(s=>{
+  const p=document.createElement("div");
+  p.className="palette-item";
+  p.textContent=s;
+  p.onclick=()=>selected=s;
+  palette.appendChild(p);
+});
+
+/* ===== SNAP ===== */
+function snapY(y){
+  return lines.reduce((a,b)=>Math.abs(b-y)<Math.abs(a-y)?b:a)-16;
 }
 
-/* ===== INIT ===== */
-if(!localStorage.getItem("tablature_state")){
-  addSystem();
-}else{
-  restoreState();
-}
-
-/* ===== BUTTON ===== */
-document.getElementById("addSystemBtn").onclick = addSystem;
-
-/* ===== SAVE / RESTORE ===== */
-function saveState(){
-  localStorage.setItem("tablature_state", JSON.stringify({
-    title: printTitle.textContent,
-    currentY,
-    lines,
-    elements: [...canvas.children].map(el=>({
-      class: el.className,
-      text: el.textContent || "",
-      top: el.style.top,
-      left: el.style.left,
-      height: el.style.height || ""
-    }))
-  }));
-}
-
-function restoreState(){
-  const s=JSON.parse(localStorage.getItem("tablature_state"));
-  printTitle.textContent=s.title||"";
-  currentY=s.currentY;
-  lines=[...s.lines];
-  canvas.innerHTML="";
-  s.elements.forEach(e=>{
-    const el=document.createElement("div");
-    el.className=e.class;
-    el.textContent=e.text;
-    el.style.top=e.top;
-    el.style.left=e.left;
-    if(e.height) el.style.height=e.height;
-    canvas.appendChild(el);
-  });
-}
+/* ===== PLACE ===== */
+canvas.addEventListener("click",e=>{
+  const r=canvas.getBoundingClientRect();
+  const s=document.createElement("div");
+  s.className="symbol";
+  s.textContent=selected;
+  s.style.left=(e.clientX-r.left)+"px";
+  s.style.top=snapY(e.clientY-r.top)+"px";
+  canvas.appendChild(s);
+});
 
 /* ===== PDF ===== */
-exportPDF.onclick = async ()=>{
+exportPDF.onclick=async()=>{
   const clone=document.createElement("div");
   clone.style.width="794px";
   clone.style.background="white";
-  clone.style.padding="40px";
   clone.innerHTML=printTitle.outerHTML+canvas.outerHTML;
   document.body.appendChild(clone);
 
