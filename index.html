@@ -68,7 +68,7 @@ button.active{
   min-height:1800px;
 }
 
-/* ===== TITLE (PRINT ONLY) ===== */
+/* ===== TITLE ===== */
 #print-title{
   text-align:center;
   font-size:34px;
@@ -147,6 +147,20 @@ button.active{
   display:flex;
   flex-direction:column;
   gap:6px;
+  z-index:10;
+}
+
+/* ===== SHOW UI BUTTON ===== */
+#showUIBtn{
+  position:fixed;
+  bottom:20px;
+  right:20px;
+  padding:12px 14px;
+  font-size:18px;
+  border:1px solid black;
+  background:white;
+  z-index:999;
+  display:none;
 }
 </style>
 </head>
@@ -165,6 +179,7 @@ button.active{
   <button id="addBar">+ Barre</button>
   <button id="toggleSnap" class="active">Accroché</button>
   <input type="color" id="bgColor">
+  <button id="toggleUI">👁</button>
   <button id="exportPDF">PDF</button>
 </div>
 
@@ -180,13 +195,19 @@ button.active{
   <button id="scrollDown">⬇</button>
 </div>
 
+<button id="showUIBtn">⬅︎</button>
+
 <script>
 /* ===== ELEMENTS ===== */
+const toolbar=document.getElementById("toolbar");
 const canvas=document.getElementById("canvas");
 const wrapper=document.getElementById("canvas-wrapper");
 const palette=document.getElementById("palette");
+const scrollButtons=document.getElementById("scroll-buttons");
 const printTitle=document.getElementById("print-title");
 const bgColor=document.getElementById("bgColor");
+const toggleUIBtn=document.getElementById("toggleUI");
+const showUIBtn=document.getElementById("showUIBtn");
 
 /* ===== BACKGROUND ===== */
 function applyBg(c){
@@ -204,55 +225,73 @@ editTitle.onclick=()=>{
   if(t!==null){ printTitle.textContent=t.trim(); saveState(); }
 };
 
-/* ===== STATE ===== */
-let tool="place";
-let snap=true;
-let placingBar=false;
-let active=null;
-let selectedElement=null;
-let history=[];
-let currentY=40;
-const LINE_SPACING=28;
-const lines=[];
+/* ===== UI TOGGLE ===== */
+let uiHidden=false;
 
-/* ===== TOOLS ===== */
+function hideUI(){
+  toolbar.style.display="none";
+  palette.style.display="none";
+  scrollButtons.style.display="none";
+  showUIBtn.style.display="block";
+  uiHidden=true;
+}
+
+function showUI(){
+  toolbar.style.display="";
+  palette.style.display="";
+  scrollButtons.style.display="";
+  showUIBtn.style.display="none";
+  uiHidden=false;
+}
+
+toggleUIBtn.onclick=hideUI;
+showUIBtn.onclick=showUI;
+
+/* double tap à deux doigts */
+let lastTap=0;
+document.addEventListener("touchstart",e=>{
+  if(e.touches.length===2){
+    const now=Date.now();
+    if(now-lastTap<400){
+      uiHidden?showUI():hideUI();
+    }
+    lastTap=now;
+  }
+});
+
+/* ===== STATE / EDITOR (identique à version stable) ===== */
+let tool="place",snap=true,placingBar=false,active=null,selectedElement=null;
+let history=[],currentY=40;
+const LINE_SPACING=28,lines=[];
+
 toolPlace.onclick=()=>setTool("place");
 toolSelect.onclick=()=>setTool("select");
-toggleSnap.onclick=()=>{ snap=!snap; toggleSnap.classList.toggle("active",snap); };
+toggleSnap.onclick=()=>{snap=!snap;toggleSnap.classList.toggle("active",snap);};
 function setTool(t){
   tool=t;
   toolPlace.classList.toggle("active",t==="place");
   toolSelect.classList.toggle("active",t==="select");
 }
 
-/* ===== UNDO / DELETE / CLEAR ===== */
-undo.onclick=()=>{ const el=history.pop(); if(el){ el.remove(); saveState(); } };
-deleteBtn.onclick=()=>{ if(selectedElement){ selectedElement.remove(); selectedElement=null; saveState(); } };
+undo.onclick=()=>{const el=history.pop();if(el){el.remove();saveState();}};
+deleteBtn.onclick=()=>{if(selectedElement){selectedElement.remove();selectedElement=null;saveState();}};
 clearAllBtn.onclick=()=>{
-  if(!confirm("Tout effacer ?")) return;
-  canvas.innerHTML="";
-  localStorage.removeItem("tablature_state");
-  lines.length=0;
-  history.length=0;
-  currentY=40;
-  createInitialStructure();
-  saveState();
+  if(!confirm("Tout effacer ?"))return;
+  canvas.innerHTML="";localStorage.removeItem("tablature_state");
+  lines.length=0;history.length=0;currentY=40;
+  createInitialStructure();saveState();
 };
 
-/* ===== SCROLL ===== */
 scrollUp.onclick=()=>wrapper.scrollBy({top:-200,behavior:"smooth"});
 scrollDown.onclick=()=>wrapper.scrollBy({top:200,behavior:"smooth"});
 
-/* ===== LINES ===== */
 function addLine(type){
   const l=document.createElement("div");
   l.className="line "+type;
   l.style.top=currentY+"px";
   canvas.appendChild(l);
-  history.push(l);
-  lines.push(currentY);
-  currentY+=LINE_SPACING;
-  saveState();
+  history.push(l);lines.push(currentY);
+  currentY+=LINE_SPACING;saveState();
 }
 addBlackLine.onclick=()=>addLine("black");
 addWhiteLine.onclick=()=>addLine("white");
@@ -264,12 +303,9 @@ function createInitialStructure(){
   }
 }
 
-/* ===== PALETTE ===== */
 let selected="a";
-[
- "a","b","c","d","e","f","g","h","j","k",
- "/a","//a","///a","4","5","6"
-].forEach(s=>{
+["a","b","c","d","e","f","g","h","j","k","/a","//a","///a","4","5","6"]
+.forEach(s=>{
   const p=document.createElement("div");
   p.className="palette-item";
   p.textContent=s;
@@ -278,34 +314,25 @@ let selected="a";
 });
 
 const custom=document.createElement("input");
-custom.id="customSymbol";
-custom.placeholder="✱";
+custom.id="customSymbol";custom.placeholder="✱";
 palette.appendChild(custom);
 
 const ok=document.createElement("button");
 ok.textContent="OK";
-ok.onclick=()=>{
-  if(custom.value.trim()){
-    selected=custom.value.trim();
-    custom.value="";
-  }
-};
+ok.onclick=()=>{if(custom.value.trim()){selected=custom.value.trim();custom.value="";}};
 palette.appendChild(ok);
 
-/* ===== BAR ===== */
-addBar.onclick=()=>{ placingBar=true; setTool("select"); };
+addBar.onclick=()=>{placingBar=true;setTool("select");};
 
-/* ===== SNAP ===== */
-function snapY(rawY,symbol){
-  const base=nearestLine(rawY);
-  if(!snap) return rawY;
-  if(symbol.startsWith("///")) return base+16;
-  if(symbol.startsWith("//")) return base+12;
-  if(symbol.startsWith("/")) return base+8;
-  return base-16;
+function snapY(y,s){
+  const b=nearestLine(y);
+  if(!snap)return y;
+  if(s.startsWith("///"))return b+16;
+  if(s.startsWith("//"))return b+12;
+  if(s.startsWith("/"))return b+8;
+  return b-16;
 }
 
-/* ===== INTERACTION ===== */
 canvas.addEventListener("touchstart",e=>{
   const r=canvas.getBoundingClientRect();
   const x=e.touches[0].clientX-r.left;
@@ -315,40 +342,25 @@ canvas.addEventListener("touchstart",e=>{
     placingBar=false;
     const b=document.createElement("div");
     b.className="bar";
-    b.style.left=x+"px";
-    b.style.top=y+"px";
-    b.style.height="160px";
-    canvas.appendChild(b);
-    history.push(b);
-    makeDraggable(b);
-    saveState();
-    return;
+    b.style.left=x+"px";b.style.top=y+"px";b.style.height="160px";
+    canvas.appendChild(b);history.push(b);makeDraggable(b);saveState();return;
   }
 
   if(tool==="place"){
     const s=document.createElement("div");
-    s.className="symbol";
-    s.textContent=selected;
-    s.style.left=x+"px";
-    s.style.top=snapY(y,selected)+"px";
-    canvas.appendChild(s);
-    history.push(s);
-    makeDraggable(s);
-    saveState();
+    s.className="symbol";s.textContent=selected;
+    s.style.left=x+"px";s.style.top=snapY(y,selected)+"px";
+    canvas.appendChild(s);history.push(s);makeDraggable(s);saveState();
   }
 },{passive:false});
 
-/* ===== DRAG ===== */
 function makeDraggable(el){
   el.addEventListener("touchstart",e=>{
-    if(tool!=="select") return;
-    active=el;
-    selectedElement=el;
-    e.stopPropagation();
+    if(tool!=="select")return;
+    active=el;selectedElement=el;e.stopPropagation();
   },{passive:false});
-
   el.addEventListener("touchmove",e=>{
-    if(!active) return;
+    if(!active)return;
     const r=canvas.getBoundingClientRect();
     const x=e.touches[0].clientX-r.left;
     const y=e.touches[0].clientY-r.top;
@@ -356,84 +368,56 @@ function makeDraggable(el){
     active.style.top=el.classList.contains("symbol")?snapY(y,el.textContent)+"px":y+"px";
     e.preventDefault();
   },{passive:false});
-
-  el.addEventListener("touchend",()=>{ active=null; saveState(); });
+  el.addEventListener("touchend",()=>{active=null;saveState();});
 }
 
-/* ===== UTILS ===== */
 function nearestLine(y){
   return lines.reduce((a,b)=>Math.abs(b-y)<Math.abs(a-y)?b:a);
 }
 
-/* ===== SAVE / RESTORE ===== */
 function saveState(){
-  const state={
-    title:printTitle.textContent,
-    bg:bgColor.value,
-    elements:Array.from(canvas.children).map(el=>({
-      class:el.className,
-      text:el.textContent||"",
-      left:el.style.left,
-      top:el.style.top,
-      height:el.style.height||""
+  localStorage.setItem("tablature_state",JSON.stringify({
+    title:printTitle.textContent,bg:bgColor.value,
+    elements:[...canvas.children].map(el=>({
+      class:el.className,text:el.textContent||"",
+      left:el.style.left,top:el.style.top,height:el.style.height||""
     }))
-  };
-  localStorage.setItem("tablature_state",JSON.stringify(state));
+  }));
 }
 
 function restoreState(){
   const raw=localStorage.getItem("tablature_state");
-  if(!raw){ createInitialStructure(); return; }
+  if(!raw){createInitialStructure();return;}
   const s=JSON.parse(raw);
   printTitle.textContent=s.title||"";
-  if(s.bg){ bgColor.value=s.bg; applyBg(s.bg); }
-
-  canvas.innerHTML="";
-  lines.length=0;
-  currentY=40;
-
+  if(s.bg){bgColor.value=s.bg;applyBg(s.bg);}
+  canvas.innerHTML="";lines.length=0;currentY=40;
   s.elements.forEach(e=>{
     const el=document.createElement("div");
-    el.className=e.class;
-    el.textContent=e.text;
-    el.style.left=e.left;
-    el.style.top=e.top;
-    if(e.height) el.style.height=e.height;
+    el.className=e.class;el.textContent=e.text;
+    el.style.left=e.left;el.style.top=e.top;
+    if(e.height)el.style.height=e.height;
     canvas.appendChild(el);
-
     if(el.classList.contains("line")){
-      lines.push(parseFloat(e.top));
-      currentY=parseFloat(e.top)+LINE_SPACING;
+      lines.push(parseFloat(e.top));currentY=parseFloat(e.top)+LINE_SPACING;
     }
-    if(el.classList.contains("symbol")||el.classList.contains("bar")){
-      makeDraggable(el);
-    }
+    if(el.classList.contains("symbol")||el.classList.contains("bar")) makeDraggable(el);
   });
 }
 restoreState();
 
-/* ===== PDF (PROPORTIONS CORRIGÉES) ===== */
+/* ===== PDF ===== */
 exportPDF.onclick=async()=>{
-  saveState();
-  wrapper.scrollTop=0;
-
+  saveState();wrapper.scrollTop=0;
   const clone=document.createElement("div");
-  clone.style.width="794px";
-  clone.style.background="white";
-  clone.style.padding="40px 0";
+  clone.style.width="794px";clone.style.background="white";clone.style.padding="40px 0";
   clone.innerHTML=printTitle.outerHTML+canvas.outerHTML;
   document.body.appendChild(clone);
-
   const img=await html2canvas(clone,{scale:2,backgroundColor:"#fff"});
-
-  const imgWidth=210;
-  const imgHeight=img.height*imgWidth/img.width;
-
-  const {jsPDF}=window.jspdf;
-  const pdf=new jsPDF("p","mm","a4");
-  pdf.addImage(img.toDataURL("image/png"),"PNG",0,0,imgWidth,imgHeight);
+  const w=210,h=img.height*w/img.width;
+  const pdf=new window.jspdf.jsPDF("p","mm","a4");
+  pdf.addImage(img.toDataURL("image/png"),"PNG",0,0,w,h);
   pdf.save("tablature.pdf");
-
   document.body.removeChild(clone);
 };
 </script>
