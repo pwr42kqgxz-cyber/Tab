@@ -31,6 +31,7 @@ html,body{
   gap:8px;
   padding:8px;
   border-bottom:1px solid black;
+  background:white;
   z-index:10;
 }
 
@@ -56,7 +57,7 @@ button.active{
 #canvas-wrapper{
   position:absolute;
   top:70px;
-  bottom:230px;
+  bottom:300px; /* PLUS DE PLACE POUR LA PALETTE */
   left:0;
   right:0;
   overflow-y:auto;
@@ -64,7 +65,7 @@ button.active{
 
 #canvas{
   position:relative;
-  min-height:2000px;
+  min-height:2400px;
 }
 
 /* ===== LIGNES ===== */
@@ -107,12 +108,14 @@ button.active{
   bottom:0;
   left:0;
   right:0;
-  height:230px;
+  height:300px; /* AGRANDIE */
   border-top:1px solid black;
-  padding:8px;
+  background:white;
+  padding:10px;
   display:flex;
   flex-wrap:wrap;
   align-items:flex-start;
+  z-index:10;
 }
 
 .palette-item{
@@ -129,11 +132,11 @@ button.active{
   display:flex;
   align-items:center;
   gap:6px;
-  margin:4px;
+  margin:6px;
 }
 
 #customSymbol{
-  width:60px;
+  width:70px;
   font-size:28px;
   text-align:center;
 }
@@ -142,21 +145,22 @@ button.active{
 #scroll-buttons{
   position:fixed;
   right:10px;
-  bottom:260px;
+  bottom:320px;
   display:flex;
   flex-direction:column;
   gap:8px;
+  z-index:10;
 }
 
 /* ===== PRINT ===== */
 #print-area{
-  padding-top:40px;
+  padding-top:60px;
   background:white;
 }
 #print-title{
   text-align:center;
   font-size:36px;
-  margin-bottom:40px;
+  margin-bottom:50px;
 }
 </style>
 </head>
@@ -292,7 +296,7 @@ symbols.forEach(s=>{
   palette.appendChild(p);
 });
 
-/* ===== CUSTOM SYMBOL INPUT ===== */
+/* ===== CUSTOM SYMBOL ===== */
 const customBox=document.createElement("div");
 customBox.id="customSymbolBox";
 
@@ -434,27 +438,28 @@ function restoreState(){
 }
 restoreState();
 
-/* ===== PDF ===== */
+/* ===== PDF (CORRIGÉ iPad) ===== */
 exportPDF.onclick=async()=>{
   saveState();
-  toolbar.style.display="none";
-  palette.style.display="none";
-  scrollButtons.style.display="none";
 
-  await new Promise(r=>setTimeout(r,100));
+  canvasWrapper.scrollTop=0;
+
+  const clone = document.getElementById("print-area").cloneNode(true);
+  clone.style.background="white";
+  clone.style.position="absolute";
+  clone.style.left="-9999px";
+  document.body.appendChild(clone);
 
   const {jsPDF}=window.jspdf;
   const pdf=new jsPDF("p","mm","a4");
-  const img=await html2canvas(document.getElementById("print-area"),{scale:2});
+  const img=await html2canvas(clone,{scale:2,backgroundColor:"#ffffff"});
 
   const w=210;
   const h=img.height*w/img.width;
   pdf.addImage(img.toDataURL("image/png"),"PNG",0,0,w,h);
   pdf.save("tablature.pdf");
 
-  toolbar.style.display="";
-  palette.style.display="";
-  scrollButtons.style.display="";
+  document.body.removeChild(clone);
 };
 </script>
 
