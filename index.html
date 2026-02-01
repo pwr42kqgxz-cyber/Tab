@@ -387,7 +387,7 @@ s.elements.forEach(e=>{
     lines.push(parseFloat(e.top));
     currentY=parseFloat(e.top)+LINE_SPACING;
   }
-  if(el.classList.contains("symbol")||el.classList.contains("bar")){
+  if(el.classList.contains("symbol") || el.classList.contains("bar")){
     makeDraggable(el);
   }
 });
@@ -400,15 +400,6 @@ function restoreFromStorage(){
   if(raw) restoreState(raw,false);
   else{createInitialStructure();saveState();}
 }
-
-/* ================= TITLE ================= */
-editTitle.onclick=()=>{
-  const t=prompt("Titre du morceau :",printTitle.textContent||"");
-  if(t===null) return;
-  pushUndo();
-  printTitle.textContent=t.trim();
-  saveState();
-};
 
 /* ================= TOOLS ================= */
 function setTool(t){
@@ -460,15 +451,15 @@ function createInitialStructure(){
 addBlackLine.onclick=()=>{pushUndo();addLine("black");saveState();};
 addWhiteLine.onclick=()=>{pushUndo();addLine("white");saveState();};
 
-/* ================= SNAP (AIMANTATION CORRIGÉE) ================= */
+/* ================= SNAP (ALIGNEMENT CORRIGÉ) ================= */
 function nearestLine(y){
   return lines.reduce((a,b)=>Math.abs(b-y)<Math.abs(a-y)?b:a);
 }
+
 function snapY(y){
   if(!snap || !lines.length) return y;
   const b = nearestLine(y);
-  const fontOffset = 0.88 * 34; // correction IM Fell
-  return b + LINE_SPACING*0.5 + fontOffset;
+  return b + LINE_SPACING / 2;
 }
 
 /* ================= INTERACTION ================= */
@@ -556,7 +547,7 @@ canvas.addEventListener("touchend",()=>{
 /* ================= DRAG ================= */
 function makeDraggable(el){
   el.addEventListener("touchstart",e=>{
-    if(tool!=="select") return;
+    if(tool!=="select" && !el.classList.contains("draw")) return;
     pushUndo();
     if(selectedElement) selectedElement.classList.remove("selected");
     selectedElement=el;
@@ -578,7 +569,6 @@ function makeDraggable(el){
     saveState();
   });
 }
-
 /* ================= DELETE / CLEAR ================= */
 deleteBtn.onclick=()=>{
   setTool("select");
