@@ -127,13 +127,14 @@ button.active{
   padding:6px;
   gap:4px;
   z-index:10;
+  flex-wrap:wrap;
 }
 
 .palette-item{
   border:1px solid black;
-  padding:10px 12px;
+  padding:8px 10px;
   font-size:26px;
-  min-width:32px;
+  min-width:28px;
   text-align:center;
   cursor:pointer;
 }
@@ -314,10 +315,12 @@ function createInitialStructure(){
 
 /* ===== PALETTE ===== */
 let selected="a";
+
 [
   "a","b","c","d","e","f","g","h","j","k",
   "l","m","n",
-  "/a","//a","///a","4","5","6"
+  "/a","//a","///a","4","5","6",
+  ",",".",":",";","(",")","[","]","~","⌒","|"
 ].forEach(s=>{
   const p=document.createElement("div");
   p.className="palette-item";
