@@ -17,19 +17,7 @@ html,body{
   padding:0;
   height:100%;
   font-family:"IM Fell English", serif;
-  background:#ffffff;
   overflow:hidden;
-}
-
-/* ===== TITRE ===== */
-#title{
-  width:100%;
-  text-align:center;
-  font-size:36px;
-  padding:14px 0;
-  border:none;
-  outline:none;
-  background:transparent;
 }
 
 /* ===== TOOLBAR ===== */
@@ -42,13 +30,12 @@ html,body{
   flex-wrap:wrap;
   gap:8px;
   padding:8px;
-  background:transparent;
   border-bottom:1px solid black;
   z-index:10;
 }
 
 button{
-  padding:10px 14px;        /* zone tactile agrandie */
+  padding:10px 14px;
   border:1px solid black;
   background:white;
   font-size:15px;
@@ -58,19 +45,17 @@ button.active{
   color:white;
 }
 
-/* ===== COLOR PICKER ===== */
 #bgColor{
   width:40px;
   height:40px;
   padding:0;
   border:1px solid black;
-  background:none;
 }
 
 /* ===== CANVAS ===== */
 #canvas-wrapper{
   position:absolute;
-  top:130px;
+  top:70px;
   bottom:190px;
   left:0;
   right:0;
@@ -124,11 +109,9 @@ button.active{
   right:0;
   height:180px;
   border-top:1px solid black;
-  background:white;
   padding:8px;
   display:flex;
   flex-wrap:wrap;
-  z-index:10;
 }
 
 .palette-item{
@@ -148,8 +131,11 @@ button.active{
   gap:8px;
 }
 
-/* ===== IMPRIMABLE ===== */
-#print-area{ padding-top:40px; background:white; }
+/* ===== PRINT ===== */
+#print-area{
+  padding-top:40px;
+  background:white;
+}
 #print-title{
   text-align:center;
   font-size:36px;
@@ -160,9 +146,8 @@ button.active{
 
 <body>
 
-<input id="title" placeholder="Titre du morceau">
-
 <div id="toolbar">
+  <button id="editTitle">✏️ Titre</button>
   <button id="toolPlace" class="active">✍️ Placer</button>
   <button id="toolSelect">🖐 Sélection</button>
   <button id="undo">↩️ Retour</button>
@@ -191,40 +176,46 @@ button.active{
 </div>
 
 <script>
-/* ===== ANTI ZOOM ===== */
-["gesturestart","gesturechange","gestureend","dblclick"].forEach(ev=>{
-  document.addEventListener(ev,e=>e.preventDefault(),{passive:false});
-});
-
 /* ===== ELEMENTS ===== */
+const body = document.body;
+const canvasWrapper = document.getElementById("canvas-wrapper");
 const canvas = document.getElementById("canvas");
-const wrapper = document.getElementById("canvas-wrapper");
 const palette = document.getElementById("palette");
-const titleInput = document.getElementById("title");
 const printTitle = document.getElementById("print-title");
+
+const bgColor = document.getElementById("bgColor");
+const editTitle = document.getElementById("editTitle");
 const deleteBtn = document.getElementById("deleteBtn");
 const clearAllBtn = document.getElementById("clearAllBtn");
 const toolbar = document.getElementById("toolbar");
 const scrollButtons = document.getElementById("scroll-buttons");
-const bgColor = document.getElementById("bgColor");
 
-/* ===== BACKGROUND COLOR ===== */
+/* ===== BACKGROUND COLOR (GLOBAL) ===== */
+function applyBg(color){
+  body.style.background = color;
+  canvasWrapper.style.background = color;
+  canvas.style.background = color;
+}
+
 const savedBg = localStorage.getItem("bg_color");
 if(savedBg){
-  document.body.style.background = savedBg;
   bgColor.value = savedBg;
+  applyBg(savedBg);
 }
+
 bgColor.oninput = () => {
-  document.body.style.background = bgColor.value;
+  applyBg(bgColor.value);
   localStorage.setItem("bg_color", bgColor.value);
 };
 
 /* ===== TITLE ===== */
-function syncTitle(){
-  printTitle.textContent = titleInput.value || " ";
-}
-titleInput.addEventListener("input",()=>{syncTitle();saveState();});
-syncTitle();
+editTitle.onclick = () => {
+  const t = prompt("Titre du morceau :", printTitle.textContent || "");
+  if(t !== null){
+    printTitle.textContent = t.trim();
+    saveState();
+  }
+};
 
 /* ===== STATE ===== */
 let tool="place";
@@ -242,7 +233,6 @@ toolPlace.onclick=()=>setTool("place");
 toolSelect.onclick=()=>setTool("select");
 toggleSnap.onclick=()=>{
   snap=!snap;
-  toggleSnap.textContent=snap?"🧲 Accroché":"🔓 Libre";
   toggleSnap.classList.toggle("active",snap);
 };
 function setTool(t){
@@ -277,8 +267,8 @@ clearAllBtn.onclick=()=>{
 };
 
 /* ===== SCROLL ===== */
-scrollUp.onclick=()=>wrapper.scrollBy({top:-200,behavior:"smooth"});
-scrollDown.onclick=()=>wrapper.scrollBy({top:200,behavior:"smooth"});
+scrollUp.onclick=()=>canvasWrapper.scrollBy({top:-200,behavior:"smooth"});
+scrollDown.onclick=()=>canvasWrapper.scrollBy({top:200,behavior:"smooth"});
 
 /* ===== LINES ===== */
 function addLine(type){
@@ -393,7 +383,8 @@ function nearestLine(y){
 /* ===== SAVE / RESTORE ===== */
 function saveState(){
   const state={
-    title:titleInput.value,
+    title:printTitle.textContent,
+    bg: bgColor.value,
     elements:Array.from(canvas.children).map(el=>({
       class:el.className,
       text:el.textContent||"",
@@ -412,8 +403,12 @@ function restoreState(){
     return;
   }
   const state=JSON.parse(raw);
-  titleInput.value=state.title||"";
-  syncTitle();
+  printTitle.textContent=state.title||"";
+
+  if(state.bg){
+    bgColor.value=state.bg;
+    applyBg(state.bg);
+  }
 
   canvas.innerHTML="";
   lines.length=0;
