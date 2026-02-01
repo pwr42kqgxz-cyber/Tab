@@ -541,6 +541,7 @@ canvas.addEventListener("touchmove",e=>{
   currentPath.setAttribute("d",d+` L ${dx} ${dy}`);
 },{passive:false});
 
+/* ===== ICI : CORRECTION MINIMALE ===== */
 canvas.addEventListener("touchend",()=>{
   drawing=false;
   currentPath=null;
@@ -549,6 +550,10 @@ canvas.addEventListener("touchend",()=>{
     selectedElement.classList.remove("selected");
     selectedElement=null;
   }
+
+  // remise à zéro explicite de l’état
+  selected = null;
+  tool = null;
 
   setLock(false);
   saveState();
@@ -579,6 +584,7 @@ function makeDraggable(el){
     saveState();
   });
 }
+
 /* ================= DELETE / CLEAR ================= */
 deleteBtn.onclick=()=>{
   setTool("select");
