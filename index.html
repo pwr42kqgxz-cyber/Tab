@@ -538,6 +538,13 @@ canvas.addEventListener("touchend",()=>{
     selectedElement=null;
   }
 
+  /* === SORTIE PROPRE DU MODE DESSIN (CORRECTION) === */
+  selected = "a";     // on quitte le stylo
+  setLock(false);     // on réactive scroll + sélection
+
+  saveState();
+});
+
   saveState();
 });
 
