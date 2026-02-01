@@ -526,6 +526,10 @@ canvas.addEventListener("touchstart",e=>{
     canvas.appendChild(s);
     makeDraggable(s);
     saveState();
+
+    // ✅ IMPORTANT : on quitte le mode "placer"
+    tool = null;
+    toolPlace.classList.remove("active");
   }
 },{passive:false});
 
