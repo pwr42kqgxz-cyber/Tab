@@ -532,18 +532,15 @@ canvas.addEventListener("touchend",()=>{
   drawing=false;
   currentPath=null;
 
-  /* === DÉSÉLECTION AUTOMATIQUE DU DESSIN === */
   if(selectedElement && selected==="__draw__"){
     selectedElement.classList.remove("selected");
     selectedElement=null;
   }
 
-  /* === SORTIE PROPRE DU MODE DESSIN (CORRECTION) === */
-  selected = "a";     // on quitte le stylo
-  setLock(false);     // on réactive scroll + sélection
-
-  saveState();
-});
+  /* ===== FIX SORTIE MODE DESSIN ===== */
+  selected = "a";        // quitte le stylo
+  setLock(false);        // réactive le scroll
+  setTool("place");     // évite l’état fantôme
 
   saveState();
 });
