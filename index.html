@@ -57,7 +57,7 @@ button.active{
 #canvas-wrapper{
   position:absolute;
   top:54px;
-  bottom:120px; /* palette compacte */
+  bottom:120px;
   left:0;
   right:0;
   overflow-y:auto;
@@ -109,7 +109,7 @@ button.active{
   background:black;
 }
 
-/* ===== PALETTE (ONE LINE) ===== */
+/* ===== PALETTE ===== */
 #palette{
   position:fixed;
   bottom:0;
@@ -133,7 +133,6 @@ button.active{
   text-align:center;
 }
 
-/* ===== CUSTOM SYMBOL ===== */
 #customSymbol{
   width:60px;
   font-size:24px;
@@ -413,23 +412,26 @@ function restoreState(){
 }
 restoreState();
 
-/* ===== PDF (A4 PROPRE) ===== */
+/* ===== PDF (PROPORTIONS CORRIGÉES) ===== */
 exportPDF.onclick=async()=>{
   saveState();
-
   wrapper.scrollTop=0;
 
   const clone=document.createElement("div");
   clone.style.width="794px";
   clone.style.background="white";
+  clone.style.padding="40px 0";
   clone.innerHTML=printTitle.outerHTML+canvas.outerHTML;
   document.body.appendChild(clone);
 
-  const {jsPDF}=window.jspdf;
-  const pdf=new jsPDF("p","mm","a4");
   const img=await html2canvas(clone,{scale:2,backgroundColor:"#fff"});
 
-  pdf.addImage(img.toDataURL("image/png"),"PNG",0,0,210,297);
+  const imgWidth=210;
+  const imgHeight=img.height*imgWidth/img.width;
+
+  const {jsPDF}=window.jspdf;
+  const pdf=new jsPDF("p","mm","a4");
+  pdf.addImage(img.toDataURL("image/png"),"PNG",0,0,imgWidth,imgHeight);
   pdf.save("tablature.pdf");
 
   document.body.removeChild(clone);
