@@ -2,19 +2,11 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
+<title>Tablature baroque – SVG</title>
 
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-<title>Tablature baroque</title>
-
-<meta name="viewport"
-content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-
-<link href="https://fonts.googleapis.com/css2?familyIM+Fell+English&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English&display=swap" rel="stylesheet">
 
 <style>
 html,body{
@@ -46,23 +38,17 @@ button{
   background:white;
   font-size:14px;
 }
+
 button.active{
   background:black;
   color:white;
 }
 
-#bgColor{
-  width:34px;
-  height:34px;
-  border:1px solid black;
-  padding:0;
-}
-
 /* ===== CANVAS ===== */
 #canvas-wrapper{
   position:absolute;
-  top:54px;
-  bottom:120px;
+  top:50px;
+  bottom:110px;
   left:0;
   right:0;
   overflow-y:auto;
@@ -86,30 +72,19 @@ button.active{
   left:6%;
   right:6%;
   height:2px;
+  background:black;
 }
-.line.black{ background:black; }
-.line.white{ background:transparent; }
 
-/* ===== SYMBOLS ===== */
+/* ===== SYMBOL ===== */
 .symbol{
   position:absolute;
   font-size:34px;
-  line-height:1;
   white-space:nowrap;
 }
 
 /* ===== BAR ===== */
 .bar{
   position:absolute;
-  width:6px;
-  margin-left:-3px;
-}
-.bar::after{
-  content:"";
-  position:absolute;
-  left:2px;
-  top:0;
-  bottom:0;
   width:2px;
   background:black;
 }
@@ -120,52 +95,19 @@ button.active{
   bottom:0;
   left:0;
   right:0;
-  height:120px;
+  height:110px;
   border-top:1px solid black;
-  background:white;
   display:flex;
   align-items:center;
-  padding:6px;
   gap:4px;
-  z-index:10;
+  padding:6px;
+  background:white;
 }
 
 .palette-item{
   border:1px solid black;
-  padding:10px 12px;
+  padding:8px 10px;
   font-size:26px;
-  min-width:32px;
-  text-align:center;
-}
-
-#customSymbol{
-  width:60px;
-  font-size:24px;
-  text-align:center;
-}
-
-/* ===== SCROLL ===== */
-#scroll-buttons{
-  position:fixed;
-  right:8px;
-  bottom:130px;
-  display:flex;
-  flex-direction:column;
-  gap:6px;
-  z-index:10;
-}
-
-/* ===== SHOW UI ===== */
-#showUIBtn{
-  position:fixed;
-  bottom:20px;
-  right:20px;
-  padding:12px 14px;
-  font-size:18px;
-  border:1px solid black;
-  background:white;
-  z-index:999;
-  display:none;
 }
 </style>
 </head>
@@ -173,241 +115,93 @@ button.active{
 <body>
 
 <div id="toolbar">
-  <button id="editTitle">Titre</button>
-  <button id="toolPlace" class="active">Placer</button>
-  <button id="toolSelect">Sélection</button>
-  <button id="undo">Retour</button>
-  <button id="deleteBtn">Effacer</button>
-  <button id="clearAllBtn">Tout effacer</button>
-  <button id="addBlackLine">+ Ligne noire</button>
-  <button id="addWhiteLine">+ Ligne blanche</button>
-  <button id="addBar">+ Barre</button>
-  <button id="toggleSnap" class="active">Accroché</button>
-  <input type="color" id="bgColor">
-  <button id="toggleUI">👁</button>
-  <button id="exportPDF">PDF</button>
+  <button id="exportSVG">SVG</button>
 </div>
 
 <div id="canvas-wrapper">
-  <div id="print-title"></div>
+  <div id="print-title" contenteditable="true">Titre</div>
   <div id="canvas"></div>
 </div>
 
 <div id="palette"></div>
 
-<div id="scroll-buttons">
-  <button id="scrollUp">⬆</button>
-  <button id="scrollDown">⬇</button>
-</div>
-
-<button id="showUIBtn">⬅︎</button>
-
 <script>
-/* ================= UI VISIBILITY ================= */
-let uiHidden=false;
-toggleUI.onclick=()=>{
-  toolbar.style.display="none";
-  palette.style.display="none";
-  scrollButtons.style.display="none";
-  showUIBtn.style.display="block";
-  uiHidden=true;
-};
-showUIBtn.onclick=()=>{
-  toolbar.style.display="";
-  palette.style.display="";
-  scrollButtons.style.display="";
-  showUIBtn.style.display="none";
-  uiHidden=false;
-};
-let lastTap=0;
-document.addEventListener("touchstart",e=>{
-  if(e.touches.length===2){
-    const now=Date.now();
-    if(now-lastTap<400){ uiHidden?showUIBtn.onclick():toggleUI.onclick(); }
-    lastTap=now;
-  }
-});
-
-/* ================= BACKGROUND ================= */
-function applyBg(c){
-  document.body.style.background=c;
-  canvasWrapper.style.background=c;
-  canvas.style.background=c;
-}
-const savedBg=localStorage.getItem("bg_color");
-if(savedBg){ bgColor.value=savedBg; applyBg(savedBg); }
-bgColor.oninput=()=>{ applyBg(bgColor.value); localStorage.setItem("bg_color",bgColor.value); };
-
-/* ================= TITLE ================= */
-editTitle.onclick=()=>{
-  const t=prompt("Titre du morceau :",printTitle.textContent||"");
-  if(t!==null){ printTitle.textContent=t.trim(); saveState(); }
-};
-
-/* ================= STATE ================= */
-let tool="place",snap=true,placingBar=false,active=null,selectedElement=null;
-let history=[],currentY=40;
-const LINE_SPACING=28,lines=[];
-
-/* ================= TOOLS ================= */
-toolPlace.onclick=()=>setTool("place");
-toolSelect.onclick=()=>setTool("select");
-toggleSnap.onclick=()=>{snap=!snap;toggleSnap.classList.toggle("active",snap);}
-function setTool(t){
-  tool=t;
-  toolPlace.classList.toggle("active",t==="place");
-  toolSelect.classList.toggle("active",t==="select");
-}
-
-/* ================= UNDO / DELETE ================= */
-undo.onclick=()=>{const el=history.pop();if(el){el.remove();saveState();}};
-deleteBtn.onclick=()=>{if(selectedElement){selectedElement.remove();selectedElement=null;saveState();}};
-clearAllBtn.onclick=()=>{
-  if(!confirm("Tout effacer ?"))return;
-  canvas.innerHTML="";localStorage.removeItem("tablature_state");
-  lines.length=0;history.length=0;currentY=40;
-  createInitialStructure();saveState();
-};
-
-/* ================= SCROLL ================= */
-scrollUp.onclick=()=>canvasWrapper.scrollBy({top:-200,behavior:"smooth"});
-scrollDown.onclick=()=>canvasWrapper.scrollBy({top:200,behavior:"smooth"});
-
-/* ================= LINES ================= */
-function addLine(type){
-  const l=document.createElement("div");
-  l.className="line "+type;
-  l.style.top=currentY+"px";
-  canvas.appendChild(l);
-  history.push(l);lines.push(currentY);
-  currentY+=LINE_SPACING;saveState();
-}
-addBlackLine.onclick=()=>addLine("black");
-addWhiteLine.onclick=()=>addLine("white");
-function createInitialStructure(){
-  for(let b=0;b<4;b++){
-    for(let i=0;i<6;i++) addLine("black");
-    if(b<3) addLine("white");
-  }
-}
-
 /* ================= PALETTE ================= */
 let selected="a";
-["a","b","c","d","e","f","g","h","j","k","/a","//a","///a","4","5","6"]
+["a","b","c","d","e","f","g","h","j","k","/a","//a","///a"]
 .forEach(s=>{
-  const p=document.createElement("div");
-  p.className="palette-item";p.textContent=s;
-  p.onclick=()=>selected=s;palette.appendChild(p);
+  const b=document.createElement("div");
+  b.className="palette-item";
+  b.textContent=s;
+  b.onclick=()=>selected=s;
+  palette.appendChild(b);
 });
-customSymbol.onchange=()=>{if(customSymbol.value)selected=customSymbol.value;};
 
-/* ================= BAR ================= */
-addBar.onclick=()=>{placingBar=true;setTool("select");};
+/* ================= STRUCTURE ================= */
+let y=40;
+const spacing=28;
+const lines=[];
+
+for(let b=0;b<4;b++){
+  for(let i=0;i<6;i++) addLine();
+  if(b<3) y+=spacing;
+}
+
+function addLine(){
+  const l=document.createElement("div");
+  l.className="line";
+  l.style.top=y+"px";
+  canvas.appendChild(l);
+  lines.push(y);
+  y+=spacing;
+}
 
 /* ================= SNAP ================= */
-function snapY(y,s){
-  const b=nearestLine(y);
-  if(!snap)return y;
-  if(s.startsWith("///"))return b+16;
-  if(s.startsWith("//"))return b+12;
-  if(s.startsWith("/"))return b+8;
-  return b-16;
+function snapY(raw){
+  return lines.reduce((a,b)=>Math.abs(b-raw)<Math.abs(a-raw)?b:a)-16;
 }
 
-/* ================= INTERACTION ================= */
-canvas.addEventListener("touchstart",e=>{
+/* ================= PLACEMENT ================= */
+canvas.addEventListener("click",e=>{
   const r=canvas.getBoundingClientRect();
-  const x=e.touches[0].clientX-r.left;
-  const y=e.touches[0].clientY-r.top;
-  if(placingBar){
-    placingBar=false;
-    const b=document.createElement("div");
-    b.className="bar";b.style.left=x+"px";b.style.top=y+"px";b.style.height="160px";
-    canvas.appendChild(b);history.push(b);makeDraggable(b);saveState();return;
-  }
-  if(tool==="place"){
-    const s=document.createElement("div");
-    s.className="symbol";s.textContent=selected;
-    s.style.left=x+"px";s.style.top=snapY(y,selected)+"px";
-    canvas.appendChild(s);history.push(s);makeDraggable(s);saveState();
-  }
-},{passive:false});
+  const s=document.createElement("div");
+  s.className="symbol";
+  s.textContent=selected;
+  s.style.left=(e.clientX-r.left)+"px";
+  s.style.top=snapY(e.clientY-r.top)+"px";
+  canvas.appendChild(s);
+});
 
-function makeDraggable(el){
-  el.addEventListener("touchstart",e=>{
-    if(tool!=="select")return;
-    active=el;selectedElement=el;e.stopPropagation();
-  },{passive:false});
-  el.addEventListener("touchmove",e=>{
-    if(!active)return;
-    const r=canvas.getBoundingClientRect();
-    const x=e.touches[0].clientX-r.left;
-    const y=e.touches[0].clientY-r.top;
-    active.style.left=x+"px";
-    active.style.top=el.classList.contains("symbol")?snapY(y,el.textContent)+"px":y+"px";
-    e.preventDefault();
-  },{passive:false});
-  el.addEventListener("touchend",()=>{active=null;saveState();});
-}
+/* ================= SVG EXPORT ================= */
+exportSVG.onclick=()=>{
+  const width=794;
+  const height=1123;
 
-function nearestLine(y){
-  return lines.reduce((a,b)=>Math.abs(b-y)<Math.abs(a-y)?b:a);
-}
+  let svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+  <style>
+    text{font-family:'IM Fell English';font-size:34px;}
+  </style>`;
 
-/* ================= SAVE / RESTORE ================= */
-function saveState(){
-  localStorage.setItem("tablature_state",JSON.stringify({
-    title:printTitle.textContent,bg:bgColor.value,
-    elements:[...canvas.children].map(el=>({
-      class:el.className,text:el.textContent||"",
-      left:el.style.left,top:el.style.top,height:el.style.height||""
-    }))
-  }));
-}
-function restoreState(){
-  const raw=localStorage.getItem("tablature_state");
-  if(!raw){createInitialStructure();return;}
-  const s=JSON.parse(raw);
-  printTitle.textContent=s.title||"";
-  if(s.bg){bgColor.value=s.bg;applyBg(s.bg);}
-  canvas.innerHTML="";lines.length=0;currentY=40;
-  s.elements.forEach(e=>{
-    const el=document.createElement("div");
-    el.className=e.class;el.textContent=e.text;
-    el.style.left=e.left;el.style.top=e.top;
-    if(e.height)el.style.height=e.height;
-    canvas.appendChild(el);
-    if(el.classList.contains("line")){
-      lines.push(parseFloat(e.top));currentY=parseFloat(e.top)+LINE_SPACING;
-    }
-    if(el.classList.contains("symbol")||el.classList.contains("bar"))makeDraggable(el);
-  });
-}
-restoreState();
+  svg+=`<text x="${width/2}" y="60" text-anchor="middle">${print-title.textContent}</text>`;
 
-/* ================= PDF (MAX QUALITY HTML) ================= */
-exportPDF.onclick=async()=>{
-  saveState();canvasWrapper.scrollTop=0;
-  const clone=document.createElement("div");
-  clone.style.width="794px";
-  clone.style.background="white";
-  clone.style.padding="40px 0";
-  clone.style.webkitFontSmoothing="antialiased";
-  clone.innerHTML=printTitle.outerHTML+canvas.outerHTML;
-  document.body.appendChild(clone);
-
-  const img=await html2canvas(clone,{
-    scale:3,
-    backgroundColor:"#fff",
-    useCORS:true
+  document.querySelectorAll(".line").forEach(l=>{
+    const y=parseFloat(l.style.top);
+    svg+=`<line x1="60" x2="${width-60}" y1="${y+100}" y2="${y+100}" stroke="black" stroke-width="2"/>`;
   });
 
-  const w=210;
-  const h=img.height*w/img.width;
-  const pdf=new window.jspdf.jsPDF("p","mm","a4");
-  pdf.addImage(img.toDataURL("image/png"),"PNG",0,0,w,h);
-  pdf.save("tablature.pdf");
-  document.body.removeChild(clone);
+  document.querySelectorAll(".symbol").forEach(s=>{
+    svg+=`<text x="${parseFloat(s.style.left)+60}" y="${parseFloat(s.style.top)+110}">${s.textContent}</text>`;
+  });
+
+  svg+="</svg>";
+
+  const blob=new Blob([svg],{type:"image/svg+xml"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download="tablature.svg";
+  a.click();
+  URL.revokeObjectURL(url);
 };
 </script>
 
