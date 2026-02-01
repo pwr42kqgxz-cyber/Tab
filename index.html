@@ -568,8 +568,13 @@ canvas.addEventListener("touchend",()=>{
 
 /* ================= DRAG ================= */
 function makeDraggable(el){
-  el.addEventListener("touchstart",e=>{
-    if(tool!=="select" && !el.classList.contains("draw")) return;
+
+el.addEventListener("touchstart",e=>{
+  if(tool!=="select") return;
+
+  // CORRECTION CLÉ :
+  active = null;
+
     pushUndo();
     if(selectedElement) selectedElement.classList.remove("selected");
     selectedElement=el;
@@ -586,11 +591,12 @@ function makeDraggable(el){
     active.style.top=e.touches[0].clientY-r.top+"px";
   },{passive:false});
 
-  el.addEventListener("touchend",()=>{
-    active=null;
-    saveState();
-  });
-}
+el.addEventListener("touchend",()=>{
+  active = null;
+  // libère immédiatement la sélection active
+  // permet d'enchaîner les sélections sans recliquer sur "Sélection"
+  saveState();
+});
 
 /* ================= DELETE / CLEAR ================= */
 deleteBtn.onclick=()=>{
