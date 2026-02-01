@@ -30,7 +30,6 @@ html,body{
   padding:14px 0;
   border:none;
   outline:none;
-  font-family:"IM Fell English", serif;
 }
 
 /* ===== TOOLBAR ===== */
@@ -59,7 +58,7 @@ button.active{
   color:white;
 }
 
-/* ===== CANVAS CONTINU ===== */
+/* ===== CANVAS ===== */
 #canvas-wrapper{
   position:absolute;
   top:120px;
@@ -159,6 +158,7 @@ button.active{
   <button id="toolPlace" class="active">✍️ Placer</button>
   <button id="toolSelect">🖐 Sélection</button>
   <button id="undo">↩️ Retour</button>
+  <button id="deleteBtn">❌ Effacer</button>
   <button id="addBlackLine">➕ Ligne noire</button>
   <button id="addWhiteLine">➕ Ligne blanche</button>
   <button id="addBar">➕ Barre</button>
@@ -192,6 +192,7 @@ const wrapper=document.getElementById("canvas-wrapper");
 const palette=document.getElementById("palette");
 const titleInput=document.getElementById("title");
 const printTitle=document.getElementById("print-title");
+const deleteBtn=document.getElementById("deleteBtn");
 
 /* ===== TITRE ===== */
 function syncTitle(){
@@ -205,6 +206,7 @@ let tool="place";
 let snap=true;
 let placingBar=false;
 let active=null;
+let selectedElement=null;
 let history=[];
 let currentY=40;
 const LINE_SPACING=30;
@@ -230,6 +232,15 @@ undo.onclick=()=>{
   if(el){ el.remove(); saveState(); }
 };
 
+/* ===== DELETE ===== */
+deleteBtn.onclick=()=>{
+  if(selectedElement){
+    selectedElement.remove();
+    selectedElement=null;
+    saveState();
+  }
+};
+
 /* ===== SCROLL ===== */
 scrollUp.onclick=()=>wrapper.scrollBy({top:-200,behavior:"smooth"});
 scrollDown.onclick=()=>wrapper.scrollBy({top:200,behavior:"smooth"});
@@ -247,7 +258,7 @@ function addLine(type){
 
 /* ===== STRUCTURE INITIALE ===== */
 function createInitialStructure(){
-  for(let bloc=0; bloc<4; bloc++){
+  for(let bloc=0;bloc<4;bloc++){
     for(let i=0;i<6;i++) addLine("black");
     if(bloc<3) addLine("white");
   }
@@ -307,6 +318,7 @@ function makeDraggable(el){
   el.addEventListener("touchstart",e=>{
     if(tool!=="select")return;
     active=el;
+    selectedElement=el;
     e.stopPropagation();
   },{passive:false});
 
@@ -368,7 +380,7 @@ function restoreState(){
     el.textContent=e.text;
     el.style.left=e.left;
     el.style.top=e.top;
-    if(e.height)el.style.height=e.height;
+    if(e.height) el.style.height=e.height;
     canvas.appendChild(el);
 
     if(el.classList.contains("line")){
