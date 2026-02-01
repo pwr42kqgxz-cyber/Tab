@@ -195,25 +195,25 @@ button.active{
 
 <script>
 /* ================= DOM ================= */
-const toolbar=document.getElementById("toolbar");
-const palette=document.getElementById("palette");
-const scrollButtons=document.getElementById("scroll-buttons");
-const showUIBtn=document.getElementById("showUIBtn");
-const toggleUI=document.getElementById("toggleUI");
-const canvasWrapper=document.getElementById("canvas-wrapper");
-const canvas=document.getElementById("canvas");
-const printTitle=document.getElementById("print-title");
-const bgColor=document.getElementById("bgColor");
-const toolPlace=document.getElementById("toolPlace");
-const toolSelect=document.getElementById("toolSelect");
-const undoBtn=document.getElementById("undo");
-const deleteBtn=document.getElementById("deleteBtn");
-const clearAllBtn=document.getElementById("clearAllBtn");
-const addBlackLine=document.getElementById("addBlackLine");
-const addWhiteLine=document.getElementById("addWhiteLine");
-const addBar=document.getElementById("addBar");
-const toggleSnap=document.getElementById("toggleSnap");
-const editTitle=document.getElementById("editTitle");
+const toolbar = document.getElementById("toolbar");
+const palette = document.getElementById("palette");
+const scrollButtons = document.getElementById("scroll-buttons");
+const showUIBtn = document.getElementById("showUIBtn");
+const toggleUI = document.getElementById("toggleUI");
+const canvasWrapper = document.getElementById("canvas-wrapper");
+const canvas = document.getElementById("canvas");
+const printTitle = document.getElementById("print-title");
+const bgColor = document.getElementById("bgColor");
+const toolPlace = document.getElementById("toolPlace");
+const toolSelect = document.getElementById("toolSelect");
+const undoBtn = document.getElementById("undo");
+const deleteBtn = document.getElementById("deleteBtn");
+const clearAllBtn = document.getElementById("clearAllBtn");
+const addBlackLine = document.getElementById("addBlackLine");
+const addWhiteLine = document.getElementById("addWhiteLine");
+const addBar = document.getElementById("addBar");
+const toggleSnap = document.getElementById("toggleSnap");
+const editTitle = document.getElementById("editTitle");
 
 /* ================= UI VISIBILITY ================= */
 toggleUI.onclick=()=>{
@@ -482,6 +482,23 @@ addBar.onclick=()=>{
 /* ================= SCROLL ================= */
 document.getElementById("scrollUp").onclick=()=>canvasWrapper.scrollTop-=100;
 document.getElementById("scrollDown").onclick=()=>canvasWrapper.scrollTop+=100;
+
+/* ================= PALETTE (GOLD – RESTAURÉE) ================= */
+[
+ "a","b","c","d","e","f","g","h","j","k",
+ "l","m","n",
+ "/a","//a","///a","4","5","6",
+ ",",".",":",";","(",")","[","]","~","⌒","|"
+].forEach(s=>{
+  const p=document.createElement("div");
+  p.className="palette-item";
+  p.textContent=s;
+  p.onclick=()=>{
+    selected=s;
+    setTool("place");
+  };
+  palette.appendChild(p);
+});
 
 /* ================= INIT ================= */
 restoreFromStorage();
