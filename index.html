@@ -18,6 +18,7 @@ html,body{
   height:100%;
   font-family:"IM Fell English", serif;
   overflow:hidden;
+  background:white;
 }
 
 /* ===== TOOLBAR ===== */
@@ -27,19 +28,18 @@ html,body{
   left:0;
   right:0;
   display:flex;
-  flex-wrap:wrap;
-  gap:8px;
-  padding:8px;
+  gap:6px;
+  padding:6px;
   border-bottom:1px solid black;
   background:white;
   z-index:10;
 }
 
 button{
-  padding:10px 14px;
+  padding:8px 12px;
   border:1px solid black;
   background:white;
-  font-size:15px;
+  font-size:14px;
 }
 button.active{
   background:black;
@@ -47,17 +47,17 @@ button.active{
 }
 
 #bgColor{
-  width:40px;
-  height:40px;
-  padding:0;
+  width:34px;
+  height:34px;
   border:1px solid black;
+  padding:0;
 }
 
 /* ===== CANVAS ===== */
 #canvas-wrapper{
   position:absolute;
-  top:70px;
-  bottom:300px; /* PLUS DE PLACE POUR LA PALETTE */
+  top:54px;
+  bottom:120px; /* palette compacte */
   left:0;
   right:0;
   overflow-y:auto;
@@ -65,102 +65,89 @@ button.active{
 
 #canvas{
   position:relative;
-  min-height:2400px;
+  min-height:1800px;
 }
 
-/* ===== LIGNES ===== */
+/* ===== TITLE (PRINT ONLY) ===== */
+#print-title{
+  text-align:center;
+  font-size:34px;
+  margin:40px 0 50px;
+}
+
+/* ===== LINES ===== */
 .line{
   position:absolute;
-  left:5%;
-  right:5%;
+  left:6%;
+  right:6%;
   height:2px;
 }
 .line.black{ background:black; }
 .line.white{ background:transparent; }
 
-/* ===== SYMBOLES ===== */
+/* ===== SYMBOLS ===== */
 .symbol{
   position:absolute;
-  font-size:36px;
+  font-size:34px;
   line-height:1;
   white-space:nowrap;
 }
 
-/* ===== BARRES ===== */
+/* ===== BAR ===== */
 .bar{
   position:absolute;
-  width:8px;
-  margin-left:-4px;
+  width:6px;
+  margin-left:-3px;
 }
 .bar::after{
   content:"";
   position:absolute;
-  left:3px;
+  left:2px;
   top:0;
   bottom:0;
   width:2px;
   background:black;
 }
 
-/* ===== PALETTE ===== */
+/* ===== PALETTE (ONE LINE) ===== */
 #palette{
   position:fixed;
   bottom:0;
   left:0;
   right:0;
-  height:300px; /* AGRANDIE */
+  height:120px;
   border-top:1px solid black;
   background:white;
-  padding:10px;
   display:flex;
-  flex-wrap:wrap;
-  align-items:flex-start;
+  align-items:center;
+  padding:6px;
+  gap:4px;
   z-index:10;
 }
 
 .palette-item{
   border:1px solid black;
-  padding:10px;
-  margin:4px;
-  font-size:30px;
-  min-width:36px;
+  padding:10px 12px;
+  font-size:26px;
+  min-width:32px;
   text-align:center;
 }
 
 /* ===== CUSTOM SYMBOL ===== */
-#customSymbolBox{
-  display:flex;
-  align-items:center;
-  gap:6px;
-  margin:6px;
-}
-
 #customSymbol{
-  width:70px;
-  font-size:28px;
+  width:60px;
+  font-size:24px;
   text-align:center;
 }
 
 /* ===== SCROLL ===== */
 #scroll-buttons{
   position:fixed;
-  right:10px;
-  bottom:320px;
+  right:8px;
+  bottom:130px;
   display:flex;
   flex-direction:column;
-  gap:8px;
-  z-index:10;
-}
-
-/* ===== PRINT ===== */
-#print-area{
-  padding-top:60px;
-  background:white;
-}
-#print-title{
-  text-align:center;
-  font-size:36px;
-  margin-bottom:50px;
+  gap:6px;
 }
 </style>
 </head>
@@ -168,47 +155,44 @@ button.active{
 <body>
 
 <div id="toolbar">
-  <button id="editTitle">✏️ Titre</button>
-  <button id="toolPlace" class="active">✍️ Placer</button>
-  <button id="toolSelect">🖐 Sélection</button>
-  <button id="undo">↩️ Retour</button>
-  <button id="deleteBtn">❌ Effacer</button>
-  <button id="clearAllBtn">🗑️ Tout effacer</button>
-  <button id="addBlackLine">➕ Ligne noire</button>
-  <button id="addWhiteLine">➕ Ligne blanche</button>
-  <button id="addBar">➕ Barre</button>
-  <button id="toggleSnap" class="active">🧲 Accroché</button>
+  <button id="editTitle">Titre</button>
+  <button id="toolPlace" class="active">Placer</button>
+  <button id="toolSelect">Sélection</button>
+  <button id="undo">Retour</button>
+  <button id="deleteBtn">Effacer</button>
+  <button id="clearAllBtn">Tout effacer</button>
+  <button id="addBlackLine">+ Ligne noire</button>
+  <button id="addWhiteLine">+ Ligne blanche</button>
+  <button id="addBar">+ Barre</button>
+  <button id="toggleSnap" class="active">Accroché</button>
   <input type="color" id="bgColor">
-  <button id="exportPDF">📄 PDF</button>
+  <button id="exportPDF">PDF</button>
 </div>
 
 <div id="canvas-wrapper">
-  <div id="print-area">
-    <div id="print-title"></div>
-    <div id="canvas"></div>
-  </div>
+  <div id="print-title"></div>
+  <div id="canvas"></div>
 </div>
 
 <div id="palette"></div>
 
 <div id="scroll-buttons">
-  <button id="scrollUp">⬆️</button>
-  <button id="scrollDown">⬇️</button>
+  <button id="scrollUp">⬆</button>
+  <button id="scrollDown">⬇</button>
 </div>
 
 <script>
 /* ===== ELEMENTS ===== */
-const body=document.body;
-const canvasWrapper=document.getElementById("canvas-wrapper");
 const canvas=document.getElementById("canvas");
+const wrapper=document.getElementById("canvas-wrapper");
 const palette=document.getElementById("palette");
 const printTitle=document.getElementById("print-title");
 const bgColor=document.getElementById("bgColor");
 
 /* ===== BACKGROUND ===== */
 function applyBg(c){
-  body.style.background=c;
-  canvasWrapper.style.background=c;
+  document.body.style.background=c;
+  wrapper.style.background=c;
   canvas.style.background=c;
 }
 const savedBg=localStorage.getItem("bg_color");
@@ -229,7 +213,7 @@ let active=null;
 let selectedElement=null;
 let history=[];
 let currentY=40;
-const LINE_SPACING=30;
+const LINE_SPACING=28;
 const lines=[];
 
 /* ===== TOOLS ===== */
@@ -257,8 +241,8 @@ clearAllBtn.onclick=()=>{
 };
 
 /* ===== SCROLL ===== */
-scrollUp.onclick=()=>canvasWrapper.scrollBy({top:-200,behavior:"smooth"});
-scrollDown.onclick=()=>canvasWrapper.scrollBy({top:200,behavior:"smooth"});
+scrollUp.onclick=()=>wrapper.scrollBy({top:-200,behavior:"smooth"});
+scrollDown.onclick=()=>wrapper.scrollBy({top:200,behavior:"smooth"});
 
 /* ===== LINES ===== */
 function addLine(type){
@@ -283,12 +267,10 @@ function createInitialStructure(){
 
 /* ===== PALETTE ===== */
 let selected="a";
-const symbols=[
+[
  "a","b","c","d","e","f","g","h","j","k",
- "/a","//a","///a","1","2","3","4","5","6","7"
-];
-
-symbols.forEach(s=>{
+ "/a","//a","///a","4","5","6"
+].forEach(s=>{
   const p=document.createElement("div");
   p.className="palette-item";
   p.textContent=s;
@@ -296,27 +278,20 @@ symbols.forEach(s=>{
   palette.appendChild(p);
 });
 
-/* ===== CUSTOM SYMBOL ===== */
-const customBox=document.createElement("div");
-customBox.id="customSymbolBox";
+const custom=document.createElement("input");
+custom.id="customSymbol";
+custom.placeholder="✱";
+palette.appendChild(custom);
 
-const customInput=document.createElement("input");
-customInput.id="customSymbol";
-customInput.placeholder="✱";
-
-const customBtn=document.createElement("button");
-customBtn.textContent="OK";
-
-customBtn.onclick=()=>{
-  if(customInput.value.trim()){
-    selected=customInput.value.trim();
-    customInput.value="";
+const ok=document.createElement("button");
+ok.textContent="OK";
+ok.onclick=()=>{
+  if(custom.value.trim()){
+    selected=custom.value.trim();
+    custom.value="";
   }
 };
-
-customBox.appendChild(customInput);
-customBox.appendChild(customBtn);
-palette.appendChild(customBox);
+palette.appendChild(ok);
 
 /* ===== BAR ===== */
 addBar.onclick=()=>{ placingBar=true; setTool("select"); };
@@ -325,9 +300,9 @@ addBar.onclick=()=>{ placingBar=true; setTool("select"); };
 function snapY(rawY,symbol){
   const base=nearestLine(rawY);
   if(!snap) return rawY;
-  if(symbol.startsWith("///")) return base+18;
-  if(symbol.startsWith("//"))  return base+14;
-  if(symbol.startsWith("/"))   return base+10;
+  if(symbol.startsWith("///")) return base+16;
+  if(symbol.startsWith("//")) return base+12;
+  if(symbol.startsWith("/")) return base+8;
   return base-16;
 }
 
@@ -438,25 +413,23 @@ function restoreState(){
 }
 restoreState();
 
-/* ===== PDF (CORRIGÉ iPad) ===== */
+/* ===== PDF (A4 PROPRE) ===== */
 exportPDF.onclick=async()=>{
   saveState();
 
-  canvasWrapper.scrollTop=0;
+  wrapper.scrollTop=0;
 
-  const clone = document.getElementById("print-area").cloneNode(true);
+  const clone=document.createElement("div");
+  clone.style.width="794px";
   clone.style.background="white";
-  clone.style.position="absolute";
-  clone.style.left="-9999px";
+  clone.innerHTML=printTitle.outerHTML+canvas.outerHTML;
   document.body.appendChild(clone);
 
   const {jsPDF}=window.jspdf;
   const pdf=new jsPDF("p","mm","a4");
-  const img=await html2canvas(clone,{scale:2,backgroundColor:"#ffffff"});
+  const img=await html2canvas(clone,{scale:2,backgroundColor:"#fff"});
 
-  const w=210;
-  const h=img.height*w/img.width;
-  pdf.addImage(img.toDataURL("image/png"),"PNG",0,0,w,h);
+  pdf.addImage(img.toDataURL("image/png"),"PNG",0,0,210,297);
   pdf.save("tablature.pdf");
 
   document.body.removeChild(clone);
