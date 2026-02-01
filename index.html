@@ -9,13 +9,21 @@
 
 <title>Tablature baroque</title>
 
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport"
+content="width=device-width,
+initial-scale=1.0,
+maximum-scale=1.0,
+user-scalable=no">
 
 <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
+*{
+  touch-action: manipulation;
+}
+
 html,body{
   margin:0;
   padding:0;
@@ -71,19 +79,14 @@ button.active{
   min-height:1800px;
 }
 
-/* ===== DRAW ===== */
+/* ===== DRAW (LOCAL, AUTO SIZE) ===== */
 .draw{
   position:absolute;
-  left:0;
-  top:0;
-  width:100%;
-  height:100%;
   pointer-events:auto;
 }
 
 .draw svg{
-  width:100%;
-  height:100%;
+  display:block;
 }
 
 .draw path{
@@ -94,8 +97,8 @@ button.active{
   stroke-linejoin:round;
 }
 
-.draw.selected path{
-  stroke-dasharray:4 4;
+.draw.selected{
+  outline:2px dashed black;
 }
 
 /* ===== TITLE ===== */
@@ -229,26 +232,34 @@ button.active{
 
 <script>
 /* ================= DOM ================= */
-const toolbar=document.getElementById("toolbar");
-const palette=document.getElementById("palette");
-const scrollButtons=document.getElementById("scroll-buttons");
-const showUIBtn=document.getElementById("showUIBtn");
-const toggleUI=document.getElementById("toggleUI");
-const canvasWrapper=document.getElementById("canvas-wrapper");
-const canvas=document.getElementById("canvas");
-const printTitle=document.getElementById("print-title");
-const bgColor=document.getElementById("bgColor");
-const toolPlace=document.getElementById("toolPlace");
-const toolSelect=document.getElementById("toolSelect");
-const undoBtn=document.getElementById("undo");
-const deleteBtn=document.getElementById("deleteBtn");
-const clearAllBtn=document.getElementById("clearAllBtn");
-const addBlackLine=document.getElementById("addBlackLine");
-const addWhiteLine=document.getElementById("addWhiteLine");
-const addBar=document.getElementById("addBar");
-const toggleSnap=document.getElementById("toggleSnap");
-const editTitle=document.getElementById("editTitle");
-const lockBtn=document.getElementById("lockBtn");
+const toolbar = document.getElementById("toolbar");
+const palette = document.getElementById("palette");
+const scrollButtons = document.getElementById("scroll-buttons");
+const showUIBtn = document.getElementById("showUIBtn");
+const toggleUI = document.getElementById("toggleUI");
+const canvasWrapper = document.getElementById("canvas-wrapper");
+const canvas = document.getElementById("canvas");
+const printTitle = document.getElementById("print-title");
+const bgColor = document.getElementById("bgColor");
+const toolPlace = document.getElementById("toolPlace");
+const toolSelect = document.getElementById("toolSelect");
+const undoBtn = document.getElementById("undo");
+const deleteBtn = document.getElementById("deleteBtn");
+const clearAllBtn = document.getElementById("clearAllBtn");
+const addBlackLine = document.getElementById("addBlackLine");
+const addWhiteLine = document.getElementById("addWhiteLine");
+const addBar = document.getElementById("addBar");
+const toggleSnap = document.getElementById("toggleSnap");
+const editTitle = document.getElementById("editTitle");
+const lockBtn = document.getElementById("lockBtn");
+
+/* ================= DOUBLE TAP BLOCK (iOS) ================= */
+let lastTouch = 0;
+document.addEventListener("touchend", e => {
+  const now = Date.now();
+  if (now - lastTouch <= 300) e.preventDefault();
+  lastTouch = now;
+},{passive:false});
 
 /* ================= UI VISIBILITY ================= */
 toggleUI.onclick=()=>{
@@ -270,7 +281,7 @@ function applyBg(c){
   canvasWrapper.style.background=c;
   canvas.style.background=c;
 }
-const savedBg=localStorage.getItem("bg_color");
+const savedBg = localStorage.getItem("bg_color");
 if(savedBg){
   bgColor.value=savedBg;
   applyBg(savedBg);
@@ -282,15 +293,16 @@ bgColor.oninput=()=>{
 };
 
 /* ================= STATE ================= */
-let tool="place",snap=true,placingBar=false;
-let selected="a",selectedElement=null,active=null;
+let tool="place", snap=true, placingBar=false;
+let selected="a", selectedElement=null, active=null;
 let currentY=40;
 const LINE_SPACING=28;
 const lines=[];
 
-/* ===== DRAW / LOCK STATE ===== */
+/* ===== DRAW STATE ===== */
 let drawing=false;
-let currentDrawPath=null;
+let currentPath=null;
+let drawStart={x:0,y:0};
 let locked=false;
 
 /* ================= LOCK ================= */
@@ -311,7 +323,12 @@ function serializeState(){
     bg:bgColor.value,
     elements:[...canvas.children].map(el=>{
       if(el.classList.contains("draw")){
-        return{class:"draw",d:el.querySelector("path").getAttribute("d")};
+        return{
+          class:"draw",
+          left:el.style.left,
+          top:el.style.top,
+          d:el.querySelector("path").getAttribute("d")
+        };
       }
       return{
         class:el.className,
@@ -323,10 +340,12 @@ function serializeState(){
     })
   });
 }
+
 function pushUndo(){
   undoStack.push(serializeState());
   if(undoStack.length>MAX_UNDO) undoStack.shift();
 }
+
 undoBtn.onclick=()=>{
   if(!undoStack.length) return;
   restoreState(undoStack.pop(),false);
@@ -336,6 +355,7 @@ undoBtn.onclick=()=>{
 function saveState(){
   localStorage.setItem("tablature_state",serializeState());
 }
+
 function restoreState(raw,save=true){
   const s=typeof raw==="string"?JSON.parse(raw):raw;
   canvas.innerHTML="";
@@ -343,10 +363,14 @@ function restoreState(raw,save=true){
   currentY=40;
   printTitle.textContent=s.title||"";
   if(s.bg){bgColor.value=s.bg;applyBg(s.bg);}
+
   s.elements.forEach(e=>{
     if(e.class==="draw"){
       const w=document.createElement("div");
       w.className="draw";
+      w.style.left=e.left;
+      w.style.top=e.top;
+
       const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
       const p=document.createElementNS("http://www.w3.org/2000/svg","path");
       p.setAttribute("d",e.d);
@@ -356,6 +380,7 @@ function restoreState(raw,save=true){
       makeDraggable(w);
       return;
     }
+
     const el=document.createElement("div");
     el.className=e.class;
     el.textContent=e.text;
@@ -363,6 +388,7 @@ function restoreState(raw,save=true){
     el.style.top=e.top;
     if(e.height) el.style.height=e.height;
     canvas.appendChild(el);
+
     if(el.classList.contains("line")){
       lines.push(parseFloat(e.top));
       currentY=parseFloat(e.top)+LINE_SPACING;
@@ -371,8 +397,10 @@ function restoreState(raw,save=true){
       makeDraggable(el);
     }
   });
+
   if(save) saveState();
 }
+
 function restoreFromStorage(){
   const raw=localStorage.getItem("tablature_state");
   if(raw) restoreState(raw,false);
@@ -431,7 +459,7 @@ addWhiteLine.onclick=()=>{pushUndo();addLine("white");saveState();};
 function nearestLine(y){
   return lines.reduce((a,b)=>Math.abs(b-y)<Math.abs(a-y)?b:a);
 }
-function snapY(y,s){
+function snapY(y){
   if(!snap||!lines.length) return y;
   const b=nearestLine(y);
   return b+LINE_SPACING*0.5;
@@ -447,15 +475,21 @@ canvas.addEventListener("touchstart",e=>{
   if(selected==="__draw__"){
     setLock(true);
     drawing=true;
+    drawStart={x,y};
+
     const w=document.createElement("div");
     w.className="draw selected";
+    w.style.left=x+"px";
+    w.style.top=y+"px";
+
     const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
     const p=document.createElementNS("http://www.w3.org/2000/svg","path");
-    p.setAttribute("d",`M ${x} ${y}`);
+    p.setAttribute("d","M 0 0");
     svg.appendChild(p);
     w.appendChild(svg);
     canvas.appendChild(w);
-    currentDrawPath=p;
+
+    currentPath=p;
     selectedElement=w;
     return;
   }
@@ -478,7 +512,7 @@ canvas.addEventListener("touchstart",e=>{
     s.className="symbol";
     s.textContent=selected;
     s.style.left=x+"px";
-    s.style.top=snapY(y,selected)+"px";
+    s.style.top=snapY(y)+"px";
     canvas.appendChild(s);
     makeDraggable(s);
     saveState();
@@ -486,19 +520,20 @@ canvas.addEventListener("touchstart",e=>{
 },{passive:false});
 
 canvas.addEventListener("touchmove",e=>{
-  if(drawing){
-    e.preventDefault();
-    const r=canvas.getBoundingClientRect();
-    const x=e.touches[0].clientX-r.left;
-    const y=e.touches[0].clientY-r.top;
-    const d=currentDrawPath.getAttribute("d");
-    currentDrawPath.setAttribute("d",d+` L ${x} ${y}`);
-  }
+  if(!drawing) return;
+  e.preventDefault();
+
+  const r=canvas.getBoundingClientRect();
+  const x=e.touches[0].clientX-r.left - drawStart.x;
+  const y=e.touches[0].clientY-r.top - drawStart.y;
+
+  const d=currentPath.getAttribute("d");
+  currentPath.setAttribute("d",d+` L ${x} ${y}`);
 },{passive:false});
 
 canvas.addEventListener("touchend",()=>{
   drawing=false;
-  currentDrawPath=null;
+  currentPath=null;
   saveState();
 });
 
@@ -513,6 +548,7 @@ function makeDraggable(el){
     active=el;
     e.stopPropagation();
   },{passive:false});
+
   el.addEventListener("touchmove",e=>{
     if(!active) return;
     e.preventDefault();
@@ -520,6 +556,7 @@ function makeDraggable(el){
     active.style.left=e.touches[0].clientX-r.left+"px";
     active.style.top=e.touches[0].clientY-r.top+"px";
   },{passive:false});
+
   el.addEventListener("touchend",()=>{
     active=null;
     saveState();
