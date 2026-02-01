@@ -54,13 +54,12 @@ button{
   background:white;
   font-size:14px;
 }
-
 button.active{
   background:black;
   color:white;
 }
 
-/* ===== CANVAS ===== */
+/* ===== CANVAS CONTINU ===== */
 #canvas-wrapper{
   position:absolute;
   top:120px;
@@ -72,7 +71,7 @@ button.active{
 
 #canvas{
   position:relative;
-  min-height:1600px;
+  min-height:2000px;
   touch-action:manipulation;
 }
 
@@ -124,7 +123,6 @@ button.active{
   flex-wrap:wrap;
   z-index:10;
 }
-
 .palette-item{
   border:1px solid black;
   padding:10px;
@@ -183,9 +181,9 @@ button.active{
 </div>
 
 <script>
-/* ===== ANTI ZOOM ===== */
-["gesturestart","gesturechange","gestureend","dblclick"].forEach(e=>{
-  document.addEventListener(e,ev=>ev.preventDefault(),{passive:false});
+/* ===== ANTI-ZOOM iOS ===== */
+["gesturestart","gesturechange","gestureend","dblclick"].forEach(ev=>{
+  document.addEventListener(ev,e=>e.preventDefault(),{passive:false});
 });
 
 /* ===== ELEMENTS ===== */
@@ -197,12 +195,12 @@ const printTitle=document.getElementById("print-title");
 
 /* ===== TITRE ===== */
 function syncTitle(){
-  printTitle.textContent=titleInput.value||" ";
+  printTitle.textContent = titleInput.value || " ";
 }
 titleInput.addEventListener("input",()=>{syncTitle();saveState();});
 syncTitle();
 
-/* ===== ETAT ===== */
+/* ===== ÉTAT ===== */
 let tool="place";
 let snap=true;
 let placingBar=false;
@@ -220,7 +218,6 @@ toggleSnap.onclick=()=>{
   toggleSnap.textContent=snap?"🧲 Accroché":"🔓 Libre";
   toggleSnap.classList.toggle("active",snap);
 };
-
 function setTool(t){
   tool=t;
   toolPlace.classList.toggle("active",t==="place");
@@ -246,11 +243,15 @@ function addLine(type){
   history.push(l);
   lines.push(currentY);
   currentY+=LINE_SPACING;
-  saveState();
 }
-for(let i=0;i<6;i++) addLine("black");
-addBlackLine.onclick=()=>addLine("black");
-addWhiteLine.onclick=()=>addLine("white");
+
+/* ===== STRUCTURE INITIALE ===== */
+function createInitialStructure(){
+  for(let bloc=0; bloc<4; bloc++){
+    for(let i=0;i<6;i++) addLine("black");
+    if(bloc<3) addLine("white");
+  }
+}
 
 /* ===== PALETTE ===== */
 let selected="a";
@@ -348,7 +349,10 @@ function saveState(){
 /* ===== RESTAURATION ===== */
 function restoreState(){
   const raw=localStorage.getItem("tablature_state");
-  if(!raw)return;
+  if(!raw){
+    createInitialStructure();
+    return;
+  }
 
   const state=JSON.parse(raw);
   titleInput.value=state.title||"";
@@ -384,7 +388,7 @@ exportPDF.onclick=async()=>{
 
   toolbar.style.display="none";
   palette.style.display="none";
-  scroll-buttons.style.display="none";
+  document.getElementById("scroll-buttons").style.display="none";
 
   await new Promise(r=>setTimeout(r,100));
 
@@ -399,7 +403,7 @@ exportPDF.onclick=async()=>{
 
   toolbar.style.display="";
   palette.style.display="";
-  scroll-buttons.style.display="";
+  document.getElementById("scroll-buttons").style.display="";
 };
 </script>
 
