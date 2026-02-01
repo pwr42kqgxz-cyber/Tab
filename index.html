@@ -54,7 +54,6 @@ button.active{
   width:34px;
   height:34px;
   border:1px solid black;
-  padding:0;
 }
 
 /* ===== CANVAS ===== */
@@ -101,6 +100,16 @@ button.active{
   position:absolute;
   width:4px;
   background:black;
+}
+
+/* zone tactile élargie (invisible) */
+.bar::before{
+  content:"";
+  position:absolute;
+  left:-12px;
+  right:-12px;
+  top:0;
+  bottom:0;
 }
 
 /* ===== SELECTION ===== */
@@ -246,46 +255,6 @@ function setTool(t){
 toolPlace.onclick=()=>setTool("place");
 toolSelect.onclick=()=>setTool("select");
 
-/* ===== UNDO ===== */
-undo.onclick=()=>{
-  const el=history.pop();
-  if(!el) return;
-
-  if(el.classList.contains("line")){
-    const top=parseFloat(el.style.top);
-    const idx=lines.lastIndexOf(top);
-    if(idx!==-1) lines.splice(idx,1);
-    currentY-=LINE_SPACING;
-  }
-  el.remove();
-  saveState();
-};
-
-/* ===== DELETE ===== */
-deleteBtn.onclick=()=>{
-  if(!selectedElement) return;
-  const idx = history.indexOf(selectedElement);
-  if(idx !== -1) history.splice(idx,1);
-  selectedElement.remove();
-  selectedElement = null;
-  saveState();
-};
-
-clearAllBtn.onclick=()=>{
-  if(!confirm("Tout effacer ?"))return;
-  canvas.innerHTML="";
-  localStorage.removeItem("tablature_state");
-  lines.length=0;
-  history.length=0;
-  currentY=40;
-  createInitialStructure();
-  saveState();
-};
-
-/* ===== SCROLL ===== */
-scrollUp.onclick=()=>canvasWrapper.scrollBy({top:-200,behavior:"smooth"});
-scrollDown.onclick=()=>canvasWrapper.scrollBy({top:200,behavior:"smooth"});
-
 /* ===== STRUCTURE INIT ===== */
 function createInitialStructure(){
   for(let r=0;r<4;r++){
@@ -347,15 +316,13 @@ function nearestLine(y){
   return lines.reduce((a,b)=>Math.abs(b-y)<Math.abs(a-y)?b:a);
 }
 
-/* ===== SNAP (CENTRAGE CORRIGÉ) ===== */
+/* ===== SNAP ===== */
 function snapY(y,s){
   if(!snap) return y;
   const b = nearestLine(y);
-
   if(s.startsWith("///")) return b + LINE_SPACING * 0.55;
   if(s.startsWith("//"))  return b + LINE_SPACING * 0.40;
   if(s.startsWith("/"))   return b + LINE_SPACING * 0.25;
-
   return b + LINE_SPACING * 0.15;
 }
 
@@ -363,7 +330,7 @@ function snapY(y,s){
 canvas.addEventListener("touchstart",e=>{
   const r=canvas.getBoundingClientRect();
   const x=e.touches[0].clientX-r.left;
-  const y=e.touches[0].clientY-r.top;
+  const y=e.touches[0].clientY-r.top - 8; // ✅ compensation doigt
 
   if(placingBar){
     placingBar=false;
@@ -406,18 +373,13 @@ function makeDraggable(el){
 
   el.addEventListener("touchmove",e=>{
     if(!active)return;
-
     const r=canvas.getBoundingClientRect();
     const x=e.touches[0].clientX-r.left;
     const y=e.touches[0].clientY-r.top;
-
     active.style.left=x+"px";
-
-    if(active.classList.contains("bar")){
-      active.style.top=nearestLine(y)+"px";
-    }else{
-      active.style.top=snapY(y,active.textContent)+"px";
-    }
+    active.style.top=el.classList.contains("bar")
+      ? nearestLine(y)+"px"
+      : snapY(y,el.textContent)+"px";
     e.preventDefault();
   },{passive:false});
 
