@@ -401,6 +401,16 @@ function restoreFromStorage(){
   else{createInitialStructure();saveState();}
 }
 
+/* ================= TITLE ================= */
+editTitle.onclick = () => {
+  const t = prompt("Titre du morceau :", printTitle.textContent || "");
+  if (t === null) return;
+
+  pushUndo();
+  printTitle.textContent = t.trim();
+  saveState();
+};
+
 /* ================= TOOLS ================= */
 function setTool(t){
   tool=t;
