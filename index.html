@@ -17,10 +17,11 @@ html,body{
   padding:0;
   height:100%;
   font-family:"IM Fell English", serif;
-  background:white;
+  background:#ffffff;
   overflow:hidden;
 }
 
+/* ===== TITRE ===== */
 #title{
   width:100%;
   text-align:center;
@@ -28,8 +29,10 @@ html,body{
   padding:14px 0;
   border:none;
   outline:none;
+  background:transparent;
 }
 
+/* ===== TOOLBAR ===== */
 #toolbar{
   position:fixed;
   top:0;
@@ -37,27 +40,38 @@ html,body{
   right:0;
   display:flex;
   flex-wrap:wrap;
-  gap:6px;
-  padding:6px;
-  background:white;
+  gap:8px;
+  padding:8px;
+  background:transparent;
   border-bottom:1px solid black;
   z-index:10;
 }
 
 button{
-  padding:6px 10px;
+  padding:10px 14px;        /* zone tactile agrandie */
   border:1px solid black;
   background:white;
+  font-size:15px;
 }
 button.active{
   background:black;
   color:white;
 }
 
+/* ===== COLOR PICKER ===== */
+#bgColor{
+  width:40px;
+  height:40px;
+  padding:0;
+  border:1px solid black;
+  background:none;
+}
+
+/* ===== CANVAS ===== */
 #canvas-wrapper{
   position:absolute;
-  top:120px;
-  bottom:180px;
+  top:130px;
+  bottom:190px;
   left:0;
   right:0;
   overflow-y:auto;
@@ -68,6 +82,7 @@ button.active{
   min-height:2000px;
 }
 
+/* ===== LIGNES ===== */
 .line{
   position:absolute;
   left:5%;
@@ -77,6 +92,7 @@ button.active{
 .line.black{ background:black; }
 .line.white{ background:transparent; }
 
+/* ===== SYMBOLES ===== */
 .symbol{
   position:absolute;
   font-size:36px;
@@ -84,6 +100,7 @@ button.active{
   white-space:nowrap;
 }
 
+/* ===== BARRES ===== */
 .bar{
   position:absolute;
   width:8px;
@@ -99,6 +116,7 @@ button.active{
   background:black;
 }
 
+/* ===== PALETTE ===== */
 #palette{
   position:fixed;
   bottom:0;
@@ -120,16 +138,18 @@ button.active{
   font-size:30px;
 }
 
+/* ===== SCROLL ===== */
 #scroll-buttons{
   position:fixed;
-  right:8px;
-  bottom:200px;
+  right:10px;
+  bottom:210px;
   display:flex;
   flex-direction:column;
-  gap:6px;
+  gap:8px;
 }
 
-#print-area{ padding-top:40px; }
+/* ===== IMPRIMABLE ===== */
+#print-area{ padding-top:40px; background:white; }
 #print-title{
   text-align:center;
   font-size:36px;
@@ -152,6 +172,7 @@ button.active{
   <button id="addWhiteLine">➕ Ligne blanche</button>
   <button id="addBar">➕ Barre</button>
   <button id="toggleSnap" class="active">🧲 Accroché</button>
+  <input type="color" id="bgColor" title="Teinte de la page">
   <button id="exportPDF">📄 PDF</button>
 </div>
 
@@ -185,6 +206,18 @@ const deleteBtn = document.getElementById("deleteBtn");
 const clearAllBtn = document.getElementById("clearAllBtn");
 const toolbar = document.getElementById("toolbar");
 const scrollButtons = document.getElementById("scroll-buttons");
+const bgColor = document.getElementById("bgColor");
+
+/* ===== BACKGROUND COLOR ===== */
+const savedBg = localStorage.getItem("bg_color");
+if(savedBg){
+  document.body.style.background = savedBg;
+  bgColor.value = savedBg;
+}
+bgColor.oninput = () => {
+  document.body.style.background = bgColor.value;
+  localStorage.setItem("bg_color", bgColor.value);
+};
 
 /* ===== TITLE ===== */
 function syncTitle(){
@@ -218,13 +251,12 @@ function setTool(t){
   toolSelect.classList.toggle("active",t==="select");
 }
 
-/* ===== UNDO ===== */
+/* ===== UNDO / DELETE / CLEAR ===== */
 undo.onclick=()=>{
   const el=history.pop();
   if(el){ el.remove(); saveState(); }
 };
 
-/* ===== DELETE ===== */
 deleteBtn.onclick=()=>{
   if(selectedElement){
     selectedElement.remove();
@@ -233,7 +265,6 @@ deleteBtn.onclick=()=>{
   }
 };
 
-/* ===== CLEAR ===== */
 clearAllBtn.onclick=()=>{
   if(!confirm("Tout effacer ?")) return;
   canvas.innerHTML="";
@@ -263,7 +294,6 @@ function addLine(type){
 addBlackLine.onclick=()=>addLine("black");
 addWhiteLine.onclick=()=>addLine("white");
 
-/* ===== INITIAL STRUCTURE ===== */
 function createInitialStructure(){
   for(let bloc=0;bloc<4;bloc++){
     for(let i=0;i<6;i++) addLine("black");
@@ -287,15 +317,14 @@ let selected="a";
 /* ===== BAR ===== */
 addBar.onclick=()=>{ placingBar=true; setTool("select"); };
 
-/* ===== SNAP LOGIC (IMPORTANT) ===== */
+/* ===== SNAP ===== */
 function snapY(rawY, symbol){
   const base = nearestLine(rawY);
   if(!snap) return rawY;
-
   if(symbol.startsWith("///")) return base + 18;
   if(symbol.startsWith("//"))  return base + 14;
   if(symbol.startsWith("/"))   return base + 10;
-  return base - 16; // lettre / chiffre
+  return base - 16;
 }
 
 /* ===== INTERACTION ===== */
@@ -346,11 +375,7 @@ function makeDraggable(el){
     const x=e.touches[0].clientX-r.left;
     const y=e.touches[0].clientY-r.top;
     active.style.left=x+"px";
-    if(el.classList.contains("symbol")){
-      active.style.top=snapY(y,el.textContent)+"px";
-    }else{
-      active.style.top=y+"px";
-    }
+    active.style.top=el.classList.contains("symbol") ? snapY(y,el.textContent)+"px" : y+"px";
     e.preventDefault();
   },{passive:false});
 
