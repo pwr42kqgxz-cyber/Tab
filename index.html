@@ -21,11 +21,6 @@ html,body{
   overflow:hidden;
 }
 
-/* ===== CONSTANTES VISUELLES ===== */
-:root{
-  --a4-height:1122px;
-}
-
 /* ===== TITRE ===== */
 #title{
   width:100%;
@@ -35,7 +30,6 @@ html,body{
   padding:14px 0;
   border:none;
   outline:none;
-  font-family:"IM Fell English", serif;
 }
 
 /* ===== TOOLBAR ===== */
@@ -64,29 +58,19 @@ button.active{
   color:white;
 }
 
-/* ===== CANVAS PAGINÉ ===== */
+/* ===== CANVAS ===== */
 #canvas-wrapper{
   position:absolute;
   top:120px;
   bottom:180px;
   left:0;
   right:0;
-  overflow:hidden;
+  overflow-y:auto;
 }
-
 #canvas{
   position:relative;
-  height:calc(var(--a4-height) * 4); /* 4 pages A4 */
+  min-height:2000px;
   touch-action:manipulation;
-}
-
-/* ===== SÉPARATEURS DE PAGE ===== */
-.page-separator{
-  position:absolute;
-  left:0;
-  right:0;
-  height:1px;
-  background:#ccc;
 }
 
 /* ===== LIGNES ===== */
@@ -144,7 +128,7 @@ button.active{
   font-size:30px;
 }
 
-/* ===== SCROLL PAGE ===== */
+/* ===== SCROLL ===== */
 #scroll-buttons{
   position:fixed;
   right:8px;
@@ -195,21 +179,16 @@ button.active{
 </div>
 
 <script>
-/* ===== ANTI-ZOOM iOS ===== */
+/* ===== ANTI-ZOOM ===== */
 ["gesturestart","gesturechange","gestureend","dblclick"].forEach(ev=>{
   document.addEventListener(ev,e=>e.preventDefault(),{passive:false});
 });
 
-/* ===== CONSTANTES ===== */
-const A4_HEIGHT = 1122;
-const TOTAL_PAGES = 4;
-
-/* ===== ELEMENTS ===== */
-const canvas=document.getElementById("canvas");
-const wrapper=document.getElementById("canvas-wrapper");
-const palette=document.getElementById("palette");
-const titleInput=document.getElementById("title");
-const printTitle=document.getElementById("print-title");
+const canvas = document.getElementById("canvas");
+const wrapper = document.getElementById("canvas-wrapper");
+const palette = document.getElementById("palette");
+const titleInput = document.getElementById("title");
+const printTitle = document.getElementById("print-title");
 
 /* ===== TITRE ===== */
 function syncTitle(){
@@ -218,7 +197,7 @@ function syncTitle(){
 titleInput.addEventListener("input",()=>{syncTitle();saveState();});
 syncTitle();
 
-/* ===== ETAT ===== */
+/* ===== ÉTAT ===== */
 let tool="place";
 let snap=true;
 let placingBar=false;
@@ -227,7 +206,6 @@ let history=[];
 let currentY=40;
 const LINE_SPACING=30;
 const lines=[];
-let currentPage=0;
 
 /* ===== OUTILS ===== */
 toolPlace.onclick=()=>setTool("place");
@@ -249,25 +227,11 @@ undo.onclick=()=>{
   if(el){ el.remove(); saveState(); }
 };
 
-/* ===== SCROLL PAR PAGE ===== */
-scrollUp.onclick=()=>{
-  currentPage=Math.max(0,currentPage-1);
-  wrapper.scrollTo({top:currentPage*A4_HEIGHT,behavior:"smooth"});
-};
-scrollDown.onclick=()=>{
-  currentPage=Math.min(TOTAL_PAGES-1,currentPage+1);
-  wrapper.scrollTo({top:currentPage*A4_HEIGHT,behavior:"smooth"});
-};
+/* ===== SCROLL ===== */
+scrollUp.onclick=()=>wrapper.scrollBy({top:-200,behavior:"smooth"});
+scrollDown.onclick=()=>wrapper.scrollBy({top:200,behavior:"smooth"});
 
-/* ===== SÉPARATEURS A4 ===== */
-for(let i=1;i<TOTAL_PAGES;i++){
-  const sep=document.createElement("div");
-  sep.className="page-separator";
-  sep.style.top=(i*A4_HEIGHT)+"px";
-  canvas.appendChild(sep);
-}
-
-/* ===== LIGNES ===== */
+/* ===== LIGNES INITIALES ===== */
 function addLine(type){
   const l=document.createElement("div");
   l.className="line "+type;
@@ -278,9 +242,8 @@ function addLine(type){
   currentY+=LINE_SPACING;
 }
 
-/* ===== STRUCTURE INITIALE ===== */
 function createInitialStructure(){
-  for(let bloc=0;bloc<4;bloc++){
+  for(let bloc=0; bloc<4; bloc++){
     for(let i=0;i<6;i++) addLine("black");
     if(bloc<3) addLine("white");
   }
@@ -349,7 +312,7 @@ function makeDraggable(el){
     const x=e.touches[0].clientX-r.left;
     const y=e.touches[0].clientY-r.top;
     active.style.left=x+"px";
-    active.style.top=(snap&&el.classList.contains("symbol")?nearestLine(y)-18:y)+"px";
+    active.style.top=(snap && el.classList.contains("symbol")?nearestLine(y)-18:y)+"px";
     e.preventDefault();
   },{passive:false});
 
