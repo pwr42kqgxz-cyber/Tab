@@ -1,5 +1,4 @@
 
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -71,12 +70,15 @@ button.active{
   bottom:120px;
   left:0;
   right:0;
-  overflow-y:auto;
+  overflow:auto;
 }
 
 #canvas{
   position:relative;
-  min-height:1800px;
+  width:794px;          /* A4 largeur */
+  height:1123px;        /* A4 hauteur */
+  margin:0 auto;        /* centré */
+  background:white;
   transform-origin: top center;
 }
 
@@ -583,7 +585,6 @@ canvas.addEventListener("touchend",()=>{
 });
 
 /* ================= DRAG ================= */
-
 function makeDraggable(el){
   el.addEventListener("touchstart",e=>{
     if(tool!=="select" && !el.classList.contains("draw")) return;
@@ -604,11 +605,8 @@ function makeDraggable(el){
 
     const r = canvas.getBoundingClientRect();
 
-    const rawX = e.touches[0].clientX - r.left;
-    const rawY = e.touches[0].clientY - r.top;
-
-    const x = rawX / currentScale;
-    const y = rawY / currentScale;
+    const x = (e.touches[0].clientX - r.left) / zoomLevel;
+    const y = (e.touches[0].clientY - r.top)  / zoomLevel;
 
     active.style.left = x + "px";
     active.style.top  = y + "px";
@@ -681,36 +679,25 @@ customInput.oninput=()=>{
 };
 palette.appendChild(customInput);
 
-/* ================= ZOOM & ORIENTATION (UNIFIÉ) ================= */
-let baseCanvasWidth = 1000;
-// zoomLevel et currentScale sont DÉJÀ déclarés plus haut
+/* ================= ZOOM SIMPLE (A4 FIXE) ================= */
 
-function applyScale(){
-  const wrapperWidth = canvasWrapper.clientWidth;
-  const autoScale = wrapperWidth / baseCanvasWidth;
-
-  currentScale = autoScale * zoomLevel;
-
-  canvas.style.transform = `scale(${currentScale})`;
+function applyZoom(){
+  canvas.style.transform = `scale(${zoomLevel})`;
   canvas.style.transformOrigin = "top center";
 }
 
-// boutons zoom
 zoomInBtn.onclick = () => {
   zoomLevel = Math.min(2, zoomLevel + 0.1);
-  applyScale();
+  applyZoom();
 };
 
 zoomOutBtn.onclick = () => {
   zoomLevel = Math.max(0.5, zoomLevel - 0.1);
-  applyScale();
+  applyZoom();
 };
 
-// orientation / resize
-window.addEventListener("resize", applyScale);
-
 // init
-applyScale();
+applyZoom();
 
 /* ================= INIT ================= */
 restoreFromStorage();
