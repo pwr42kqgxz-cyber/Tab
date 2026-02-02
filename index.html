@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+-<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -568,6 +568,18 @@ function snapY(y){
 
 /* ================= INTERACTION ================= */
 canvas.addEventListener("touchstart",e=>{
+  // 🔵 DÉSÉLECTION SI ON TOUCHE LE VIDE EN MODE SÉLECTION
+  if (tool === "select") {
+    if (!e.target.closest(".symbol, .bar, .draw")) {
+      if (selectedElement) {
+        selectedElement.classList.remove("selected");
+        selectedElement = null;
+      }
+      return;
+    }
+  }
+  const r = canvas.getBoundingClientRect();
+
   const r=canvas.getBoundingClientRect();
 const rawX = e.touches[0].clientX - r.left;
 const rawY = e.touches[0].clientY - r.top + canvasWrapper.scrollTop;
