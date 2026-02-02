@@ -380,27 +380,78 @@ function makeDraggable(el){
 }
 
 /* ================= CANVAS EVENTS ================= */
-document.addEventListener("touchstart",e=>{
-  if(!pages[currentPage].el.contains(e.target)) return;
-  const r=pageRect();
-  const x=e.touches[0].clientX-r.left;
-  const y=e.touches[0].clientY-r.top;
+canvas.addEventListener("touchstart", e => {
+  // IMPORTANT : ne rien faire si on est en mode sélection
+  if (tool === "select") return;
+
+  const r = canvas.getBoundingClientRect();
+  const rawX = e.touches[0].clientX - r.left;
+  const rawY = e.touches[0].clientY - r.top;
+
+  const x = rawX / currentScale;
+  const y = rawY / currentScale;
+
   pushUndo();
 
-  if(selected==="__draw__"){
-    setLock(true); drawing=true; drawStart={x,y};
-    const w=document.createElement("div");
-    w.className="draw selected";
-    w.style.left=(x-DRAW_W/2)+"px";
-    w.style.top =(y-DRAW_H/2)+"px";
-    const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
-    svg.setAttribute("width",DRAW_W); svg.setAttribute("height",DRAW_H);
-    const p=document.createElementNS("http://www.w3.org/2000/svg","path");
-    p.setAttribute("d",`M ${DRAW_W/2} ${DRAW_H/2}`);
-    svg.appendChild(p); w.appendChild(svg);
-    pages[currentPage].el.appendChild(w);
-    currentPath=p; selectedElement=w; return;
+  /* ===== DESSIN ===== */
+  if (selected === "__draw__") {
+    setLock(true);
+    drawing = true;
+    drawStart = { x, y };
+
+    const w = document.createElement("div");
+    w.className = "draw selected";
+    w.style.left = (x - DRAW_W / 2) + "px";
+    w.style.top  = (y - DRAW_H / 2) + "px";
+
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("width", DRAW_W);
+    svg.setAttribute("height", DRAW_H);
+
+    const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    p.setAttribute("d", `M ${DRAW_W / 2} ${DRAW_H / 2}`);
+
+    svg.appendChild(p);
+    w.appendChild(svg);
+    canvas.appendChild(w);
+
+    currentPath = p;
+    selectedElement = w;
+    return;
   }
+
+  /* ===== BARRE ===== */
+  if (placingBar) {
+    placingBar = false;
+
+    const b = document.createElement("div");
+    b.className = "bar";
+    b.style.left = x + "px";
+    b.style.top  = nearestLine(y) + "px";
+    b.style.height = (5 * LINE_SPACING) + "px";
+
+    canvas.appendChild(b);
+    makeDraggable(b);
+    saveState();
+    return;
+  }
+
+  /* ===== SYMBOLE ===== */
+  if (tool === "place" && selected) {
+    const s = document.createElement("div");
+    s.className = "symbol";
+    s.textContent = selected;
+    s.style.left = x + "px";
+    s.style.top  = snapY(y) + "px";
+
+    canvas.appendChild(s);
+    makeDraggable(s);
+    saveState();
+
+    tool = null;
+    toolPlace.classList.remove("active");
+  }
+}, { passive: false });
 
   if(placingBar){
     placingBar=false;
