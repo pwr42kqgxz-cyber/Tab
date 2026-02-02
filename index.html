@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -102,7 +103,7 @@ button.active{
 #print-title{
   text-align:center;
   font-size:34px;
-  margin:20px 0 20px;
+  margin:30px 0 20px;
 }
 
 /* ===== LINES ===== */
@@ -287,7 +288,7 @@ bgColor.oninput=()=>{
 let tool="place", snap=true, placingBar=false;
 let selected="a", selectedElement=null, active=null;
 let zoomLevel = 1;
-let currentY=20;
+let currentY=40;
 let currentScale = 1;
 
 const LINE_SPACING=28;
@@ -457,26 +458,49 @@ toggleSnap.onclick=()=>{
 
 /* ================= STRUCTURE ================= */
 function addLine(type){
-  const l=document.createElement("div");
-  l.className="line "+type;
-  l.style.top=currentY+"px";
+  const l = document.createElement("div");
+  l.className = "line " + type;
+  l.style.top = currentY + "px";
   canvas.appendChild(l);
   lines.push(currentY);
-  currentY+=LINE_SPACING;
-}
-function createInitialStructure(){
-  for(let r=0; r<5; r++){
-    for(let i=0; i<2; i++) addLine("white");
-    for(let i=0; i<6; i++) addLine("black");
-  }
+  currentY += LINE_SPACING;
 }
 
-addBlackLine.onclick=()=>{pushUndo();addLine("black");saveState();};
-addWhiteLine.onclick=()=>{pushUndo();addLine("white");saveState();};
+function createInitialStructure(){
+
+  // marge haute
+  addLine("white");
+
+  for(let r = 0; r < 5; r++){
+    for(let i = 0; i < 6; i++) addLine("black");
+
+    // marges intermédiaires (sauf après le dernier système)
+    if(r < 4){
+      for(let i = 0; i < 2; i++) addLine("white");
+    }
+  }
+
+  // marge basse
+  addLine("white");
+}
+
+addBlackLine.onclick = () => {
+  pushUndo();
+  addLine("black");
+  saveState();
+};
+
+addWhiteLine.onclick = () => {
+  pushUndo();
+  addLine("white");
+  saveState();
+};
 
 /* ================= SNAP (ALIGNEMENT CORRIGÉ) ================= */
 function nearestLine(y){
-  return lines.reduce((a,b)=>Math.abs(b-y)<Math.abs(a-y)?b:a);
+  return lines.reduce((a, b) =>
+    Math.abs(b - y) < Math.abs(a - y) ? b : a
+  );
 }
 
 function snapY(y){
