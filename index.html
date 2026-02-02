@@ -687,11 +687,23 @@ scrollDown.onclick=()=>canvasWrapper.scrollTop+=100;
   const p=document.createElement("div");
   p.className="palette-item";
   p.textContent=s;
+
   p.onclick=()=>{
-    selected=(s==="✎")?"__draw__":s;
+
+    // 🔴 enlever toute surbrillance précédente
+    document
+      .querySelectorAll(".palette-item")
+      .forEach(item=>item.classList.remove("active"));
+
+    // 🟢 mettre celle-ci en surbrillance
+    p.classList.add("active");
+
+    // logique existante
+    selected = (s==="✎") ? "__draw__" : s;
     setTool("place");
     if(selected==="__draw__") setLock(true);
   };
+
   palette.appendChild(p);
 });
 
