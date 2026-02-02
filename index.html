@@ -209,6 +209,9 @@ button.active{
   <button id="toggleSnap" class="active">Accroché</button>
   <input type="color" id="bgColor">
   <button id="toggleUI">👁</button>
+<button id="page1" class="active">Page 1</button>
+<button id="page2">Page 2</button>
+
 </div>
 
 <div id="canvas-wrapper">
@@ -247,6 +250,10 @@ const addBar = document.getElementById("addBar");
 const toggleSnap = document.getElementById("toggleSnap");
 const editTitle = document.getElementById("editTitle");
 const lockBtn = document.getElementById("lockBtn");
+const page1Btn = document.getElementById("page1");
+const page2Btn = document.getElementById("page2");
+page1Btn.onclick = ()=> loadPage(1);
+page2Btn.onclick = () => loadPage(2);
 
 /* ================= DOUBLE TAP BLOCK (iOS) ================= */
 let lastTouch = 0;
@@ -296,6 +303,13 @@ let currentScale = 1;
 
 const LINE_SPACING=28;
 const lines=[];
+
+/* ===== PAGES ===== */
+let currentPage = 1;
+const pages = {
+  1: null,
+  2: null
+};
 
 /* ===== DRAW STATE ===== */
 let drawing=false;
@@ -410,6 +424,40 @@ function restoreFromStorage(){
   const raw=localStorage.getItem("tablature_state");
   if(raw) restoreState(raw,false);
   else{createInitialStructure();saveState();}
+}
+
+function saveCurrentPage(){
+  pages[currentPage] = serializeState();
+}
+
+function loadPage(n){
+  if(n === currentPage) return;
+
+  // sauvegarde page actuelle
+  saveCurrentPage();
+
+  currentPage = n;
+
+  if(pages[n]){
+    restoreState(pages[n], false);
+  }else{
+    // nouvelle page : même titre, mêmes lignes de départ
+    const title = printTitle.textContent;
+
+    canvas.innerHTML = "";
+    lines.length = 0;
+    currentY = 40;
+
+    printTitle.textContent = title;
+    createInitialStructure();
+
+    saveCurrentPage();
+  }
+
+  // feedback bouton actif
+  document.querySelectorAll("#page1,#page2")
+    .forEach(b => b.classList.remove("active"));
+  document.getElementById("page"+n).classList.add("active");
 }
 
 /* ================= TITLE ================= */
