@@ -381,8 +381,9 @@ function makeDraggable(el){
 
 /* ================= CANVAS EVENTS ================= */
 canvas.addEventListener("touchstart", e => {
-  // IMPORTANT : ne rien faire si on est en mode sélection
-  if (tool === "select") return;
+
+  // ✅ SI on touche un élément existant → on laisse makeDraggable gérer
+  if (e.target.closest(".symbol, .bar, .draw")) return;
 
   const r = canvas.getBoundingClientRect();
   const rawX = e.touches[0].clientX - r.left;
