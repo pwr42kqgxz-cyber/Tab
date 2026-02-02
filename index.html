@@ -74,11 +74,11 @@ button.active{
 
 #canvas{
   position:relative;
-  width:900px;          /* PLUS LARGE QUE A4 THÉORIQUE */
-  min-height:1123px;
+  width:794px;          /* A4 */
+  min-height:1123px;    /* A4 minimum */
   margin:0 auto;
   background:white;
-  transform-origin: top center;
+}
 }
 
 /* ===== DRAW ===== */
@@ -460,8 +460,14 @@ function addLine(type){
   l.className = "line " + type;
   l.style.top = currentY + "px";
   canvas.appendChild(l);
+
   lines.push(currentY);
   currentY += LINE_SPACING;
+
+  // 🔴 OBLIGATOIRE : agrandir la zone active
+  if (currentY + 100 > canvas.offsetHeight) {
+    canvas.style.minHeight = (currentY + 200) + "px";
+  }
 }
 
 function createInitialStructure(){
