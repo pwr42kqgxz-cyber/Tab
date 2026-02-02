@@ -567,7 +567,8 @@ function snapY(y){
 }
 
 /* ================= INTERACTION ================= */
-canvas.addEventListener("touchstart",e=>{
+canvas.addEventListener("touchstart", e => {
+
   // 🔵 DÉSÉLECTION SI ON TOUCHE LE VIDE EN MODE SÉLECTION
   if (tool === "select") {
     if (!e.target.closest(".symbol, .bar, .draw")) {
@@ -575,78 +576,84 @@ canvas.addEventListener("touchstart",e=>{
         selectedElement.classList.remove("selected");
         selectedElement = null;
       }
-      return;
+      // ⚠️ PAS DE return ici
     }
   }
+
   const r = canvas.getBoundingClientRect();
+  const rawX = e.touches[0].clientX - r.left;
+  const rawY = e.touches[0].clientY - r.top + canvasWrapper.scrollTop;
 
-  const r=canvas.getBoundingClientRect();
-const rawX = e.touches[0].clientX - r.left;
-const rawY = e.touches[0].clientY - r.top + canvasWrapper.scrollTop;
-
-const x = rawX / currentScale;
-const y = rawY / currentScale;
+  const x = rawX / currentScale;
+  const y = rawY / currentScale;
 
   pushUndo();
 
-  if(selected==="__draw__"){
+  /* ===== DESSIN ===== */
+  if (selected === "__draw__") {
     setLock(true);
-    drawing=true;
-    drawStart={x,y};
+    drawing = true;
+    drawStart = { x, y };
 
-    const w=document.createElement("div");
-    w.className="draw selected";
-    w.style.left=(x - DRAW_W/2)+"px";
-    w.style.top =(y - DRAW_H/2)+"px";
+    const w = document.createElement("div");
+    w.className = "draw selected";
+    w.style.left = (x - DRAW_W / 2) + "px";
+    w.style.top  = (y - DRAW_H / 2) + "px";
 
-    const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
-    svg.setAttribute("width",DRAW_W);
-    svg.setAttribute("height",DRAW_H);
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("width", DRAW_W);
+    svg.setAttribute("height", DRAW_H);
 
-    const p=document.createElementNS("http://www.w3.org/2000/svg","path");
-    p.setAttribute("d",`M ${DRAW_W/2} ${DRAW_H/2}`);
+    const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    p.setAttribute("d", `M ${DRAW_W / 2} ${DRAW_H / 2}`);
+
     svg.appendChild(p);
     w.appendChild(svg);
     canvas.appendChild(w);
 
-    currentPath=p;
-    selectedElement=w;
+    currentPath = p;
+    selectedElement = w;
     return;
   }
 
-  if(placingBar){
-    placingBar=false;
-    const b=document.createElement("div");
-    b.className="bar";
-    b.style.left=x+"px";
-    b.style.top=nearestLine(y)+"px";
-    b.style.height=(5*LINE_SPACING)+"px";
+  /* ===== BARRE ===== */
+  if (placingBar) {
+    placingBar = false;
+
+    const b = document.createElement("div");
+    b.className = "bar";
+    b.style.left = x + "px";
+    b.style.top  = nearestLine(y) + "px";
+    b.style.height = (5 * LINE_SPACING) + "px";
+
     canvas.appendChild(b);
     makeDraggable(b);
     saveState();
     return;
   }
 
-  if(tool==="place" && selected!=="__draw__"){
-    const s=document.createElement("div");
-    s.className="symbol";
-    s.textContent=selected;
-    s.style.left=x+"px";
-    s.style.top=snapY(y)+"px";
+  /* ===== SYMBOLE ===== */
+  if (tool === "place" && selected !== "__draw__") {
+    const s = document.createElement("div");
+    s.className = "symbol";
+    s.textContent = selected;
+    s.style.left = x + "px";
+    s.style.top  = snapY(y) + "px";
+
     canvas.appendChild(s);
     makeDraggable(s);
     saveState();
 
-    // ✅ IMPORTANT : on quitte le mode "placer"
+    // quitter le mode placer
     tool = null;
     toolPlace.classList.remove("active");
 
-    // 🔹 retirer la surbrillance de la palette
+    // retirer la surbrillance palette
     document
       .querySelectorAll(".palette-item")
       .forEach(item => item.classList.remove("active"));
-
   }
+
 }, { passive:false });
 
 canvas.addEventListener("touchmove", e => {
