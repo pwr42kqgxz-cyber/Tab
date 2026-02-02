@@ -1,7 +1,4 @@
 
-
-
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -293,6 +290,8 @@ let tool="place", snap=true, placingBar=false;
 let selected="a", selectedElement=null, active=null;
 let zoomLevel = 1;
 let currentY=40;
+let currentScale = 1;
+
 const LINE_SPACING=28;
 const lines=[];
 
@@ -493,8 +492,8 @@ canvas.addEventListener("touchstart",e=>{
 const rawX = e.touches[0].clientX - r.left;
 const rawY = e.touches[0].clientY - r.top;
 
-const x = rawX / zoomLevel;
-const y = rawY / zoomLevel;
+const x = rawX / currentScale;
+const y = rawY / currentScale;
 
   pushUndo();
 
@@ -583,27 +582,39 @@ canvas.addEventListener("touchend",()=>{
 });
 
 /* ================= DRAG ================= */
+
 function makeDraggable(el){
   el.addEventListener("touchstart",e=>{
     if(tool!=="select" && !el.classList.contains("draw")) return;
+
     pushUndo();
+
     if(selectedElement) selectedElement.classList.remove("selected");
-    selectedElement=el;
+    selectedElement = el;
     el.classList.add("selected");
-    active=el;
+    active = el;
+
     e.stopPropagation();
   },{passive:false});
 
   el.addEventListener("touchmove",e=>{
     if(!active) return;
     e.preventDefault();
-    const r=canvas.getBoundingClientRect();
-    active.style.left=e.touches[0].clientX-r.left+"px";
-    active.style.top=e.touches[0].clientY-r.top+"px";
+
+    const r = canvas.getBoundingClientRect();
+
+    const rawX = e.touches[0].clientX - r.left;
+    const rawY = e.touches[0].clientY - r.top;
+
+    const x = rawX / currentScale;
+    const y = rawY / currentScale;
+
+    active.style.left = x + "px";
+    active.style.top  = y + "px";
   },{passive:false});
 
   el.addEventListener("touchend",()=>{
-    active=null;
+    active = null;
     saveState();
   });
 }
@@ -669,17 +680,37 @@ customInput.oninput=()=>{
 };
 palette.appendChild(customInput);
 
-/* ================= AUTO SCALE ORIENTATION ================= */
+/* ================= ZOOM & ORIENTATION (UNIFIÉ) ================= */
+let zoomLevel = 1;
 let baseCanvasWidth = 1000;
+// currentScale est DÉJÀ déclaré dans STATE → on l’utilise, on ne le redéclare pas
 
-function applyAutoScale(){
+function applyScale(){
   const wrapperWidth = canvasWrapper.clientWidth;
-  const scale = wrapperWidth / baseCanvasWidth;
-  canvas.style.transform = `scale(${scale})`;
+  const autoScale = wrapperWidth / baseCanvasWidth;
+
+  currentScale = autoScale * zoomLevel;
+
+  canvas.style.transform = `scale(${currentScale})`;
+  canvas.style.transformOrigin = "top center";
 }
 
-applyAutoScale();
-window.addEventListener("resize", applyAutoScale);
+// boutons zoom
+zoomInBtn.onclick = () => {
+  zoomLevel = Math.min(2, zoomLevel + 0.1);
+  applyScale();
+};
+
+zoomOutBtn.onclick = () => {
+  zoomLevel = Math.max(0.5, zoomLevel - 0.1);
+  applyScale();
+};
+
+// orientation / resize
+window.addEventListener("resize", applyScale);
+
+// init
+applyScale();
 
 /* ================= INIT ================= */
 restoreFromStorage();
