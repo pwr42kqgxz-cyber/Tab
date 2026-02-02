@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -486,8 +487,12 @@ function snapY(y){
 /* ================= INTERACTION ================= */
 canvas.addEventListener("touchstart",e=>{
   const r=canvas.getBoundingClientRect();
-  const x=e.touches[0].clientX-r.left;
-  const y=e.touches[0].clientY-r.top;
+const rawX = e.touches[0].clientX - r.left;
+const rawY = e.touches[0].clientY - r.top;
+
+const x = rawX / zoomLevel;
+const y = rawY / zoomLevel;
+
   pushUndo();
 
   if(selected==="__draw__"){
