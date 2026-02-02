@@ -200,7 +200,9 @@ button.active{
   <button id="toggleSnap" class="active">Accroché</button>
   <input type="color" id="bgColor">
   <button id="toggleUI">👁</button>
-  <button id="exportPDF">PDF</button>
+<button id="zoomOut">−</button>
+<button id="zoomIn">+</button>
+
 </div>
 
 <div id="canvas-wrapper">
@@ -285,6 +287,16 @@ let selected="a", selectedElement=null, active=null;
 let currentY=40;
 const LINE_SPACING=28;
 const lines=[];
+
+/* ================= ZOOM ================= */
+let zoom = 1;
+const ZOOM_MIN = 0.5;
+const ZOOM_MAX = 2;
+
+function applyZoom(){
+  canvas.style.transform = `scale(${zoom})`;
+  canvas.style.transformOrigin = "top left";
+}
 
 /* ===== DRAW STATE ===== */
 let drawing=false;
@@ -480,8 +492,9 @@ function snapY(y){
 /* ================= INTERACTION ================= */
 canvas.addEventListener("touchstart",e=>{
   const r=canvas.getBoundingClientRect();
-  const x=e.touches[0].clientX-r.left;
-  const y=e.touches[0].clientY-r.top;
+const x = (e.touches[0].clientX - r.left) / zoom;
+const y = (e.touches[0].clientY - r.top) / zoom;
+
   pushUndo();
 
   if(selected==="__draw__"){
