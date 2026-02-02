@@ -692,21 +692,26 @@ canvas.addEventListener("touchend",()=>{
 
 /* ================= DRAG ================= */
 function makeDraggable(el){
-  el.addEventListener("touchstart",e=>{
-    if(tool!=="select" && !el.classList.contains("draw")) return;
+  el.addEventListener("touchstart", e => {
+    if (tool !== "select" && !el.classList.contains("draw")) return;
 
     pushUndo();
 
-    if(selectedElement) selectedElement.classList.remove("selected");
+    // sélection propre
+    if (selectedElement && selectedElement !== el) {
+      selectedElement.classList.remove("selected");
+    }
+
     selectedElement = el;
     el.classList.add("selected");
     active = el;
 
-    e.stopPropagation();
-  },{passive:false});
+    // ⚠️ IMPORTANT : PAS de stopPropagation
+    // → permet au canvas de capter les touches sur le vide
+  }, { passive:false });
 
-  el.addEventListener("touchmove",e=>{
-    if(!active) return;
+  el.addEventListener("touchmove", e => {
+    if (!active) return;
     e.preventDefault();
 
     const r = canvas.getBoundingClientRect();
@@ -716,9 +721,9 @@ function makeDraggable(el){
 
     active.style.left = x + "px";
     active.style.top  = y + "px";
-  },{passive:false});
+  }, { passive:false });
 
-  el.addEventListener("touchend",()=>{
+  el.addEventListener("touchend", () => {
     active = null;
     saveState();
   });
