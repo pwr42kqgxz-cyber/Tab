@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -681,9 +682,8 @@ customInput.oninput=()=>{
 palette.appendChild(customInput);
 
 /* ================= ZOOM & ORIENTATION (UNIFIÉ) ================= */
-let zoomLevel = 1;
 let baseCanvasWidth = 1000;
-// currentScale est DÉJÀ déclaré dans STATE → on l’utilise, on ne le redéclare pas
+// zoomLevel et currentScale sont DÉJÀ déclarés plus haut
 
 function applyScale(){
   const wrapperWidth = canvasWrapper.clientWidth;
@@ -715,21 +715,6 @@ applyScale();
 /* ================= INIT ================= */
 restoreFromStorage();
 pushUndo();
-
-function applyZoom(){
-  canvas.style.transform = `scale(${zoomLevel})`;
-  canvas.style.transformOrigin = "top left";
-}
-
-zoomInBtn.onclick = () => {
-  zoomLevel = Math.min(2, zoomLevel + 0.1);
-  applyZoom();
-};
-
-zoomOutBtn.onclick = () => {
-  zoomLevel = Math.max(0.5, zoomLevel - 0.1);
-  applyZoom();
-};
 
 </script>
 
