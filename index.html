@@ -102,7 +102,7 @@ button.active{
 #print-title{
   text-align:center;
   font-size:34px;
-  margin:40px 0 50px;
+  margin:20px 0 20px;
 }
 
 /* ===== LINES ===== */
@@ -205,10 +205,6 @@ button.active{
   <button id="toggleSnap" class="active">Accroché</button>
   <input type="color" id="bgColor">
   <button id="toggleUI">👁</button>
-<button id="zoomOut">−</button>
-<button id="zoomIn">+</button>
-<button id="zoomReset">Reset</button>
-
 </div>
 
 <div id="canvas-wrapper">
@@ -247,9 +243,6 @@ const addBar = document.getElementById("addBar");
 const toggleSnap = document.getElementById("toggleSnap");
 const editTitle = document.getElementById("editTitle");
 const lockBtn = document.getElementById("lockBtn");
-const zoomInBtn = document.getElementById("zoomIn");
-const zoomOutBtn = document.getElementById("zoomOut");
-const zoomResetBtn = document.getElementById("zoomReset");
 
 /* ================= DOUBLE TAP BLOCK (iOS) ================= */
 let lastTouch = 0;
@@ -294,7 +287,7 @@ bgColor.oninput=()=>{
 let tool="place", snap=true, placingBar=false;
 let selected="a", selectedElement=null, active=null;
 let zoomLevel = 1;
-let currentY=40;
+let currentY=20;
 let currentScale = 1;
 
 const LINE_SPACING=28;
@@ -472,11 +465,12 @@ function addLine(type){
   currentY+=LINE_SPACING;
 }
 function createInitialStructure(){
-  for(let r=0;r<4;r++){
-    for(let i=0;i<3;i++) addLine("white");
-    for(let i=0;i<6;i++) addLine("black");
+  for(let r=0; r<5; r++){
+    for(let i=0; i<2; i++) addLine("white");
+    for(let i=0; i<6; i++) addLine("black");
   }
 }
+
 addBlackLine.onclick=()=>{pushUndo();addLine("black");saveState();};
 addWhiteLine.onclick=()=>{pushUndo();addLine("white");saveState();};
 
@@ -680,31 +674,6 @@ customInput.oninput=()=>{
   }
 };
 palette.appendChild(customInput);
-
-/* ================= ZOOM SIMPLE (A4 FIXE) ================= */
-
-function applyZoom(){
-  canvas.style.transform = `scale(${zoomLevel})`;
-  canvas.style.transformOrigin = "top center";
-}
-
-zoomInBtn.onclick = () => {
-  zoomLevel = Math.min(2, zoomLevel + 0.1);
-  applyZoom();
-};
-
-zoomOutBtn.onclick = () => {
-  zoomLevel = Math.max(0.5, zoomLevel - 0.1);
-  applyZoom();
-};
-
-zoomResetBtn.onclick = () => {
-  zoomLevel = 1;
-  applyZoom();
-};
-
-// init
-applyZoom();
 
 /* ================= INIT ================= */
 restoreFromStorage();
