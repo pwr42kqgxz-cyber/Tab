@@ -1,6 +1,7 @@
 
 
 
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -667,6 +668,18 @@ customInput.oninput=()=>{
   }
 };
 palette.appendChild(customInput);
+
+/* ================= AUTO SCALE ORIENTATION ================= */
+let baseCanvasWidth = 1000;
+
+function applyAutoScale(){
+  const wrapperWidth = canvasWrapper.clientWidth;
+  const scale = wrapperWidth / baseCanvasWidth;
+  canvas.style.transform = `scale(${scale})`;
+}
+
+applyAutoScale();
+window.addEventListener("resize", applyAutoScale);
 
 /* ================= INIT ================= */
 restoreFromStorage();
