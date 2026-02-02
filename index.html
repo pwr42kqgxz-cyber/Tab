@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -16,6 +17,8 @@ maximum-scale=1.0,
 user-scalable=no">
 
 <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
 *{ touch-action: manipulation; }
@@ -73,7 +76,6 @@ button.active{
 #canvas{
   position:relative;
   min-height:1800px;
-  transform-origin: top center; /* ZOOM */
 }
 
 /* ===== DRAW ===== */
@@ -199,8 +201,9 @@ button.active{
   <button id="toggleSnap" class="active">Accroché</button>
   <input type="color" id="bgColor">
   <button id="toggleUI">👁</button>
-  <button id="zoomOut">−</button>
-  <button id="zoomIn">+</button>
+<button id="zoomOut">−</button>
+<button id="zoomIn">+</button>
+
 </div>
 
 <div id="canvas-wrapper">
@@ -217,7 +220,6 @@ button.active{
 </div>
 
 <button id="showUIBtn">⬅︎</button>
-
 <script>
 /* ================= DOM ================= */
 const toolbar = document.getElementById("toolbar");
@@ -240,34 +242,14 @@ const addBar = document.getElementById("addBar");
 const toggleSnap = document.getElementById("toggleSnap");
 const editTitle = document.getElementById("editTitle");
 const lockBtn = document.getElementById("lockBtn");
-
-/* ================= ZOOM ================= */
-const zoomInBtn  = document.getElementById("zoomIn");
+const zoomInBtn = document.getElementById("zoomIn");
 const zoomOutBtn = document.getElementById("zoomOut");
 
-let zoomLevel = 1;
-const ZOOM_MIN = 0.5;
-const ZOOM_MAX = 2;
-const ZOOM_STEP = 0.1;
-
-function applyZoom(){
-  canvas.style.transform = `scale(${zoomLevel})`;
-}
-
-zoomInBtn.onclick = ()=>{
-  zoomLevel = Math.min(ZOOM_MAX, zoomLevel + ZOOM_STEP);
-  applyZoom();
-};
-zoomOutBtn.onclick = ()=>{
-  zoomLevel = Math.max(ZOOM_MIN, zoomLevel - ZOOM_STEP);
-  applyZoom();
-};
-
-/* ================= DOUBLE TAP BLOCK ================= */
+/* ================= DOUBLE TAP BLOCK (iOS) ================= */
 let lastTouch = 0;
-document.addEventListener("touchend", e=>{
+document.addEventListener("touchend", e => {
   const now = Date.now();
-  if(now - lastTouch <= 300) e.preventDefault();
+  if (now - lastTouch <= 300) e.preventDefault();
   lastTouch = now;
 },{passive:false});
 
@@ -305,6 +287,7 @@ bgColor.oninput=()=>{
 /* ================= STATE ================= */
 let tool="place", snap=true, placingBar=false;
 let selected="a", selectedElement=null, active=null;
+let zoomLevel = 1;
 let currentY=40;
 const LINE_SPACING=28;
 const lines=[];
@@ -370,7 +353,108 @@ function saveState(){
   localStorage.setItem("tablature_state",serializeState());
 }
 
-/* ================= INIT STRUCTURE ================= */
+function restoreState(raw,save=true){
+const s=typeof raw==="string"?JSON.parse(raw):raw;
+canvas.innerHTML="";
+lines.length=0;
+currentY=40;
+printTitle.textContent=s.title||"";
+if(s.bg){bgColor.value=s.bg;applyBg(s.bg);}
+
+s.elements.forEach(e=>{
+  if(e.class==="draw"){
+    const w=document.createElement("div");
+    w.className="draw";
+    w.style.left=e.left;
+    w.style.top=e.top;
+
+    const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
+    svg.setAttribute("width",DRAW_W);
+    svg.setAttribute("height",DRAW_H);
+
+    const p=document.createElementNS("http://www.w3.org/2000/svg","path");
+    p.setAttribute("d",e.d);
+    svg.appendChild(p);
+    w.appendChild(svg);
+    canvas.appendChild(w);
+    makeDraggable(w);
+    return;
+  }
+
+  const el=document.createElement("div");
+  el.className=e.class;
+  el.textContent=e.text;
+  el.style.left=e.left;
+  el.style.top=e.top;
+  if(e.height) el.style.height=e.height;
+  canvas.appendChild(el);
+
+  if(el.classList.contains("line")){
+    lines.push(parseFloat(e.top));
+    currentY=parseFloat(e.top)+LINE_SPACING;
+  }
+  if(el.classList.contains("symbol") || el.classList.contains("bar")){
+    makeDraggable(el);
+  }
+});
+
+if(save) saveState();
+}
+
+function restoreFromStorage(){
+  const raw=localStorage.getItem("tablature_state");
+  if(raw) restoreState(raw,false);
+  else{createInitialStructure();saveState();}
+}
+
+/* ================= TITLE ================= */
+editTitle.onclick = () => {
+  const t = prompt("Titre du morceau :", printTitle.textContent || "");
+  if (t === null) return;
+
+  pushUndo();
+  printTitle.textContent = t.trim();
+  saveState();
+};
+
+/* ================= TOOLS ================= */
+function setTool(t){
+  tool=t;
+  toolPlace.classList.toggle("active",t==="place");
+  toolSelect.classList.toggle("active",t==="select");
+  if(t!=="place" || selected!=="__draw__") setLock(false);
+}
+
+/* === PLACER = TOGGLE === */
+toolPlace.onclick=()=>{
+  if(tool==="place"){
+    tool=null;
+    toolPlace.classList.remove("active");
+  }else{
+    setTool("place");
+  }
+};
+
+toolSelect.onclick = () => {
+  // forcer le mode sélection, sans conditions
+  tool = "select";
+
+  toolSelect.classList.add("active");
+  toolPlace.classList.remove("active");
+
+  // on libère juste la sélection précédente
+  if (selectedElement) {
+    selectedElement.classList.remove("selected");
+    selectedElement = null;
+  }
+};
+
+toggleSnap.onclick=()=>{
+  snap=!snap;
+  toggleSnap.classList.toggle("active",snap);
+};
+
+/* ================= STRUCTURE ================= */
 function addLine(type){
   const l=document.createElement("div");
   l.className="line "+type;
@@ -385,98 +469,18 @@ function createInitialStructure(){
     for(let i=0;i<6;i++) addLine("black");
   }
 }
+addBlackLine.onclick=()=>{pushUndo();addLine("black");saveState();};
+addWhiteLine.onclick=()=>{pushUndo();addLine("white");saveState();};
 
-function restoreFromStorage(){
-  const raw=localStorage.getItem("tablature_state");
-  if(raw){
-    restoreState(raw,false);
-  }else{
-    createInitialStructure();
-    saveState();
-  }
-}
-
-/* ================= RESTORE ================= */
-function restoreState(raw,save=true){
-  const s=typeof raw==="string"?JSON.parse(raw):raw;
-  canvas.innerHTML="";
-  lines.length=0;
-  currentY=40;
-  printTitle.textContent=s.title||"";
-  if(s.bg){bgColor.value=s.bg;applyBg(s.bg);}
-
-  s.elements.forEach(e=>{
-    if(e.class==="draw"){
-      const w=document.createElement("div");
-      w.className="draw";
-      w.style.left=e.left;
-      w.style.top=e.top;
-
-      const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
-      svg.setAttribute("width",DRAW_W);
-      svg.setAttribute("height",DRAW_H);
-
-      const p=document.createElementNS("http://www.w3.org/2000/svg","path");
-      p.setAttribute("d",e.d);
-      svg.appendChild(p);
-      w.appendChild(svg);
-      canvas.appendChild(w);
-      makeDraggable(w);
-      return;
-    }
-
-    const el=document.createElement("div");
-    el.className=e.class;
-    el.textContent=e.text;
-    el.style.left=e.left;
-    el.style.top=e.top;
-    if(e.height) el.style.height=e.height;
-    canvas.appendChild(el);
-
-    if(el.classList.contains("line")){
-      lines.push(parseFloat(e.top));
-      currentY=parseFloat(e.top)+LINE_SPACING;
-    }
-    if(el.classList.contains("symbol")||el.classList.contains("bar")){
-      makeDraggable(el);
-    }
-  });
-
-  if(save) saveState();
-}
-
-/* ================= TITLE ================= */
-editTitle.onclick=()=>{
-  const t=prompt("Titre du morceau :",printTitle.textContent||"");
-  if(t===null) return;
-  pushUndo();
-  printTitle.textContent=t.trim();
-  saveState();
-};
-
-/* ================= TOOLS ================= */
-function setTool(t){
-  tool=t;
-  toolPlace.classList.toggle("active",t==="place");
-  toolSelect.classList.toggle("active",t==="select");
-}
-
-toolPlace.onclick=()=>setTool("place");
-toolSelect.onclick=()=>setTool("select");
-
-toggleSnap.onclick=()=>{
-  snap=!snap;
-  toggleSnap.classList.toggle("active",snap);
-};
-
-/* ================= SNAP ================= */
+/* ================= SNAP (ALIGNEMENT CORRIGÉ) ================= */
 function nearestLine(y){
   return lines.reduce((a,b)=>Math.abs(b-y)<Math.abs(a-y)?b:a);
 }
+
 function snapY(y){
-  if(!snap||!lines.length) return y;
-  const b=nearestLine(y);
-  return b+LINE_SPACING*0.5;
+  if(!snap || !lines.length) return y;
+  const b = nearestLine(y);
+  return b + LINE_SPACING / 2;
 }
 
 /* ================= INTERACTION ================= */
@@ -486,7 +490,45 @@ canvas.addEventListener("touchstart",e=>{
   const y=e.touches[0].clientY-r.top;
   pushUndo();
 
-  if(tool==="place"){
+  if(selected==="__draw__"){
+    setLock(true);
+    drawing=true;
+    drawStart={x,y};
+
+    const w=document.createElement("div");
+    w.className="draw selected";
+    w.style.left=(x - DRAW_W/2)+"px";
+    w.style.top =(y - DRAW_H/2)+"px";
+
+    const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
+    svg.setAttribute("width",DRAW_W);
+    svg.setAttribute("height",DRAW_H);
+
+    const p=document.createElementNS("http://www.w3.org/2000/svg","path");
+    p.setAttribute("d",`M ${DRAW_W/2} ${DRAW_H/2}`);
+    svg.appendChild(p);
+    w.appendChild(svg);
+    canvas.appendChild(w);
+
+    currentPath=p;
+    selectedElement=w;
+    return;
+  }
+
+  if(placingBar){
+    placingBar=false;
+    const b=document.createElement("div");
+    b.className="bar";
+    b.style.left=x+"px";
+    b.style.top=nearestLine(y)+"px";
+    b.style.height=(5*LINE_SPACING)+"px";
+    canvas.appendChild(b);
+    makeDraggable(b);
+    saveState();
+    return;
+  }
+
+  if(tool==="place" && selected!=="__draw__"){
     const s=document.createElement("div");
     s.className="symbol";
     s.textContent=selected;
@@ -495,13 +537,47 @@ canvas.addEventListener("touchstart",e=>{
     canvas.appendChild(s);
     makeDraggable(s);
     saveState();
+
+    // ✅ IMPORTANT : on quitte le mode "placer"
+    tool = null;
+    toolPlace.classList.remove("active");
   }
 },{passive:false});
+
+canvas.addEventListener("touchmove",e=>{
+  if(!drawing) return;
+  e.preventDefault();
+
+  const r=canvas.getBoundingClientRect();
+  const dx=e.touches[0].clientX-r.left-drawStart.x+DRAW_W/2;
+  const dy=e.touches[0].clientY-r.top-drawStart.y+DRAW_H/2;
+
+  const d=currentPath.getAttribute("d");
+  currentPath.setAttribute("d",d+` L ${dx} ${dy}`);
+},{passive:false});
+
+/* ===== ICI : CORRECTION MINIMALE ===== */
+canvas.addEventListener("touchend",()=>{
+  drawing=false;
+  currentPath=null;
+
+  if(selectedElement && selected==="__draw__"){
+    selectedElement.classList.remove("selected");
+    selectedElement=null;
+  }
+
+  // remise à zéro explicite de l’état
+  selected = null;
+  tool = null;
+
+  setLock(false);
+  saveState();
+});
 
 /* ================= DRAG ================= */
 function makeDraggable(el){
   el.addEventListener("touchstart",e=>{
-    if(tool!=="select") return;
+    if(tool!=="select" && !el.classList.contains("draw")) return;
     pushUndo();
     if(selectedElement) selectedElement.classList.remove("selected");
     selectedElement=el;
@@ -524,21 +600,86 @@ function makeDraggable(el){
   });
 }
 
+/* ================= DELETE / CLEAR ================= */
+deleteBtn.onclick=()=>{
+  setTool("select");
+  if(!selectedElement) return;
+  pushUndo();
+  selectedElement.remove();
+  selectedElement=null;
+  saveState();
+};
+clearAllBtn.onclick=()=>{
+  if(!confirm("Effacer toute la tablature ?")) return;
+  pushUndo();
+  canvas.innerHTML="";
+  lines.length=0;
+  currentY=40;
+  createInitialStructure();
+  saveState();
+};
+
+/* ================= BAR ================= */
+addBar.onclick=()=>{
+  placingBar=true;
+  setTool("place");
+};
+
+/* ================= SCROLL ================= */
+scrollUp.onclick=()=>canvasWrapper.scrollTop-=100;
+scrollDown.onclick=()=>canvasWrapper.scrollTop+=100;
+
 /* ================= PALETTE ================= */
-["a","b","c","d","e","f","g","h","j","k","l","m","n"].forEach(s=>{
+[
+ "a","b","c","d","e","f","g","h","j","k",
+ "l","m","n",
+ "/a","//a","///a","4","5","6",
+ ",",".",":",";","(",")","[","]","~","⌒","|","✎"
+].forEach(s=>{
   const p=document.createElement("div");
   p.className="palette-item";
   p.textContent=s;
   p.onclick=()=>{
-    selected=s;
+    selected=(s==="✎")?"__draw__":s;
     setTool("place");
+    if(selected==="__draw__") setLock(true);
   };
   palette.appendChild(p);
 });
 
+/* ===== CUSTOM CHAR ===== */
+const customInput=document.createElement("input");
+customInput.id="customChar";
+customInput.placeholder="✱";
+customInput.maxLength=3;
+customInput.oninput=()=>{
+  if(customInput.value.trim()!==""){
+    selected=customInput.value.trim();
+    setTool("place");
+    setLock(false);
+  }
+};
+palette.appendChild(customInput);
+
 /* ================= INIT ================= */
 restoreFromStorage();
 pushUndo();
+
+function applyZoom(){
+  canvas.style.transform = `scale(${zoomLevel})`;
+  canvas.style.transformOrigin = "top left";
+}
+
+zoomInBtn.onclick = () => {
+  zoomLevel = Math.min(2, zoomLevel + 0.1);
+  applyZoom();
+};
+
+zoomOutBtn.onclick = () => {
+  zoomLevel = Math.max(0.5, zoomLevel - 0.1);
+  applyZoom();
+};
+
 </script>
 
 </body>
