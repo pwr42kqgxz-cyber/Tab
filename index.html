@@ -15,8 +15,24 @@ initial-scale=1.0,
 maximum-scale=1.0,
 user-scalable=no">
 
-	<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English&display=swap" rel="stylesheet">
-	<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English&family=EB+Garamond&family=Libre+Baskerville&family=Cormorant+Garamond&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?
+family=IM+Fell+English&
+family=IM+Fell+French+Canon&
+family=IM+Fell+DW+Pica&
+family=Cormorant+Garamond&
+family=Libre+Caslon+Text&
+family=Old+Standard+TT&
+family=Sorts+Mill+Goudy&
+family=Crimson+Pro&
+family=Spectral&
+family=Alegreya&
+family=Almendra&
+family=Almendra+SC&
+family=Cinzel&
+family=Cinzel+Decorative&
+family=UnifrakturCook&
+family=UnifrakturMaguntia&
+display=swap" rel="stylesheet">
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
@@ -115,7 +131,7 @@ user-scalable=no">
   position:absolute;
   left:0;
   right:0;
-  height:2px;
+  height:1px;
 }
 
 		.line.black {
@@ -127,18 +143,18 @@ user-scalable=no">
 		}
 
 		/* ===== SYMBOLS ===== */
-		.symbol {
-			position: absolute;
-			font-size: 34px;
-			white-space: nowrap;
-			line-height: 1;
-			transform: translateY(-0.88em);
-		}
+.symbol {
+  position: absolute;
+  font-size: 26px;        /* ou 24px si tu préfères */
+  white-space: nowrap;
+  line-height: 1;
+  transform: translateY(-0.45em);
+}
 
 		/* ===== BAR ===== */
 		.bar {
 			position: absolute;
-			width: 4px;
+			width: 2px;
 			background: black;
 		}
 
@@ -326,7 +342,7 @@ function applyFont(font){
 		let currentY = 40;
 		let currentScale = 1;
 
-		const LINE_SPACING = 28;
+		const LINE_SPACING = 22;
 		const lines = [];
 
 		/* ===== PAGES ===== */
@@ -502,6 +518,7 @@ if(savedFont){
 			tool = t;
 			toolPlace.classList.toggle("active", t === "place");
 			toolSelect.classList.toggle("active", t === "select");
+			if (t !== "place" || selected !== "__draw__");
 		}
 
 		/* === PLACER = TOGGLE === */
@@ -549,23 +566,29 @@ if(savedFont){
 			}
 		}
 
-		function createInitialStructure() {
+function createInitialStructure() {
 
-			// marge haute
-			addLine("white");
+  // 1 ligne blanche au début
+  addLine("white");
 
-			for (let r = 0; r < 5; r++) {
-				for (let i = 0; i < 6; i++) addLine("black");
+  // 6 blocs de 6 lignes noires
+  for (let bloc = 0; bloc < 6; bloc++) {
 
-				// marges intermédiaires (sauf après le dernier système)
-				if (r < 4) {
-					for (let i = 0; i < 2; i++) addLine("white");
-				}
-			}
+    // 6 lignes noires
+    for (let i = 0; i < 6; i++) {
+      addLine("black");
+    }
 
-			// marge basse
-			addLine("white");
-		}
+    // 2 lignes blanches entre les blocs
+    if (bloc < 5) {
+      addLine("white");
+      addLine("white");
+    }
+  }
+
+  // 1 ligne blanche finale
+  addLine("white");
+}
 
 		/* ================= SNAP (ALIGNEMENT CORRIGÉ) ================= */
 		function nearestLine(y) {
@@ -577,7 +600,7 @@ if(savedFont){
 		function snapY(y) {
 			if (!snap || !lines.length) return y;
 			const b = nearestLine(y);
-			return b + LINE_SPACING / 2;
+			return b
 		}
 
 		/* ================= INTERACTION ================= */
@@ -590,6 +613,7 @@ if(savedFont){
 						selectedElement.classList.remove("selected");
 						selectedElement = null;
 					}
+					// ⚠️ PAS DE return ici
 				}
 			}
 
@@ -649,10 +673,8 @@ if(savedFont){
 				const s = document.createElement("div");
 				s.className = "symbol";
 				s.textContent = selected;
-
 				const f = localStorage.getItem("tablature_font");
-				if (f) s.style.fontFamily = f;
-
+if(f) s.style.fontFamily = f;
 				s.style.left = x + "px";
 				s.style.top = snapY(y) + "px";
 
@@ -660,9 +682,11 @@ if(savedFont){
 				makeDraggable(s);
 				saveState();
 
+				// quitter le mode placer
 				tool = null;
 				toolPlace.classList.remove("active");
 
+				// retirer la surbrillance palette
 				document
 					.querySelectorAll(".palette-item")
 					.forEach(item => item.classList.remove("active"));
@@ -686,6 +710,7 @@ if(savedFont){
 			currentPath.setAttribute("d", d + ` L ${dx} ${dy}`);
 		}, { passive: false });
 
+		/* ===== ICI : CORRECTION MINIMALE ===== */
 		canvas.addEventListener("touchend", () => {
 			drawing = false;
 			currentPath = null;
@@ -705,6 +730,7 @@ if(savedFont){
 
 				pushUndo();
 
+				// sélection propre
 				if (selectedElement && selectedElement !== el) {
 					selectedElement.classList.remove("selected");
 				}
@@ -712,6 +738,9 @@ if(savedFont){
 				selectedElement = el;
 				el.classList.add("selected");
 				active = el;
+
+				// ⚠️ IMPORTANT : PAS de stopPropagation
+				// → permet au canvas de capter les touches sur le vide
 			}, { passive: false });
 
 			el.addEventListener("touchmove", e => {
@@ -763,21 +792,26 @@ if(savedFont){
 			"a", "b", "c", "d", "e", "f", "g", "h", "j", "k",
 			"l", "m", "n",
 			"/a", "//a", "///a", "4", "5", "6",
-			",", ".", ":", ";", "(", ")", "[", "]", "~", "⌒", "|", "✎"
+			",", ".", "⌒","⌣", "|", "✎"
 		].forEach(s => {
 			const p = document.createElement("div");
 			p.className = "palette-item";
 			p.textContent = s;
 
 			p.onclick = () => {
+
+				// 🔴 enlever toute surbrillance précédente
 				document
 					.querySelectorAll(".palette-item")
 					.forEach(item => item.classList.remove("active"));
 
+				// 🟢 mettre celle-ci en surbrillance
 				p.classList.add("active");
 
+				// logique existante
 				selected = (s === "✎") ? "__draw__" : s;
 				setTool("place");
+				if (selected === "__draw__") setLock(true);
 			};
 
 			palette.appendChild(p);
@@ -795,78 +829,100 @@ if(savedFont){
 			}
 		};
 		palette.appendChild(customInput);
-
 		/* ===== FONT SELECTOR ===== */
-		const fontSelect = document.createElement("select");
-		fontSelect.style.fontSize = "16px";
-		fontSelect.style.marginLeft = "6px";
+const fontSelect = document.createElement("select");
+fontSelect.style.fontSize = "14px";
+fontSelect.style.marginLeft = "6px";
 
-		const fonts = [
-			{ name: "IM Fell English", value: "'IM Fell English', serif" },
-			{ name: "EB Garamond", value: "'EB Garamond', serif" },
-			{ name: "Libre Baskerville", value: "'Libre Baskerville', serif" },
-			{ name: "Cormorant Garamond", value: "'Cormorant Garamond', serif" }
-		];
+const fonts = [
+  { name: "IM Fell English", value: "'IM Fell English', serif" },
+  { name: "IM Fell French Canon", value: "'IM Fell French Canon', serif" },
+  { name: "IM Fell DW Pica", value: "'IM Fell DW Pica', serif" },
 
-		fonts.forEach(f => {
-			const opt = document.createElement("option");
-			opt.textContent = f.name;
-			opt.value = f.value;
-			fontSelect.appendChild(opt);
-		});
+  { name: "Cormorant Garamond", value: "'Cormorant Garamond', serif" },
+  { name: "Libre Caslon Text", value: "'Libre Caslon Text', serif" },
+  { name: "Old Standard TT", value: "'Old Standard TT', serif" },
+  { name: "Sorts Mill Goudy", value: "'Sorts Mill Goudy', serif" },
+  { name: "Crimson Pro", value: "'Crimson Pro', serif" },
+  { name: "Spectral", value: "'Spectral', serif" },
+  { name: "Alegreya", value: "'Alegreya', serif" },
 
-		fontSelect.onchange = () => {
-			applyFont(fontSelect.value);
-			saveState();
-		};
+  { name: "Almendra", value: "'Almendra', serif" },
+  { name: "Almendra SC", value: "'Almendra SC', serif" },
+  { name: "Cinzel", value: "'Cinzel', serif" },
+  { name: "Cinzel Decorative", value: "'Cinzel Decorative', serif" },
 
-		palette.appendChild(fontSelect);
+  { name: "UnifrakturCook", value: "'UnifrakturCook', serif" },
+  { name: "UnifrakturMaguntia", value: "'UnifrakturMaguntia', serif" }
+];
 
-		/* ================= EXPORT PDF ================= */
-		document.getElementById("exportPDF").onclick = async () => {
+fonts.forEach(f => {
+  const opt = document.createElement("option");
+  opt.textContent = f.name;
+  opt.value = f.value;
+  fontSelect.appendChild(opt);
+});
 
-			const ui = [toolbar, palette, scrollButtons];
-			ui.forEach(el => el.style.display = "none");
+fontSelect.onchange = () => {
+  applyFont(fontSelect.value);
+  saveState();
+};
 
-			await new Promise(r => requestAnimationFrame(r));
+palette.appendChild(fontSelect);
 
-const canvasImg = await html2canvas(canvasWrapper, {
-				backgroundColor: "#fff",
-				scale: 3,
-				useCORS: true
-			});
+document.getElementById("exportPDF").onclick = async () => {
 
-			ui.forEach(el => el.style.display = "");
+  // élément à capturer
+  const target = document.getElementById("canvas-wrapper");
 
-			const pdf = new jspdf.jsPDF("p", "mm", "a4");
+  // masquer l’UI pendant l’export
+  const ui = [toolbar, palette, scrollButtons];
+  ui.forEach(el => el.style.display = "none");
 
-			const pageWidth = 210;
-			const pageHeight = 297;
+  // attendre un frame (important sur iOS)
+  await new Promise(r => requestAnimationFrame(r));
 
-			const imgWidth = pageWidth;
-			const imgHeight = canvasImg.height * imgWidth / canvasImg.width;
+  // capture haute qualité
+  const canvasImg = await html2canvas(target, {
+    scale: 2,           // qualité
+    backgroundColor: "#fff",
+    useCORS: true
+  });
 
-			const y = imgHeight < pageHeight
-				? (pageHeight - imgHeight) / 2
-				: 0;
+  // restaurer l’UI
+  ui.forEach(el => el.style.display = "");
 
-			pdf.addImage(
-				canvasImg.toDataURL("image/png"),
-				"PNG",
-				0,
-				y,
-				imgWidth,
-				imgHeight
-			);
+  // dimensions A4 en mm
+  const pdf = new jspdf.jsPDF("p", "mm", "a4");
 
-			pdf.save("tablature-barok.pdf");
-		};
+  const pageWidth = 210;
+  const pageHeight = 297;
+
+  const imgWidth = pageWidth;
+  const imgHeight = canvasImg.height * imgWidth / canvasImg.width;
+
+  // centrage vertical si besoin
+  const y = imgHeight < pageHeight
+    ? (pageHeight - imgHeight) / 2
+    : 0;
+
+  pdf.addImage(
+    canvasImg.toDataURL("image/jpeg", 1.0),
+    "JPEG",
+    0,
+    y,
+    imgWidth,
+    imgHeight
+  );
+
+  pdf.save("tablature-barok.pdf");
+};
 
 		/* ================= INIT ================= */
 		restoreFromStorage();
 		pushUndo();
-
-</script>
+	</script>
 
 </body>
+
 </html>
