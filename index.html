@@ -1,231 +1,591 @@
 <!DOCTYPE html>
-<html lang="fr">
-
+<html lang="fr" data-theme="classique">
 <head>
 	<meta charset="UTF-8">
-
 	<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 	<meta http-equiv="Pragma" content="no-cache">
 	<meta http-equiv="Expires" content="0">
-
 	<title>Tablature baroque</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-	<meta name="viewport" content="width=device-width,
-initial-scale=1.0,
-maximum-scale=1.0,
-user-scalable=no">
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=EB+Garamond:ital@0;1&family=Cormorant+Garamond:ital@0;1&family=Libre+Baskerville:ital@0;1&family=Goudy+Bookletter+1911&family=UnifrakturCook:ital@0;1&family=Italianno&family=Herr+Von+Muellerhoff&family=Cinzel:wght@400;700&family=Playfair+Display:ital@0;1&family=Tangerine:wght@400;700&family=Dancing+Script:wght@400;700&family=Great+Vibes&family=Satisfy&family=Permanent+Marker&family=Rock+Salt&display=swap" rel="stylesheet">
 
-<link href="https://fonts.googleapis.com/css2?
-family=IM+Fell+English&
-family=IM+Fell+French+Canon&
-family=IM+Fell+DW+Pica&
-family=Cormorant+Garamond&
-family=Libre+Caslon+Text&
-family=Old+Standard+TT&
-family=Sorts+Mill+Goudy&
-family=Crimson+Pro&
-family=Spectral&
-family=Alegreya&
-family=Almendra&
-family=Almendra+SC&
-family=Cinzel&
-family=Cinzel+Decorative&
-family=UnifrakturCook&
-family=UnifrakturMaguntia&
-display=swap" rel="stylesheet">
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
-	<style>
-		* {
-			touch-action: manipulation;
-		}
-
-		html,
-		body {
-			margin: 0;
-			padding: 0;
-			height: 100%;
-			font-family: "IM Fell English", serif;
-			overflow: hidden;
-			background: white;
-		}
-
-		/* ===== TOOLBAR ===== */
-		#toolbar {
-			position: fixed;
-			top: 0;
-			left: 0;
-			right: 0;
-			display: flex;
-			gap: 6px;
-			padding: 6px;
-			border-bottom: 1px solid black;
-			background: white;
-			z-index: 10;
-		}
-
-		button {
-			padding: 8px 12px;
-			border: 1px solid black;
-			background: white;
-			font-size: 14px;
-		}
-
-		button.active {
-			background: black;
-			color: white;
-		}
-
-		#bgColor {
-			width: 34px;
-			height: 34px;
-			border: 1px solid black;
-		}
-
-		/* ===== CANVAS ===== */
-#canvas-wrapper{
-  position:absolute;
-  top:54px;
-  bottom:120px;
-  left:0;
-  right:0;
-  overflow:hidden;   /* pas de scroll */
+<style>
+:root {
+	--bg-color: #ffffff;
+	--text-color: #000000;
+	--line-color: #000000;
+	--ui-bg: #ffffff;
+	--ui-border: #000000;
+	--accent-color: #000000;
+	--ui-text: #000000;
 }
 
-#canvas{
-  position:relative;
-  width:1100px;      /* ← AUGMENTE ICI */
-  min-height:1123px;
-  margin:0 auto;
-  background:white;
+[data-theme="classique"] {
+	--bg-color: #ffffff;
+	--text-color: #000000;
+	--line-color: #000000;
+	--ui-bg: #ffffff;
+	--ui-border: #000000;
+	--accent-color: #000000;
+	--ui-text: #000000;
 }
 
-		/* ===== DRAW ===== */
-		.draw {
-			position: absolute;
-			pointer-events: auto;
-		}
-
-		.draw path {
-			fill: none;
-			stroke: black;
-			stroke-width: 2;
-			stroke-linecap: round;
-			stroke-linejoin: round;
-		}
-
-		.draw.selected {
-			outline: 2px dashed black;
-		}
-
-		/* ===== TITLE ===== */
-		#print-title {
-			text-align: center;
-			font-size: 34px;
-			margin: 30px 0 20px;
-		}
-
-		/* ===== LINES ===== */
-.line{
-  position:absolute;
-  left:0;
-  right:0;
-  height:1px;
+[data-theme="moderne"] {
+	--bg-color: #f5f5f5;
+	--text-color: #1a1a1a;
+	--line-color: #333333;
+	--ui-bg: #e8e8e8;
+	--ui-border: #666666;
+	--accent-color: #4a90e2;
+	--ui-text: #1a1a1a;
 }
 
-		.line.black {
-			background: black;
-		}
+[data-theme="parchemin"] {
+	--bg-color: #f4e8d0;
+	--text-color: #3d2817;
+	--line-color: #5d4730;
+	--ui-bg: #ebe0c8;
+	--ui-border: #8b7355;
+	--accent-color: #8b4513;
+	--ui-text: #3d2817;
+}
 
-		.line.white {
-			background: transparent;
-		}
+[data-theme="nuit"] {
+	--bg-color: #1a1a1a;
+	--text-color: #e0e0e0;
+	--line-color: #cccccc;
+	--ui-bg: #2a2a2a;
+	--ui-border: #555555;
+	--accent-color: #6a9bd8;
+	--ui-text: #e0e0e0;
+}
 
-		/* ===== SYMBOLS ===== */
+* {
+	touch-action: manipulation;
+	-webkit-tap-highlight-color: transparent;
+	box-sizing: border-box;
+}
+
+html, body {
+	margin: 0;
+	padding: 0;
+	height: 100%;
+	width: 100%;
+	font-family: "IM Fell English", serif;
+	overflow: hidden;
+	background: var(--bg-color);
+	color: var(--text-color);
+}
+
+/* ===== TOOLBAR ===== */
+#toolbar {
+	position: fixed;
+	top: 8px;
+	left: 50%;
+	transform: translateX(-50%);
+	width: calc(100% - 16px);
+	max-width: 100%;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	padding: 6px 8px;
+	background: var(--ui-bg);
+	border: 1px solid var(--ui-border);
+	border-radius: 8px;
+	box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+	z-index: 20;
+}
+
+.drag-handle {
+	width: 80px;
+	height: 20px;
+	background: var(--ui-border);
+	border-radius: 10px;
+	cursor: grab;
+	align-self: center;
+	flex-shrink: 0;
+	opacity: 0.4;
+	position: relative;
+}
+
+.drag-handle::after {
+	content: "⋮⋮⋮";
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	color: var(--ui-bg);
+	font-size: 16px;
+	letter-spacing: 4px;
+}
+
+.drag-handle:active {
+	cursor: grabbing;
+	opacity: 0.8;
+}
+
+button {
+	padding: 6px 10px;
+	border: 1px solid var(--ui-border);
+	background: var(--ui-bg);
+	color: var(--ui-text);
+	font-size: 14px;
+	border-radius: 4px;
+	-webkit-text-fill-color: var(--ui-text);
+	appearance: none;
+	-webkit-appearance: none;
+}
+
+button.active {
+	background: var(--accent-color);
+	color: white;
+	-webkit-text-fill-color: white;
+}
+
+button.placing {
+	background: var(--accent-color);
+	color: white;
+	-webkit-text-fill-color: white;
+	animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+	0%, 100% { opacity: 1; }
+	50% { opacity: 0.6; }
+}
+
+#bgColor {
+	width: 34px;
+	height: 34px;
+	border: 1px solid var(--ui-border);
+}
+
+#showUIBtn {
+	position: fixed;
+	right: 8px;
+	top: 8px;
+	z-index: 25;
+	display: none;
+}
+
+/* ===== CANVAS ===== */
+#canvas-wrapper {
+	position: absolute;
+	top: 80px;
+	bottom: 80px;
+	left: 0;
+	right: 0;
+	overflow: auto;
+	-webkit-overflow-scrolling: touch;
+	background: var(--bg-color);
+}
+
+#canvas {
+	position: relative;
+	width: 1100px;
+	min-height: 1123px;
+	margin: 0 auto;
+	background: var(--bg-color);
+	padding: 10px 20px;
+}
+
+/* ===== DRAW ===== */
+.draw {
+	position: absolute;
+	pointer-events: auto;
+}
+
+.draw path {
+	fill: none;
+	stroke: var(--line-color);
+	stroke-width: 2;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+	vector-effect: non-scaling-stroke;
+}
+
+.draw svg, .draw path {
+	pointer-events: none;
+	shape-rendering: geometricPrecision;
+}
+
+.draw.selected {
+	outline: 2px dashed var(--accent-color);
+}
+
+/* ===== TITLE ===== */
+#print-title {
+	text-align: center;
+	font-size: 28px;
+	margin: 10px 0 10px;
+	cursor: text;
+	color: var(--text-color);
+}
+
+/* ===== LINES ===== */
+.line {
+	position: absolute;
+	left: 0;
+	right: 0;
+	height: 1px;
+}
+
+.line.black {
+	background: var(--line-color);
+}
+
+.line.white {
+	background: transparent;
+}
+
+.line.hidden-after-end {
+	display: none;
+}
+
+/* ===== SYSTEM NUMBER ===== */
+.system-number {
+	position: absolute;
+	left: -30px;
+	font-size: 14px;
+	color: var(--text-color);
+	opacity: 0.5;
+	pointer-events: none;
+}
+
+.system-number.hidden-after-end {
+	display: none;
+}
+
+/* ===== SYMBOLS ===== */
 .symbol {
-  position: absolute;
-  font-size: 26px;        /* ou 24px si tu préfères */
-  white-space: nowrap;
-  line-height: 1;
-  transform: translateY(-0.45em);
+	position: absolute;
+	font-size: 26px;
+	white-space: nowrap;
+	line-height: 1.2;
+	padding: 0 0.15em;
+	will-change: transform;
+	backface-visibility: hidden;
+	transform: translateX(-50%);
+	line-height: 1;
+	color: var(--text-color);
+	text-rendering: geometricPrecision;
+	-webkit-font-smoothing: antialiased;
 }
 
-		/* ===== BAR ===== */
-		.bar {
-			position: absolute;
-			width: 2px;
-			background: black;
-		}
+.selected {
+	box-shadow: 0 0 0 2px var(--accent-color);
+	background: rgba(128, 128, 128, 0.1);
+}
 
-		.bar::before {
-			content: "";
-			position: absolute;
-			left: -12px;
-			right: -12px;
-			top: 0;
-			bottom: 0;
-		}
+/* ===== FLASH CONFIRMATION ===== */
+@keyframes flash {
+	0% { background: rgba(128, 128, 128, 0.6); }
+	100% { background: transparent; }
+}
 
-		/* ===== SELECTION ===== */
-		.selected {
-			outline: 2px solid black;
-			background: rgba(0, 0, 0, 0.05);
-		}
+.flash {
+	animation: flash 0.3s ease-out;
+}
 
-		/* ===== PALETTE ===== */
-		#palette {
-			position: fixed;
-			bottom: 0;
-			left: 0;
-			right: 0;
-			height: 120px;
-			border-top: 1px solid black;
-			background: white;
-			display: flex;
-			align-items: center;
-			padding: 6px;
-			gap: 4px;
-			z-index: 10;
-			flex-wrap: wrap;
-		}
+/* ===== BAR ===== */
+.bar {
+	position: absolute;
+	width: 1px;
+	background: var(--line-color);
+}
 
-		.palette-item {
-			border: 1px solid black;
-			padding: 8px 10px;
-			font-size: 26px;
-			cursor: pointer;
-		}
+.bar::before {
+	content: "";
+	position: absolute;
+	left: -12px;
+	right: -12px;
+	top: 0;
+	bottom: 0;
+}
 
-		.palette-item.active {
-			background: black;
-			color: white;
-		}
+.system-bar {
+	position: absolute;
+	width: 1px;
+	background: var(--line-color);
+}
 
-		#customChar {
-			margin-left: auto;
-			width: 60px;
-			font-size: 26px;
-			text-align: center;
-			border: 1px solid black;
-		}
+.system-bar.left {
+	left: 0;
+}
 
-		/* ===== SCROLL + LOCK ===== */
-		#scroll-buttons {
-			position: fixed;
-			right: 8px;
-			bottom: 130px;
-			display: flex;
-			flex-direction: column;
-			gap: 6px;
-			z-index: 10;
-		}
-	</style>
+.system-bar.right {
+	right: 0;
+}
+
+.system-bar.hidden-after-end {
+	display: none;
+}
+
+/* ===== PALETTE ===== */
+#palette {
+	position: fixed;
+	left: 50%;
+	transform: translateX(-50%);
+	width: calc(100% - 16px);
+	max-width: 100%;
+	bottom: 12px;
+	padding: 6px 10px;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	background: var(--ui-bg);
+	border: 1px solid var(--ui-border);
+	border-radius: 8px;
+	box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+	z-index: 10;
+	flex-wrap: nowrap;
+	overflow-x: auto;
+	overflow-y: hidden;
+	white-space: nowrap;
+	-webkit-overflow-scrolling: touch;
+}
+
+.palette-item {
+	flex: 0 0 auto;
+	width: 36px;
+	height: 36px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 22px;
+	line-height: 1;
+	border: 1px solid var(--ui-border);
+	background: var(--ui-bg);
+	color: var(--ui-text);
+	border-radius: 6px;
+	padding: 0;
+	cursor: pointer;
+}
+
+.palette-item.active {
+	background: var(--accent-color);
+	color: white;
+}
+
+.palette-item.hidden {
+	display: none;
+}
+
+#customChar {
+	margin-left: auto;
+	width: 60px;
+	font-size: 22px;
+	text-align: center;
+	border: 1px solid var(--ui-border);
+	background: var(--ui-bg);
+	color: var(--ui-text);
+}
+
+/* ===== FONT SIZE CONTROLS ===== */
+.font-size-controls {
+	display: flex;
+	gap: 4px;
+	align-items: center;
+	margin-left: 6px;
+}
+
+.font-size-btn {
+	width: 28px;
+	height: 28px;
+	padding: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 16px;
+	font-weight: bold;
+}
+
+#fontSizeDisplay {
+	width: 40px;
+	text-align: center;
+	font-size: 14px;
+	border: 1px solid var(--ui-border);
+	background: var(--ui-bg);
+	color: var(--ui-text);
+	padding: 4px;
+	border-radius: 4px;
+}
+
+/* ===== LOUPE ===== */
+.drag-loupe {
+	position: fixed;
+	width: 120px;
+	height: 120px;
+	border-radius: 50%;
+	overflow: hidden;
+	pointer-events: none;
+	z-index: 9999;
+	background: var(--bg-color);
+	border: 2px solid var(--line-color);
+	box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+	transform: translate(-50%, -160%);
+}
+
+.drag-loupe canvas {
+	width: 100%;
+	height: 100%;
+}
+
+.drag-loupe .loupe-char {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%) scale(1.8);
+	pointer-events: none;
+	font-size: 26px;
+	line-height: 1;
+	color: var(--text-color);
+}
+
+.loupe-cross {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: 24px;
+	height: 24px;
+	pointer-events: none;
+	transform: translate(-50%, -50%);
+}
+
+.loupe-cross::before,
+.loupe-cross::after {
+	content: "";
+	position: absolute;
+	background: var(--line-color);
+	opacity: 0.7;
+}
+
+.loupe-cross::before {
+	left: 0;
+	top: 50%;
+	width: 100%;
+	height: 1px;
+	transform: translateY(-50%);
+}
+
+.loupe-cross::after {
+	top: 0;
+	left: 50%;
+	width: 1px;
+	height: 100%;
+	transform: translateX(-50%);
+}
+
+.vertical-guide {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	width: 1px;
+	background: var(--line-color);
+	opacity: 0.15;
+	pointer-events: none;
+	z-index: 1;
+}
+
+/* ===== MODAL ===== */
+.modal {
+	display: none;
+	position: fixed;
+	inset: 0;
+	background: rgba(0,0,0,0.5);
+	z-index: 1000;
+	align-items: center;
+	justify-content: center;
+}
+
+.modal.active {
+	display: flex;
+}
+
+.modal-content {
+	background: var(--ui-bg);
+	border: 2px solid var(--ui-border);
+	border-radius: 8px;
+	padding: 20px;
+	max-width: 90%;
+	max-height: 80%;
+	overflow: auto;
+}
+
+.modal-content h3 {
+	margin-top: 0;
+	color: var(--ui-text);
+}
+
+.modal-buttons {
+	display: flex;
+	gap: 10px;
+	margin-top: 15px;
+	justify-content: flex-end;
+}
+
+.page-btn {
+	padding: 6px 10px;
+	border: 1px solid var(--ui-border);
+	background: var(--ui-bg);
+	color: var(--ui-text);
+	border-radius: 4px;
+	font-size: 14px;
+}
+
+.page-btn.active {
+	background: var(--accent-color);
+	color: white;
+	-webkit-text-fill-color: white;
+}
+
+/* ===== RESPONSIVE LANDSCAPE ===== */
+@media screen and (orientation: landscape) {
+	#toolbar {
+		flex-wrap: nowrap;
+		overflow-x: auto;
+	}
+
+	#canvas-wrapper {
+		top: 60px;
+		bottom: 70px;
+	}
+}
+
+/* ===== RESPONSIVE IPHONE ===== */
+@media screen and (max-width: 428px) {
+	button {
+		font-size: 12px;
+		padding: 4px 8px;
+	}
+
+	.palette-item {
+		width: 32px;
+		height: 32px;
+		font-size: 18px;
+	}
+
+	#customChar {
+		width: 50px;
+		font-size: 18px;
+	}
+
+	#toolbar {
+		padding: 4px 6px;
+		gap: 4px;
+	}
+}
+</style>
 </head>
-
 <body>
-
 	<div id="toolbar">
+		<div class="drag-handle" id="toolbarHandle"></div>
 		<button id="editTitle">Titre</button>
 		<button id="toolPlace" class="active">Placer</button>
 		<button id="toolSelect">Sélection</button>
@@ -233,13 +593,16 @@ display=swap" rel="stylesheet">
 		<button id="deleteBtn">Effacer</button>
 		<button id="clearAllBtn">Tout effacer</button>
 		<button id="addBar">+ Barre</button>
+		<button id="addSystemBtn">+ Portée</button>
 		<button id="toggleSnap" class="active">Accroché</button>
-		<input type="color" id="bgColor">
+		<button id="themeBtn">Thème</button>
+		<button id="saveBtn">💾</button>
+		<button id="loadBtn">📂</button>
 		<button id="toggleUI">👁</button>
-		<button id="page1" class="active">Page 1</button>
-		<button id="page2">Page 2</button>
-		<button id="exportPDF">Export PDF</button>
-
+		<div id="pageNav"></div>
+		<button id="addPageBtn">+ Page</button>
+		<button id="exportPDF">PDF</button>
+		<button id="toggleVGuides">││</button>
 	</div>
 
 	<div id="canvas-wrapper">
@@ -247,682 +610,1157 @@ display=swap" rel="stylesheet">
 		<div id="canvas"></div>
 	</div>
 
-	<div id="palette"></div>
-
-	<div id="scroll-buttons">
-		
+	<div id="palette">
+		<div class="drag-handle" id="paletteHandle"></div>
 	</div>
 
 	<button id="showUIBtn">⬅︎</button>
-	<script>
-		/* ================= DOM ================= */
-		const toolbar = document.getElementById("toolbar");
-		const palette = document.getElementById("palette");
-		const scrollButtons = document.getElementById("scroll-buttons");
-		const showUIBtn = document.getElementById("showUIBtn");
-		const toggleUI = document.getElementById("toggleUI");
-		const canvasWrapper = document.getElementById("canvas-wrapper");
-		const canvas = document.getElementById("canvas");
-		const printTitle = document.getElementById("print-title");
-		const bgColor = document.getElementById("bgColor");
-		const toolPlace = document.getElementById("toolPlace");
-		const toolSelect = document.getElementById("toolSelect");
-		const undoBtn = document.getElementById("undo");
-		const deleteBtn = document.getElementById("deleteBtn");
-		const clearAllBtn = document.getElementById("clearAllBtn");
-		const addBar = document.getElementById("addBar");
-		const toggleSnap = document.getElementById("toggleSnap");
-		const editTitle = document.getElementById("editTitle");
-		const page1Btn = document.getElementById("page1");
-		const page2Btn = document.getElementById("page2");
-		page1Btn.onclick = () => loadPage(1);
-		page2Btn.onclick = () => loadPage(2);
 
-		/* ================= DOUBLE TAP BLOCK (iOS) ================= */
-		let lastTouch = 0;
-		document.addEventListener("touchend", e => {
-			const now = Date.now();
-			if (now - lastTouch <= 300) e.preventDefault();
-			lastTouch = now;
-		}, { passive: false });
+	<div id="themeModal" class="modal">
+		<div class="modal-content">
+			<h3>Choisir un thème</h3>
+			<button onclick="applyTheme('classique')">Classique</button>
+			<button onclick="applyTheme('moderne')">Moderne</button>
+			<button onclick="applyTheme('parchemin')">Parchemin</button>
+			<button onclick="applyTheme('nuit')">Nuit</button>
+			<div class="modal-buttons">
+				<button onclick="closeModal('themeModal')">Fermer</button>
+			</div>
+		</div>
+	</div>
 
-		/* ================= UI VISIBILITY ================= */
-		toggleUI.onclick = () => {
-			toolbar.style.display = "none";
-			palette.style.display = "none";
-			scrollButtons.style.display = "none";
-			showUIBtn.style.display = "block";
-		};
-		showUIBtn.onclick = () => {
-			toolbar.style.display = "";
-			palette.style.display = "";
-			scrollButtons.style.display = "";
-			showUIBtn.style.display = "none";
-		};
+	<div id="exportModal" class="modal">
+		<div class="modal-content">
+			<h3>Options d'export PDF</h3>
+			<label>
+				<input type="checkbox" id="showSystemNumbers" checked>
+				Afficher les numéros de systèmes
+			</label>
+			<div class="modal-buttons">
+				<button onclick="closeModal('exportModal')">Annuler</button>
+				<button onclick="confirmExport()">Exporter</button>
+			</div>
+		</div>
+	</div>
 
-		/* ================= BACKGROUND ================= */
-		function applyBg(c) {
-			document.body.style.background = c;
-			canvasWrapper.style.background = c;
-			canvas.style.background = c;
-		}
-		const savedBg = localStorage.getItem("bg_color");
-		if (savedBg) {
-			bgColor.value = savedBg;
-			applyBg(savedBg);
-		}
-		bgColor.oninput = () => {
-			applyBg(bgColor.value);
-			localStorage.setItem("bg_color", bgColor.value);
-			saveState();
-		};
-		
-		/* ================= FONT ================= */
-function applyFont(font){
-  // Titre
-  printTitle.style.fontFamily = font;
+<script>
+const VERSION = "tablature-barok-v1";
 
-  // Tous les symboles déjà placés
-  document
-    .querySelectorAll(".symbol")
-    .forEach(el => el.style.fontFamily = font);
+/* ================= DOM ================= */
+const toolbar = document.getElementById("toolbar");
+const palette = document.getElementById("palette");
+const showUIBtn = document.getElementById("showUIBtn");
+const toggleUI = document.getElementById("toggleUI");
+const canvasWrapper = document.getElementById("canvas-wrapper");
+const canvas = document.getElementById("canvas");
+const printTitle = document.getElementById("print-title");
+const toolPlace = document.getElementById("toolPlace");
+const toolSelect = document.getElementById("toolSelect");
+const undoBtn = document.getElementById("undo");
+const deleteBtn = document.getElementById("deleteBtn");
+const clearAllBtn = document.getElementById("clearAllBtn");
+const addBar = document.getElementById("addBar");
+const toggleSnap = document.getElementById("toggleSnap");
+const editTitle = document.getElementById("editTitle");
+const toggleVGuides = document.getElementById("toggleVGuides");
+const addSystemBtn = document.getElementById("addSystemBtn");
+const themeBtn = document.getElementById("themeBtn");
+const saveBtn = document.getElementById("saveBtn");
+const loadBtn = document.getElementById("loadBtn");
+const addPageBtn = document.getElementById("addPageBtn");
+const pageNav = document.getElementById("pageNav");
 
-  // Mémorisation
-  localStorage.setItem("tablature_font", font);
+/* ================= STATE ================= */
+let pageCount = 1;
+let currentPage = 1;
+const pages = {};
+pages[1] = null;
+
+let systemCount = 1;
+const MAX_SYSTEMS = 7;
+let showVerticalGuides = false;
+let tool = "place";
+let snap = true;
+let placingBar = false;
+let selected = "a";
+let selectedElement = null;
+let active = null;
+
+let dragLoupe = null;
+let loupeCanvas = null;
+let loupeCtx = null;
+let loupeChar = null;
+let loupeImage = null;
+
+let currentY = 40;
+const LINE_SPACING = 22;
+const lines = [];
+
+let drawing = false;
+let currentPath = null;
+let drawStart = { x: 0, y: 0 };
+
+const DRAW_W = 120;
+const DRAW_H = 100;
+
+const undoStack = [];
+const MAX_UNDO = 40;
+
+let currentFontSize = 26;
+const SNAP_THRESHOLD = 15;
+
+let hiddenFonts = JSON.parse(localStorage.getItem("hidden_fonts") || "[]");
+
+/* ================= HAPTIC FEEDBACK ================= */
+function haptic() {
+	if (navigator.vibrate) {
+		navigator.vibrate(10);
+	}
 }
 
-		/* ================= STATE ================= */
-		let tool = "place",
-			snap = true,
-			placingBar = false;
-		let selected = "a",
-			selectedElement = null,
-			active = null;
-		let zoomLevel = 1;
-		let currentY = 40;
-		let currentScale = 1;
-
-		const LINE_SPACING = 22;
-		const lines = [];
-
-		/* ===== PAGES ===== */
-		let currentPage = 1;
-		const pages = {
-			1: null,
-			2: null
-		};
-
-		/* ===== DRAW STATE ===== */
-		let drawing = false;
-		let currentPath = null;
-		let drawStart = { x: 0, y: 0 };
-		let locked = false;
-
-		/* ===== DRAW SIZE ===== */
-		const DRAW_W = 80;
-		const DRAW_H = 60;
-
-		/* ================= UNDO ================= */
-		const undoStack = [];
-		const MAX_UNDO = 40;
-
-		function serializeState() {
-			return JSON.stringify({
-				title: printTitle.textContent,
-				bg: bgColor.value,
-				elements: [...canvas.children].map(el => {
-					if (el.classList.contains("draw")) {
-						return {
-							class: "draw",
-							left: el.style.left,
-							top: el.style.top,
-							d: el.querySelector("path").getAttribute("d")
-						};
-					}
-					return {
-						class: el.className,
-						text: el.textContent || "",
-						left: el.style.left,
-						top: el.style.top,
-						height: el.style.height || ""
-					};
-				})
-			});
-		}
-
-		function pushUndo() {
-			undoStack.push(serializeState());
-			if (undoStack.length > MAX_UNDO) undoStack.shift();
-		}
-
-		undoBtn.onclick = () => {
-			if (!undoStack.length) return;
-			restoreState(undoStack.pop(), false);
-		};
-
-		/* ================= PERSISTENCE ================= */
-		function saveState() {
-			localStorage.setItem("tablature_state", serializeState());
-		}
-
-		function restoreState(raw, save = true) {
-			const s = typeof raw === "string" ? JSON.parse(raw) : raw;
-			canvas.innerHTML = "";
-			lines.length = 0;
-			currentY = 40;
-			printTitle.textContent = s.title || "";
-			if (s.bg) {
-				bgColor.value = s.bg;
-				applyBg(s.bg);
-			}
-
-			s.elements.forEach(e => {
-				if (e.class === "draw") {
-					const w = document.createElement("div");
-					w.className = "draw";
-					w.style.left = e.left;
-					w.style.top = e.top;
-
-					const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-					svg.setAttribute("width", DRAW_W);
-					svg.setAttribute("height", DRAW_H);
-
-					const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
-					p.setAttribute("d", e.d);
-					svg.appendChild(p);
-					w.appendChild(svg);
-					canvas.appendChild(w);
-					makeDraggable(w);
-					return;
-				}
-
-				const el = document.createElement("div");
-				el.className = e.class;
-				el.textContent = e.text;
-				el.style.left = e.left;
-				el.style.top = e.top;
-				if (e.height) el.style.height = e.height;
-				canvas.appendChild(el);
-
-				if (el.classList.contains("line")) {
-					lines.push(parseFloat(e.top));
-					currentY = parseFloat(e.top) + LINE_SPACING;
-				}
-				if (el.classList.contains("symbol") || el.classList.contains("bar")) {
-					makeDraggable(el);
-				}
-			});
-
-			if (save) saveState();
-		}
-
-		function restoreFromStorage() {
-			const raw = localStorage.getItem("tablature_state");
-			if (raw) restoreState(raw, false);
-			else {
-				createInitialStructure();
-				saveState();
-			}
-			const savedFont = localStorage.getItem("tablature_font");
-if(savedFont){
-  applyFont(savedFont);
+/* ================= THEME ================= */
+function applyTheme(themeName) {
+	document.documentElement.setAttribute("data-theme", themeName);
+	localStorage.setItem("theme", themeName);
+	closeModal("themeModal");
+	haptic();
 }
+
+themeBtn.onclick = () => {
+	document.getElementById("themeModal").classList.add("active");
+};
+
+function closeModal(id) {
+	document.getElementById(id).classList.remove("active");
+}
+
+document.addEventListener("click", e => {
+	if (e.target.classList.contains("modal")) {
+		e.target.classList.remove("active");
+	}
+});
+
+/* ================= PAGE MANAGEMENT ================= */
+function renderPageNav() {
+	pageNav.innerHTML = "";
+
+	for (let i = 1; i <= pageCount; i++) {
+		const btn = document.createElement("button");
+		btn.className = "page-btn";
+		btn.textContent = "Page " + i;
+
+		if (i === currentPage) {
+			btn.classList.add("active");
 		}
 
-		function saveCurrentPage() {
-			pages[currentPage] = serializeState();
-		}
+		btn.onclick = () => loadPage(i);
+		pageNav.appendChild(btn);
+	}
+}
 
-		function loadPage(n) {
-			if (n === currentPage) return;
+addPageBtn.onclick = () => {
+	pageCount++;
+	pages[pageCount] = null;
+	loadPage(pageCount);
+	renderPageNav();
+	haptic();
+};
 
-			// sauvegarde page actuelle
-			saveCurrentPage();
+function saveCurrentPage() {
+	pages[currentPage] = serializeState();
+}
 
-			currentPage = n;
+function loadPage(n) {
+	if (n === currentPage) return;
 
-			if (pages[n]) {
-				restoreState(pages[n], false);
-			} else {
-				// nouvelle page : même titre, mêmes lignes de départ
-				const title = printTitle.textContent;
+	saveCurrentPage();
+	currentPage = n;
 
-				canvas.innerHTML = "";
-				lines.length = 0;
-				currentY = 40;
+	if (pages[n]) {
+		restoreState(pages[n], false);
+	} else {
+		const title = printTitle.textContent;
+		canvas.innerHTML = "";
+		lines.length = 0;
+		currentY = 40;
+		systemCount = 1;
+		printTitle.textContent = title;
+		createInitialStructure();
+		saveCurrentPage();
+	}
 
-				printTitle.textContent = title;
-				createInitialStructure();
+	renderPageNav();
+	haptic();
+}
 
-				saveCurrentPage();
+/* ================= SAVE / LOAD ================= */
+saveBtn.onclick = () => {
+	saveCurrentPage();
+	
+	const data = {
+		version: VERSION,
+		created: new Date().toISOString(),
+		title: printTitle.textContent,
+		theme: document.documentElement.getAttribute("data-theme"),
+		fontSize: currentFontSize,
+		pageCount: pageCount,
+		pages: pages
+	};
+
+	const json = JSON.stringify(data, null, 2);
+	const blob = new Blob([json], { type: "application/json" });
+	const url = URL.createObjectURL(blob);
+	const a = document.createElement("a");
+	a.href = url;
+	a.download = `tablature-${Date.now()}.json`;
+	a.click();
+	URL.revokeObjectURL(url);
+	haptic();
+};
+
+loadBtn.onclick = () => {
+	const input = document.createElement("input");
+	input.type = "file";
+	input.accept = ".json";
+	input.onchange = e => {
+		const file = e.target.files[0];
+		if (!file) return;
+
+		const reader = new FileReader();
+		reader.onload = event => {
+			try {
+				const data = JSON.parse(event.target.result);
+				
+				if (data.version !== VERSION) {
+					alert("Version différente, chargement avec compatibilité limitée");
+				}
+
+				printTitle.textContent = data.title || "";
+				if (data.theme) applyTheme(data.theme);
+				if (data.fontSize) {
+					currentFontSize = data.fontSize;
+					updateFontSizeDisplay();
+				}
+
+				pageCount = data.pageCount || 1;
+				Object.assign(pages, data.pages);
+
+				loadPage(1);
+				renderPageNav();
+				haptic();
+				alert("Tablature chargée !");
+			} catch (err) {
+				alert("Erreur de chargement : fichier invalide");
 			}
+		};
+		reader.readAsText(file);
+	};
+	input.click();
+};
 
-			// feedback bouton actif
-			document.querySelectorAll("#page1,#page2")
-				.forEach(b => b.classList.remove("active"));
-			document.getElementById("page" + n).classList.add("active");
+/* ================= DOUBLE TAP BLOCK (iOS) ================= */
+let lastTouch = 0;
+document.addEventListener("touchend", e => {
+	const now = Date.now();
+	if (now - lastTouch <= 300) e.preventDefault();
+	lastTouch = now;
+}, { passive: false });
+
+/* ================= UI VISIBILITY ================= */
+toggleUI.onclick = () => {
+	toolbar.style.display = "none";
+	palette.style.display = "none";
+	showUIBtn.style.display = "block";
+};
+
+showUIBtn.onclick = () => {
+	toolbar.style.display = "";
+	palette.style.display = "";
+	showUIBtn.style.display = "none";
+};
+
+/* ================= FONT ================= */
+function applyFont(font) {
+	printTitle.style.fontFamily = font;
+	document.querySelectorAll(".symbol").forEach(el => {
+		el.style.fontFamily = font;
+	});
+	localStorage.setItem("tablature_font", font);
+}
+
+function applyFontSize(size) {
+	currentFontSize = size;
+	document.querySelectorAll(".symbol").forEach(el => {
+		el.style.fontSize = size + "px";
+	});
+	localStorage.setItem("tablature_font_size", size);
+	updateFontSizeDisplay();
+}
+
+function updateFontSizeDisplay() {
+	const display = document.getElementById("fontSizeDisplay");
+	if (display) display.textContent = currentFontSize + "px";
+}
+
+/* ================= UNDO ================= */
+function serializeState() {
+	return JSON.stringify({
+		title: printTitle.textContent,
+		theme: document.documentElement.getAttribute("data-theme"),
+		fontSize: currentFontSize,
+		systemCount: systemCount,
+		elements: [...canvas.children].map(el => {
+			if (el.classList.contains("draw")) {
+				return {
+					class: "draw",
+					left: el.style.left,
+					top: el.style.top,
+					d: el.querySelector("path").getAttribute("d")
+				};
+			}
+			return {
+				class: el.className,
+				text: el.textContent || "",
+				left: el.style.left,
+				top: el.style.top,
+				height: el.style.height || "",
+				fontSize: el.style.fontSize || ""
+			};
+		})
+	});
+}
+
+function pushUndo() {
+	undoStack.push(serializeState());
+	if (undoStack.length > MAX_UNDO) undoStack.shift();
+}
+
+undoBtn.onclick = () => {
+	if (!undoStack.length) return;
+	restoreState(undoStack.pop(), false);
+	haptic();
+};
+
+/* ================= PERSISTENCE ================= */
+function saveState() {
+	localStorage.setItem("tablature_state", serializeState());
+}
+
+function restoreState(raw, save = true) {
+	const s = typeof raw === "string" ? JSON.parse(raw) : raw;
+	canvas.innerHTML = "";
+	lines.length = 0;
+	currentY = 40;
+	systemCount = s.systemCount || 1;
+	printTitle.textContent = s.title || "";
+
+	if (s.theme) applyTheme(s.theme);
+
+	if (s.fontSize) {
+		currentFontSize = s.fontSize;
+		updateFontSizeDisplay();
+	}
+
+	s.elements.forEach(e => {
+		if (e.class === "draw") {
+			const w = document.createElement("div");
+			w.className = "draw";
+			w.style.left = e.left;
+			w.style.top = e.top;
+
+			const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+			svg.setAttribute("width", DRAW_W);
+			svg.setAttribute("height", DRAW_H);
+
+			const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+			p.setAttribute("d", e.d);
+			svg.appendChild(p);
+			w.appendChild(svg);
+			canvas.appendChild(w);
+			makeDraggable(w);
+			return;
 		}
 
-		/* ================= TITLE ================= */
-		editTitle.onclick = () => {
-			const t = prompt("Titre du morceau :", printTitle.textContent || "");
-			if (t === null) return;
+		const el = document.createElement("div");
+		el.className = e.class;
+		el.textContent = e.text;
+		el.style.left = e.left;
+		el.style.top = e.top;
+		if (e.height) el.style.height = e.height;
+		if (e.fontSize) el.style.fontSize = e.fontSize;
+		canvas.appendChild(el);
 
-			pushUndo();
-			printTitle.textContent = t.trim();
-			saveState();
-		};
-
-		/* ================= TOOLS ================= */
-		function setTool(t) {
-			tool = t;
-			toolPlace.classList.toggle("active", t === "place");
-			toolSelect.classList.toggle("active", t === "select");
-			if (t !== "place" || selected !== "__draw__");
+		if (el.classList.contains("line")) {
+			lines.push(parseFloat(e.top));
+			currentY = parseFloat(e.top) + LINE_SPACING;
 		}
-
-		/* === PLACER = TOGGLE === */
-		toolPlace.onclick = () => {
-			if (tool === "place") {
-				tool = null;
-				toolPlace.classList.remove("active");
-			} else {
-				setTool("place");
-			}
-		};
-
-		toolSelect.onclick = () => {
-			// forcer le mode sélection, sans conditions
-			tool = "select";
-
-			toolSelect.classList.add("active");
-			toolPlace.classList.remove("active");
-
-			// on libère juste la sélection précédente
-			if (selectedElement) {
-				selectedElement.classList.remove("selected");
-				selectedElement = null;
-			}
-		};
-
-		toggleSnap.onclick = () => {
-			snap = !snap;
-			toggleSnap.classList.toggle("active", snap);
-		};
-
-		/* ================= STRUCTURE ================= */
-		function addLine(type) {
-			const l = document.createElement("div");
-			l.className = "line " + type;
-			l.style.top = currentY + "px";
-			canvas.appendChild(l);
-
-			lines.push(currentY);
-			currentY += LINE_SPACING;
-
-			// 🔴 OBLIGATOIRE : agrandir la zone active
-			if (currentY + 100 > canvas.offsetHeight) {
-				canvas.style.minHeight = (currentY + 200) + "px";
-			}
+		if (el.classList.contains("symbol") || el.classList.contains("bar")) {
+			makeDraggable(el);
 		}
+	});
+	
+	if (showVerticalGuides) renderVerticalGuides();
+
+	if (save) saveState();
+}
+
+function restoreFromStorage() {
+	const raw = localStorage.getItem("tablature_state");
+	if (raw) {
+		restoreState(raw, false);
+	} else {
+		createInitialStructure();
+		saveState();
+	}
+	const savedFont = localStorage.getItem("tablature_font");
+	if (savedFont) applyFont(savedFont);
+	
+	const savedSize = localStorage.getItem("tablature_font_size");
+	if (savedSize) {
+		currentFontSize = parseInt(savedSize);
+		updateFontSizeDisplay();
+	}
+
+	const savedTheme = localStorage.getItem("theme");
+	if (savedTheme) applyTheme(savedTheme);
+}
+
+/* ================= TITLE ================= */
+editTitle.onclick = () => {
+	const t = prompt("Titre du morceau :", printTitle.textContent || "");
+	if (t === null) return;
+	pushUndo();
+	printTitle.textContent = t.trim();
+	saveState();
+	haptic();
+};
+
+/* ================= TOOLS ================= */
+function setTool(t) {
+	tool = t;
+	toolPlace.classList.toggle("active", t === "place");
+	toolSelect.classList.toggle("active", t === "select");
+}
+
+toolPlace.onclick = () => {
+	if (tool === "place") {
+		tool = null;
+		toolPlace.classList.remove("active");
+	} else {
+		setTool("place");
+	}
+	haptic();
+};
+
+toolSelect.onclick = () => {
+	setTool("select");
+	if (selectedElement) {
+		selectedElement.classList.remove("selected");
+		selectedElement = null;
+	}
+	haptic();
+};
+
+toggleSnap.onclick = () => {
+	snap = !snap;
+	toggleSnap.classList.toggle("active", snap);
+	haptic();
+};
+
+toggleVGuides.onclick = () => {
+	showVerticalGuides = !showVerticalGuides;
+	toggleVGuides.classList.toggle("active", showVerticalGuides);
+	renderVerticalGuides();
+	haptic();
+};
+
+/* ================= STRUCTURE ================= */
+function addLine(type) {
+	const l = document.createElement("div");
+	l.className = "line " + type;
+	l.style.top = currentY + "px";
+	canvas.appendChild(l);
+
+	lines.push(currentY);
+	currentY += LINE_SPACING;
+
+	if (currentY + 100 > canvas.offsetHeight) {
+		canvas.style.minHeight = (currentY + 200) + "px";
+	}
+}
+
+function addSystemSideBars(startY, systemNum) {
+	const leftBar = document.createElement("div");
+	leftBar.className = "bar system-bar left";
+	leftBar.style.top = startY + "px";
+	leftBar.style.height = (5 * LINE_SPACING) + "px";
+
+	const rightBar = document.createElement("div");
+	rightBar.className = "bar system-bar right";
+	rightBar.style.top = startY + "px";
+	rightBar.style.height = (5 * LINE_SPACING) + "px";
+
+	const numLabel = document.createElement("div");
+	numLabel.className = "system-number";
+	numLabel.textContent = systemNum;
+	numLabel.style.top = startY + "px";
+
+	canvas.appendChild(leftBar);
+	canvas.appendChild(rightBar);
+	canvas.appendChild(numLabel);
+}
 
 function createInitialStructure() {
+	addLine("white");
+	addLine("white");
 
-  // 1 ligne blanche au début
-  addLine("white");
+	const systemTop = currentY;
 
-  // 6 blocs de 6 lignes noires
-  for (let bloc = 0; bloc < 6; bloc++) {
+	for (let i = 0; i < 6; i++) addLine("black");
 
-    // 6 lignes noires
-    for (let i = 0; i < 6; i++) {
-      addLine("black");
-    }
-
-    // 2 lignes blanches entre les blocs
-    if (bloc < 5) {
-      addLine("white");
-      addLine("white");
-    }
-  }
-
-  // 1 ligne blanche finale
-  addLine("white");
+	addSystemSideBars(systemTop, 1);
+	systemCount = 1;
 }
 
-		/* ================= SNAP (ALIGNEMENT CORRIGÉ) ================= */
-		function nearestLine(y) {
-			return lines.reduce((a, b) =>
-				Math.abs(b - y) < Math.abs(a - y) ? b : a
-			);
+function addSystem() {
+	if (systemCount >= MAX_SYSTEMS) {
+		alert(`Maximum de ${MAX_SYSTEMS} portées par page atteint.`);
+		return;
+	}
+
+	pushUndo();
+
+	addLine("white");
+	addLine("white");
+
+	const systemTop = currentY;
+
+	for (let i = 0; i < 6; i++) addLine("black");
+
+	systemCount++;
+	addSystemSideBars(systemTop, systemCount);
+
+	if (systemCount === MAX_SYSTEMS) {
+		addLine("white");
+	}
+
+	saveState();
+	haptic();
+}
+
+addSystemBtn.onclick = () => addSystem();
+
+function symbolVerticalOffset(el) {
+	const size = parseFloat(el.style.fontSize || currentFontSize);
+	return size * 0.50;
+}
+
+/* ================= SNAP ================= */
+function nearestLine(y) {
+	return lines.reduce((a, b) =>
+		Math.abs(b - y) < Math.abs(a - y) ? b : a
+	);
+}
+
+function snapY(y) {
+	if (!snap || !lines.length) return y;
+	return nearestLine(y);
+}
+
+function snapToNearbySymbols(x, y) {
+	if (!snap) return x;
+	
+	const symbols = document.querySelectorAll(".symbol");
+	let nearestX = null;
+	let minDist = SNAP_THRESHOLD;
+	
+	symbols.forEach(sym => {
+		const symX = parseFloat(sym.style.left);
+		const symY = parseFloat(sym.style.top);
+		
+		if (Math.abs(symY - y) < LINE_SPACING * 3) {
+			const dist = Math.abs(symX - x);
+			if (dist < minDist) {
+				minDist = dist;
+				nearestX = symX;
+			}
 		}
+	});
+	
+	return nearestX !== null ? nearestX : x;
+}
 
-		function snapY(y) {
-			if (!snap || !lines.length) return y;
-			const b = nearestLine(y);
-			return b
-		}
+function firstLineOfSystem(y) {
+	const lineY = nearestLine(y);
+	let idx = lines.indexOf(lineY);
+	let count = 0;
 
-		/* ================= INTERACTION ================= */
-		canvas.addEventListener("touchstart", e => {
+	while (idx > 0 && count < 5) {
+		const prevY = lines[idx - 1];
+		if (!document.querySelector(`.line.black[style*="top: ${prevY}px"]`)) break;
+		idx--;
+		count++;
+	}
+	return lines[idx];
+}
 
-			// 🔵 DÉSÉLECTION SI ON TOUCHE LE VIDE EN MODE SÉLECTION
-			if (tool === "select") {
-				if (!e.target.closest(".symbol, .bar, .draw")) {
-					if (selectedElement) {
-						selectedElement.classList.remove("selected");
-						selectedElement = null;
-					}
-					// ⚠️ PAS DE return ici
-				}
-			}
+function renderVerticalGuides() {
+	document.querySelectorAll(".vertical-guide").forEach(g => g.remove());
+	if (!showVerticalGuides) return;
 
-			const r = canvas.getBoundingClientRect();
-			const rawX = e.touches[0].clientX - r.left;
-			const rawY = e.touches[0].clientY - r.top + canvasWrapper.scrollTop;
+	const step = 60;
+	const width = canvas.offsetWidth;
 
-			const x = rawX / currentScale;
-			const y = rawY / currentScale;
+	for (let x = step; x < width; x += step) {
+		const g = document.createElement("div");
+		g.className = "vertical-guide";
+		g.style.left = x + "px";
+		canvas.appendChild(g);
+	}
+}
 
-			pushUndo();
+/* ================= FLASH CONFIRMATION ================= */
+function flashConfirm(element) {
+	element.classList.add("flash");
+	setTimeout(() => element.classList.remove("flash"), 300);
+}
 
-			/* ===== DESSIN ===== */
-			if (selected === "__draw__") {
-				drawing = true;
-				drawStart = { x, y };
+/* ================= INTERACTION ================= */
+function getCanvasCoords(touch) {
+	const canvasRect = canvas.getBoundingClientRect();
+	return {
+		x: touch.clientX - canvasRect.left,
+		y: touch.clientY - canvasRect.top
+	};
+}
 
-				const w = document.createElement("div");
-				w.className = "draw selected";
-				w.style.left = (x - DRAW_W / 2) + "px";
-				w.style.top = (y - DRAW_H / 2) + "px";
-
-				const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-				svg.setAttribute("width", DRAW_W);
-				svg.setAttribute("height", DRAW_H);
-
-				const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
-				p.setAttribute("d", `M ${DRAW_W / 2} ${DRAW_H / 2}`);
-
-				svg.appendChild(p);
-				w.appendChild(svg);
-				canvas.appendChild(w);
-
-				currentPath = p;
-				selectedElement = w;
-				return;
-			}
-
-			/* ===== BARRE ===== */
-			if (placingBar) {
-				placingBar = false;
-
-				const b = document.createElement("div");
-				b.className = "bar";
-				b.style.left = x + "px";
-				b.style.top = nearestLine(y) + "px";
-				b.style.height = (5 * LINE_SPACING) + "px";
-
-				canvas.appendChild(b);
-				makeDraggable(b);
-				saveState();
-				return;
-			}
-
-			/* ===== SYMBOLE ===== */
-			if (tool === "place" && selected !== "__draw__") {
-				const s = document.createElement("div");
-				s.className = "symbol";
-				s.textContent = selected;
-				const f = localStorage.getItem("tablature_font");
-if(f) s.style.fontFamily = f;
-				s.style.left = x + "px";
-				s.style.top = snapY(y) + "px";
-
-				canvas.appendChild(s);
-				makeDraggable(s);
-				saveState();
-
-				// quitter le mode placer
-				tool = null;
-				toolPlace.classList.remove("active");
-
-				// retirer la surbrillance palette
-				document
-					.querySelectorAll(".palette-item")
-					.forEach(item => item.classList.remove("active"));
-			}
-
-		}, { passive: false });
-
-		canvas.addEventListener("touchmove", e => {
-			if (!drawing) return;
-			e.preventDefault();
-
-			const r = canvas.getBoundingClientRect();
-
-			const rawX = e.touches[0].clientX - r.left;
-			const rawY = e.touches[0].clientY - r.top + canvasWrapper.scrollTop;
-
-			const dx = rawX - drawStart.x + DRAW_W / 2;
-			const dy = rawY - drawStart.y + DRAW_H / 2;
-
-			const d = currentPath.getAttribute("d");
-			currentPath.setAttribute("d", d + ` L ${dx} ${dy}`);
-		}, { passive: false });
-
-		/* ===== ICI : CORRECTION MINIMALE ===== */
-		canvas.addEventListener("touchend", () => {
-			drawing = false;
-			currentPath = null;
-
-			if (selectedElement && selected === "__draw__") {
-				selectedElement.classList.remove("selected");
-				selectedElement = null;
-			}
-
-			saveState();
-		});
-
-		/* ================= DRAG ================= */
-		function makeDraggable(el) {
-			el.addEventListener("touchstart", e => {
-				if (tool !== "select" && !el.classList.contains("draw")) return;
-
-				pushUndo();
-
-				// sélection propre
-				if (selectedElement && selectedElement !== el) {
-					selectedElement.classList.remove("selected");
-				}
-
-				selectedElement = el;
-				el.classList.add("selected");
-				active = el;
-
-				// ⚠️ IMPORTANT : PAS de stopPropagation
-				// → permet au canvas de capter les touches sur le vide
-			}, { passive: false });
-
-			el.addEventListener("touchmove", e => {
-				if (!active) return;
-				e.preventDefault();
-
-				const r = canvas.getBoundingClientRect();
-
-				const x = (e.touches[0].clientX - r.left) / zoomLevel;
-				const y = (e.touches[0].clientY - r.top) / zoomLevel;
-
-				active.style.left = x + "px";
-				active.style.top = y + "px";
-			}, { passive: false });
-
-			el.addEventListener("touchend", () => {
-				active = null;
-				saveState();
-			});
-		}
-
-		/* ================= DELETE / CLEAR ================= */
-		deleteBtn.onclick = () => {
-			setTool("select");
-			if (!selectedElement) return;
-			pushUndo();
-			selectedElement.remove();
+canvas.addEventListener("touchstart", e => {
+	if (tool === "select" && !e.target.closest(".symbol, .bar, .draw")) {
+		if (selectedElement) {
+			selectedElement.classList.remove("selected");
 			selectedElement = null;
-			saveState();
-		};
-		clearAllBtn.onclick = () => {
-			if (!confirm("Effacer toute la tablature ?")) return;
-			pushUndo();
-			canvas.innerHTML = "";
-			lines.length = 0;
-			currentY = 40;
-			createInitialStructure();
-			saveState();
-		};
+		}
+	}
 
-		/* ================= BAR ================= */
-		addBar.onclick = () => {
-			placingBar = true;
-			setTool("place");
-		};
+	const { x, y } = getCanvasCoords(e.touches[0]);
 
-		/* ================= PALETTE ================= */
-		[
-			"a", "b", "c", "d", "e", "f", "g", "h", "j", "k",
-			"l", "m", "n",
-			"/a", "//a", "///a", "4", "5", "6",
-			",", ".", "⌒","⌣", "|", "✎"
-		].forEach(s => {
-			const p = document.createElement("div");
-			p.className = "palette-item";
-			p.textContent = s;
+	pushUndo();
 
-			p.onclick = () => {
+	if (selected === "__draw__") {
+		drawing = true;
+		drawStart = { x, y };
 
-				// 🔴 enlever toute surbrillance précédente
-				document
-					.querySelectorAll(".palette-item")
-					.forEach(item => item.classList.remove("active"));
+		const w = document.createElement("div");
+		w.className = "draw";
+		w.style.left = (x - DRAW_W / 2) + "px";
+		w.style.top  = (y - DRAW_H / 2) + "px";
 
-				// 🟢 mettre celle-ci en surbrillance
-				p.classList.add("active");
+		const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+		svg.setAttribute("width", DRAW_W);
+		svg.setAttribute("height", DRAW_H);
 
-				// logique existante
-				selected = (s === "✎") ? "__draw__" : s;
-				setTool("place");
-				if (selected === "__draw__") setLock(true);
-			};
+		const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+		p.setAttribute("d", `M ${DRAW_W / 2} ${DRAW_H / 2}`);
 
-			palette.appendChild(p);
-		});
+		svg.appendChild(p);
+		w.appendChild(svg);
+		canvas.appendChild(w);
 
-		/* ===== CUSTOM CHAR ===== */
-		const customInput = document.createElement("input");
-		customInput.id = "customChar";
-		customInput.placeholder = "✱";
-		customInput.maxLength = 3;
-		customInput.oninput = () => {
-			if (customInput.value.trim() !== "") {
-				selected = customInput.value.trim();
-				setTool("place");
+		currentPath = p;
+		selectedElement = w;
+		return;
+	}
+
+	if (placingBar) {
+		placingBar = false;
+		addBar.classList.remove("placing");
+
+		const topLine = firstLineOfSystem(y);
+		const b = document.createElement("div");
+		b.className = "bar";
+		b.style.left = x + "px";
+		b.style.top  = topLine + "px";
+		b.style.height = (5 * LINE_SPACING) + "px";
+
+		canvas.appendChild(b);
+		makeDraggable(b);
+		saveState();
+		haptic();
+		return;
+	}
+
+	if (tool === "place" && selected !== "__draw__") {
+		const snappedY = snapY(y);
+		const snappedX = snapToNearbySymbols(x, snappedY);
+
+		const s = document.createElement("div");
+		s.className = "symbol";
+		s.textContent = selected;
+		s.style.fontSize = currentFontSize + "px";
+
+		if (selected === "f") s.style.fontStyle = "italic";
+
+		const f = localStorage.getItem("tablature_font");
+		if (f) s.style.fontFamily = f;
+
+		const offset = symbolVerticalOffset(s);
+		s.style.left = snappedX + "px";
+		s.style.top  = (snappedY - offset) + "px";
+
+		canvas.appendChild(s);
+		makeDraggable(s);
+		flashConfirm(s);
+		saveState();
+		haptic();
+	}
+}, { passive: false });
+
+canvas.addEventListener("touchmove", e => {
+	if (!drawing) return;
+	e.preventDefault();
+
+	const { x, y } = getCanvasCoords(e.touches[0]);
+
+	const dx = x - drawStart.x + DRAW_W / 2;
+	const dy = y - drawStart.y + DRAW_H / 2;
+
+	const d = currentPath.getAttribute("d");
+	currentPath.setAttribute("d", d + ` L ${dx} ${dy}`);
+}, { passive: false });
+
+canvas.addEventListener("touchend", () => {
+	if (drawing) {
+		drawing = false;
+		currentPath = null;
+
+		if (selectedElement) {
+			makeDraggable(selectedElement);
+			selectedElement = null;
+		}
+
+		selected = "a";
+		tool = null;
+		toolPlace.classList.remove("active");
+		document.querySelectorAll(".palette-item").forEach(item =>
+			item.classList.remove("active")
+		);
+
+		saveState();
+	}
+});
+
+/* ================= DRAG ================= */
+function makeDraggable(el) {
+	el.addEventListener("touchstart", async e => {
+		if (tool !== "select") return;
+		e.preventDefault();
+
+		pushUndo();
+
+		if (selectedElement && selectedElement !== el) {
+			selectedElement.classList.remove("selected");
+		}
+
+		selectedElement = el;
+		el.classList.add("selected");
+		active = el;
+		haptic();
+
+		if (!dragLoupe) {
+			dragLoupe = document.createElement("div");
+			dragLoupe.className = "drag-loupe";
+
+			loupeCanvas = document.createElement("canvas");
+			loupeCanvas.width = 120;
+			loupeCanvas.height = 120;
+			loupeCtx = loupeCanvas.getContext("2d");
+
+			dragLoupe.appendChild(loupeCanvas);
+			document.body.appendChild(dragLoupe);
+
+			const cross = document.createElement("div");
+			cross.className = "loupe-cross";
+			dragLoupe.appendChild(cross);
+
+			const snap = await html2canvas(canvas, {
+				backgroundColor: getComputedStyle(canvas).backgroundColor,
+				scale: 2
+			});
+			loupeImage = snap;
+
+			if (!el.classList.contains("draw")) {
+				loupeChar = el.cloneNode(true);
+				loupeChar.classList.remove("selected");
+				loupeChar.classList.add("loupe-char");
+				dragLoupe.appendChild(loupeChar);
 			}
-		};
-		palette.appendChild(customInput);
-		/* ===== FONT SELECTOR ===== */
+		}
+	}, { passive: false });
+
+	el.addEventListener("touchmove", e => {
+		if (!active || !loupeImage) return;
+		e.preventDefault();
+
+		const t = e.touches[0];
+		const { x, y } = getCanvasCoords(t);
+		
+		const snappedY = snapY(y);
+		const snappedX = el.classList.contains("symbol")
+			? snapToNearbySymbols(x, snappedY)
+			: x;
+
+		if (active.classList.contains("symbol")) {
+			const offset = symbolVerticalOffset(active);
+			active.style.left = snappedX + "px";
+			active.style.top  = (snappedY - offset) + "px";
+		} else {
+			active.style.left = snappedX + "px";
+			active.style.top  = snappedY + "px";
+		}
+
+		dragLoupe.style.left = t.clientX + "px";
+		dragLoupe.style.top  = t.clientY + "px";
+
+		const scale = 2;
+		const srcSize = 50;
+
+		loupeCtx.clearRect(0, 0, 120, 120);
+		loupeCtx.drawImage(
+			loupeImage,
+			(x * scale) - (srcSize * scale) / 2,
+			(y * scale) - (srcSize * scale) / 2,
+			srcSize * scale,
+			srcSize * scale,
+			0, 0, 120, 120
+		);
+
+		if (loupeChar) {
+			loupeChar.textContent = el.textContent;
+		}
+	}, { passive: false });
+
+	el.addEventListener("touchend", () => {
+		if (dragLoupe) {
+			dragLoupe.remove();
+			dragLoupe = null;
+			loupeCanvas = null;
+			loupeCtx = null;
+			loupeImage = null;
+			loupeChar = null;
+		}
+		active = null;
+		saveState();
+	});
+}
+
+/* ================= DELETE / CLEAR ================= */
+deleteBtn.onclick = () => {
+	setTool("select");
+	if (!selectedElement) return;
+	pushUndo();
+	selectedElement.remove();
+	selectedElement = null;
+	saveState();
+	haptic();
+};
+
+clearAllBtn.onclick = () => {
+	if (!confirm("Effacer toute la tablature ?")) return;
+	pushUndo();
+	canvas.innerHTML = "";
+	lines.length = 0;
+	currentY = 40;
+	systemCount = 1;
+	createInitialStructure();
+	saveState();
+	haptic();
+};
+
+/* ================= BAR ================= */
+addBar.onclick = () => {
+	placingBar = true;
+	addBar.classList.add("placing");
+	setTool("place");
+	haptic();
+};
+
+/* ================= PALETTE ================= */
+[
+	"a","b","c","d","e","f","g","h","j","k",
+	"l","m","n",
+	"/a","//a","///a","4","5","6",
+	",",".","⌒","⌣","|","✎"
+].forEach(s => {
+	const p = document.createElement("div");
+	p.className = "palette-item";
+	p.textContent = s;
+
+	if (s === "f") {
+		p.style.fontStyle = "italic";
+	}
+
+	p.onclick = () => {
+		document.querySelectorAll(".palette-item")
+			.forEach(item => item.classList.remove("active"));
+
+		p.classList.add("active");
+		selected = (s === "✎") ? "__draw__" : s;
+		setTool("place");
+		haptic();
+	};
+
+	let touchStartX = 0;
+
+	p.addEventListener("touchstart", e => {
+		touchStartX = e.touches[0].clientX;
+	}, { passive: true });
+
+	p.addEventListener("touchend", e => {
+		// volontairement vide
+	}, { passive: true });
+
+	palette.appendChild(p);
+});
+
+const customInput = document.createElement("input");
+customInput.id = "customChar";
+customInput.placeholder = "✱";
+customInput.maxLength = 3;
+customInput.oninput = () => {
+	if (customInput.value.trim() !== "") {
+		selected = customInput.value.trim();
+		setTool("place");
+	}
+};
+palette.appendChild(customInput);
+
+/* ===== FONT SELECTOR ===== */
 const fontSelect = document.createElement("select");
 fontSelect.style.fontSize = "14px";
 fontSelect.style.marginLeft = "6px";
 
 const fonts = [
-  { name: "IM Fell English", value: "'IM Fell English', serif" },
-  { name: "IM Fell French Canon", value: "'IM Fell French Canon', serif" },
-  { name: "IM Fell DW Pica", value: "'IM Fell DW Pica', serif" },
-
-  { name: "Cormorant Garamond", value: "'Cormorant Garamond', serif" },
-  { name: "Libre Caslon Text", value: "'Libre Caslon Text', serif" },
-  { name: "Old Standard TT", value: "'Old Standard TT', serif" },
-  { name: "Sorts Mill Goudy", value: "'Sorts Mill Goudy', serif" },
-  { name: "Crimson Pro", value: "'Crimson Pro', serif" },
-  { name: "Spectral", value: "'Spectral', serif" },
-  { name: "Alegreya", value: "'Alegreya', serif" },
-
-  { name: "Almendra", value: "'Almendra', serif" },
-  { name: "Almendra SC", value: "'Almendra SC', serif" },
-  { name: "Cinzel", value: "'Cinzel', serif" },
-  { name: "Cinzel Decorative", value: "'Cinzel Decorative', serif" },
-
-  { name: "UnifrakturCook", value: "'UnifrakturCook', serif" },
-  { name: "UnifrakturMaguntia", value: "'UnifrakturMaguntia', serif" }
+	{ name: "IM Fell English", value: "'IM Fell English', serif" },
+	{ name: "IM Fell English Italic", value: "'IM Fell English', serif", italic: true },
+	{ name: "EB Garamond", value: "'EB Garamond', serif" },
+	{ name: "EB Garamond Italic", value: "'EB Garamond', serif", italic: true },
+	{ name: "Cormorant Garamond", value: "'Cormorant Garamond', serif" },
+	{ name: "Cormorant Italic", value: "'Cormorant Garamond', serif", italic: true },
+	{ name: "Libre Baskerville", value: "'Libre Baskerville', serif" },
+	{ name: "Libre Baskerville Italic", value: "'Libre Baskerville', serif", italic: true },
+	{ name: "Goudy Bookletter 1911", value: "'Goudy Bookletter 1911', serif" },
+	{ name: "UnifrakturCook", value: "'UnifrakturCook', cursive" },
+	{ name: "Italianno", value: "'Italianno', cursive" },
+	{ name: "Herr Von Muellerhoff", value: "'Herr Von Muellerhoff', cursive" },
+	{ name: "Cinzel", value: "'Cinzel', serif" },
+	{ name: "Playfair Display", value: "'Playfair Display', serif" },
+	{ name: "Tangerine", value: "'Tangerine', cursive" },
+	{ name: "Dancing Script", value: "'Dancing Script', cursive" },
+	{ name: "Great Vibes", value: "'Great Vibes', cursive" },
+	{ name: "Satisfy", value: "'Satisfy', cursive" },
+	{ name: "Permanent Marker", value: "'Permanent Marker', cursive" },
+	{ name: "Rock Salt", value: "'Rock Salt', cursive" }
 ];
 
 fonts.forEach(f => {
-  const opt = document.createElement("option");
-  opt.textContent = f.name;
-  opt.value = f.value;
-  fontSelect.appendChild(opt);
+	const opt = document.createElement("option");
+	opt.textContent = f.name;
+	opt.value = f.value;
+	fontSelect.appendChild(opt);
 });
 
 fontSelect.onchange = () => {
-  applyFont(fontSelect.value);
-  saveState();
+	const selectedFont = fonts[fontSelect.selectedIndex];
+	applyFont(selectedFont.value);
+	document.querySelectorAll(".symbol").forEach(el => {
+		el.style.fontStyle = selectedFont.italic ? "italic" : "normal";
+	});
+	saveState();
+	haptic();
 };
 
 palette.appendChild(fontSelect);
 
-document.getElementById("exportPDF").onclick = async () => {
+/* ===== FONT SIZE CONTROLS ===== */
+const fontSizeControls = document.createElement("div");
+fontSizeControls.className = "font-size-controls";
 
-  // élément à capturer
-  const target = document.getElementById("canvas-wrapper");
-
-  // masquer l’UI pendant l’export
-  const ui = [toolbar, palette, scrollButtons];
-  ui.forEach(el => el.style.display = "none");
-
-  // attendre un frame (important sur iOS)
-  await new Promise(r => requestAnimationFrame(r));
-
-  // capture haute qualité
-  const canvasImg = await html2canvas(target, {
-    scale: 2,           // qualité
-    backgroundColor: "#fff",
-    useCORS: true
-  });
-
-  // restaurer l’UI
-  ui.forEach(el => el.style.display = "");
-
-  // dimensions A4 en mm
-  const pdf = new jspdf.jsPDF("p", "mm", "a4");
-
-  const pageWidth = 210;
-  const pageHeight = 297;
-
-  const imgWidth = pageWidth;
-  const imgHeight = canvasImg.height * imgWidth / canvasImg.width;
-
-  // centrage vertical si besoin
-  const y = imgHeight < pageHeight
-    ? (pageHeight - imgHeight) / 2
-    : 0;
-
-  pdf.addImage(
-    canvasImg.toDataURL("image/jpeg", 1.0),
-    "JPEG",
-    0,
-    y,
-    imgWidth,
-    imgHeight
-  );
-
-  pdf.save("tablature-barok.pdf");
+const decreaseBtn = document.createElement("button");
+decreaseBtn.className = "font-size-btn";
+decreaseBtn.textContent = "-";
+decreaseBtn.onclick = () => {
+	if (currentFontSize > 12) {
+		applyFontSize(currentFontSize - 2);
+		saveState();
+		haptic();
+	}
 };
 
-		/* ================= INIT ================= */
-		restoreFromStorage();
-		pushUndo();
-	</script>
+const fontSizeDisplay = document.createElement("div");
+fontSizeDisplay.id = "fontSizeDisplay";
+fontSizeDisplay.textContent = currentFontSize + "px";
 
+const increaseBtn = document.createElement("button");
+increaseBtn.className = "font-size-btn";
+increaseBtn.textContent = "+";
+increaseBtn.onclick = () => {
+	if (currentFontSize < 50) {
+		applyFontSize(currentFontSize + 2);
+		saveState();
+		haptic();
+	}
+};
+
+fontSizeControls.appendChild(decreaseBtn);
+fontSizeControls.appendChild(fontSizeDisplay);
+fontSizeControls.appendChild(increaseBtn);
+palette.appendChild(fontSizeControls);
+
+/* ================= EXPORT PDF ================= */
+document.getElementById("exportPDF").onclick = () => {
+	document.getElementById("exportModal").classList.add("active");
+};
+
+async function confirmExport() {
+	const showNumbers = document.getElementById("showSystemNumbers").checked;
+
+	if (!showNumbers) {
+		document.querySelectorAll(".system-number").forEach(n => n.style.display = "none");
+	}
+
+	closeModal("exportModal");
+
+	saveCurrentPage();
+	const originalPage = currentPage;
+
+	const ui = [toolbar, palette];
+	ui.forEach(el => el.style.display = "none");
+
+	await new Promise(r => requestAnimationFrame(r));
+
+	const pdf = new jspdf.jsPDF("p", "mm", "a4");
+	const pageWidth = 210;
+	const y = 15;
+
+	const capture = async (pageNum, addPage) => {
+		if (!pages[pageNum]) return;
+
+		loadPage(pageNum);
+		await new Promise(r => setTimeout(r, 150));
+
+		const exportWrapper = document.createElement("div");
+		exportWrapper.style.background = getComputedStyle(document.body).backgroundColor;
+		exportWrapper.style.padding = "20px 24px";
+
+		const titleClone = printTitle.cloneNode(true);
+		titleClone.style.marginBottom = "16px";
+		exportWrapper.appendChild(titleClone);
+
+		const canvasClone = canvas.cloneNode(true);
+		exportWrapper.appendChild(canvasClone);
+
+		document.body.appendChild(exportWrapper);
+
+		const canvasImg = await html2canvas(exportWrapper, {
+			scale: 4,
+			backgroundColor: getComputedStyle(document.body).backgroundColor,
+			useCORS: true,
+			logging: false,
+			removeContainer: true
+		});
+
+		exportWrapper.remove();
+
+		const imgWidth = pageWidth;
+		const imgHeight = canvasImg.height * imgWidth / canvasImg.width;
+
+		if (addPage) pdf.addPage();
+
+		pdf.addImage(
+			canvasImg.toDataURL("image/png"),
+			"PNG",
+			0,
+			y,
+			imgWidth,
+			imgHeight
+		);
+	};
+
+	for (let i = 1; i <= pageCount; i++) {
+		await capture(i, i > 1);
+	}
+
+	loadPage(originalPage);
+	ui.forEach(el => el.style.display = "");
+
+	if (!showNumbers) {
+		document.querySelectorAll(".system-number").forEach(n => n.style.display = "");
+	}
+
+	pdf.save("tablature-barok.pdf");
+	haptic();
+}
+
+/* ================= UI DRAG VERTICAL ================= */
+function makeUIDraggableVertical(el, handleEl, storageKey) {
+	let startY = 0;
+	let startTop = 0;
+	let dragging = false;
+
+	handleEl.addEventListener("touchstart", e => {
+		startY = e.touches[0].clientY;
+		startTop = el.getBoundingClientRect().top;
+		dragging = true;
+		el.style.transition = "none";
+		e.stopPropagation();
+	}, { passive: false });
+
+	document.addEventListener("touchmove", e => {
+		if (!dragging) return;
+		e.preventDefault();
+
+		const dy = e.touches[0].clientY - startY;
+		let newTop = startTop + dy;
+
+		const minTop = 8;
+		const maxTop = window.innerHeight - el.offsetHeight - 8;
+		newTop = Math.max(minTop, Math.min(maxTop, newTop));
+
+		el.style.top = newTop + "px";
+		el.style.bottom = "auto";
+	}, { passive: false });
+
+	document.addEventListener("touchend", () => {
+		if (dragging) {
+			localStorage.setItem(storageKey, el.style.top);
+			el.style.transition = "";
+			dragging = false;
+		}
+	});
+}
+
+function restoreUIVerticalPosition(el, storageKey, defaultTop = null) {
+	const saved = localStorage.getItem(storageKey);
+	if (saved !== null) {
+		el.style.top = saved;
+		el.style.bottom = "auto";
+	} else if (defaultTop !== null) {
+		el.style.top = defaultTop;
+		el.style.bottom = "auto";
+	}
+}
+
+/* ================= INIT ================= */
+restoreFromStorage();
+renderPageNav();
+
+restoreUIVerticalPosition(toolbar, "toolbarY", "8px");
+restoreUIVerticalPosition(palette, "paletteY", null);
+
+makeUIDraggableVertical(toolbar, document.getElementById("toolbarHandle"), "toolbarY");
+makeUIDraggableVertical(palette, document.getElementById("paletteHandle"), "paletteY");
+
+pushUndo();
+</script>
 </body>
-
 </html>
