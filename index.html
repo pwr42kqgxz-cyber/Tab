@@ -845,7 +845,8 @@ loadBtn.onclick = () => {
 				pageCount = data.pageCount || 1;
 				Object.assign(pages, data.pages);
 
-				loadPage(1);
+currentPage = 0; // forcer le reload
+loadPage(1);
 				renderPageNav();
 				haptic();
 				alert("Tablature chargée !");
