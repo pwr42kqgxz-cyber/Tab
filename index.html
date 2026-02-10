@@ -10,7 +10,7 @@
 	<meta name="apple-mobile-web-app-capable" content="yes">
 	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-	<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;1,400&family=IM+Fell+English:ital@1&family=Tangerine:wght@700&display=swap" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;1,400&family=Tangerine:wght@700&display=swap" rel="stylesheet">
 
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -77,7 +77,7 @@ html, body {
 	padding: 0;
 	height: 100%;
 	width: 100%;
-	font-family: "EB Garamond", serif; /* Défaut système */
+	font-family: "EB Garamond", serif;
 	overflow: hidden;
 	background: var(--bg-color);
 	color: var(--text-color);
@@ -164,15 +164,10 @@ button.placing {
 }
 
 /* ===== CANVAS ===== */
-#canvas-wrapper {
+.symbol-wrapper {
 	position: absolute;
-	top: 80px;
-	bottom: 80px;
-	left: 0;
-	right: 0;
-	overflow: auto;
-	-webkit-overflow-scrolling: touch;
-	background: var(--bg-color);
+	pointer-events: auto;
+	z-index: 10;
 }
 
 #canvas {
@@ -206,7 +201,6 @@ button.placing {
 	margin: 10px 0 20px;
 	cursor: text;
 	color: var(--text-color);
-	/* FORCE LE TITRE EN EB GARAMOND NORMAL */
 	font-family: 'EB Garamond', serif !important;
 	font-style: normal !important;
 	font-weight: 400;
@@ -218,7 +212,7 @@ button.placing {
 	left: 0;
 	right: 0;
 	height: 1px;
-	z-index: 1; /* Ligne en dessous du texte */
+	z-index: 1;
 }
 
 .line.black {
@@ -239,29 +233,28 @@ button.placing {
 	pointer-events: none;
 }
 
-/* ===== SYMBOLS (CORRECTION CLIPPING) ===== */
+/* ===== SYMBOLS ===== */
 .symbol {
 	position: absolute;
-	font-size: 26px;
+	font-size: 40px;
 	white-space: nowrap;
-	
-	/* CORRECTION MAJEURE POUR LES GRANDES POLICES (Tangerine) */
-	line-height: normal; /* Laisse la hauteur naturelle de la police */
-	height: auto;        /* Pas de hauteur fixe qui coupe */
-	overflow: visible;   /* Autorise le débordement visuel */
-	padding: 10px 0;     /* Marge de sécurité pour les grandes boucles */
-	margin-top: -10px;   /* Compenstation du padding pour garder le centrage */
-	
+	line-height: normal;
+	height: auto;
+	overflow: visible;
+	padding: 10px 0;
+	margin-top: -10px;
 	transform: translateX(-50%);
 	color: var(--text-color);
 	text-rendering: geometricPrecision;
 	-webkit-font-smoothing: antialiased;
-	
-	z-index: 10; /* Le texte passe AU-DESSUS des lignes */
+	z-index: 10;
+	font-family: 'Tangerine', cursive !important;
+	font-weight: 700 !important;
+	font-style: normal !important;
 }
 
 .selected {
-	text-shadow: 0 0 5px var(--accent-color); /* Mieux que box-shadow pour les polices complexes */
+	text-shadow: 0 0 5px var(--accent-color);
 	color: var(--accent-color);
 }
 
@@ -291,6 +284,14 @@ button.placing {
 
 .system-bar.left { left: 0; }
 .system-bar.right { right: 0; }
+
+/* ===== BARRE FINALE ÉPAISSE ===== */
+.end-bar {
+	position: absolute;
+	width: 3px;
+	background: var(--line-color);
+	z-index: 2;
+}
 
 /* ===== PALETTE ===== */
 #palette {
@@ -331,7 +332,7 @@ button.placing {
 	border-radius: 6px;
 	padding: 0;
 	cursor: pointer;
-	font-family: 'Tangerine', cursive; /* Police par défaut de la palette */
+	font-family: 'Tangerine', cursive;
 	font-weight: bold;
 }
 
@@ -348,36 +349,6 @@ button.placing {
 	border: 1px solid var(--ui-border);
 	background: var(--ui-bg);
 	color: var(--ui-text);
-}
-
-/* ===== FONT SIZE CONTROLS ===== */
-.font-size-controls {
-	display: flex;
-	gap: 4px;
-	align-items: center;
-	margin-left: 6px;
-}
-
-.font-size-btn {
-	width: 28px;
-	height: 28px;
-	padding: 0;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	font-size: 16px;
-	font-weight: bold;
-}
-
-#fontSizeDisplay {
-	width: 40px;
-	text-align: center;
-	font-size: 14px;
-	border: 1px solid var(--ui-border);
-	background: var(--ui-bg);
-	color: var(--ui-text);
-	padding: 4px;
-	border-radius: 4px;
 }
 
 /* ===== LOUPE ===== */
@@ -492,6 +463,7 @@ button.placing {
 		<button id="deleteBtn">Effacer</button>
 		<button id="clearAllBtn">Tout effacer</button>
 		<button id="addBar">+ Barre</button>
+		<button id="addEndBar">🎵 Raccourcir</button>
 		<button id="addSystemBtn">+ Portée</button>
 		<button id="toggleSnap" class="active">Accroché</button>
 		<button id="themeBtn">Thème</button>
@@ -543,7 +515,7 @@ button.placing {
 	</div>
 
 <script>
-const VERSION = "tablature-barok-v2";
+const VERSION = "tablature-barok-v3";
 
 /* ================= DOM ================= */
 const toolbar = document.getElementById("toolbar");
@@ -559,6 +531,7 @@ const undoBtn = document.getElementById("undo");
 const deleteBtn = document.getElementById("deleteBtn");
 const clearAllBtn = document.getElementById("clearAllBtn");
 const addBar = document.getElementById("addBar");
+const addEndBar = document.getElementById("addEndBar");
 const toggleSnap = document.getElementById("toggleSnap");
 const editTitle = document.getElementById("editTitle");
 const toggleVGuides = document.getElementById("toggleVGuides");
@@ -581,6 +554,7 @@ let showVerticalGuides = false;
 let tool = "place";
 let snap = true;
 let placingBar = false;
+let placingEndBar = false;
 let selected = "a";
 let selectedElement = null;
 let active = null;
@@ -603,7 +577,7 @@ const DRAW_H = 100;
 const undoStack = [];
 const MAX_UNDO = 40;
 
-let currentFontSize = 26;
+const FIXED_FONT_SIZE = 40;
 const SNAP_THRESHOLD = 15;
 
 /* ================= HAPTIC FEEDBACK ================= */
@@ -680,7 +654,6 @@ saveBtn.onclick = () => {
 		created: new Date().toISOString(),
 		title: printTitle.textContent,
 		theme: document.documentElement.getAttribute("data-theme"),
-		fontSize: currentFontSize,
 		pageCount: pageCount,
 		pages: pages
 	};
@@ -708,13 +681,9 @@ loadBtn.onclick = () => {
 				const data = JSON.parse(event.target.result);
 				printTitle.textContent = data.title || "";
 				if (data.theme) applyTheme(data.theme);
-				if (data.fontSize) {
-					currentFontSize = data.fontSize;
-					updateFontSizeDisplay();
-				}
 				pageCount = data.pageCount || 1;
 				Object.assign(pages, data.pages);
-				currentPage = 0; // force reload
+				currentPage = 0;
 				loadPage(1);
 				renderPageNav();
 				haptic();
@@ -740,50 +709,11 @@ showUIBtn.onclick = () => {
 	showUIBtn.style.display = "none";
 };
 
-/* ================= FONT ================= */
-// Tableau nettoyé : uniquement les polices demandées
-const fontList = [
-	{ name: "Tangerine", value: "'Tangerine', cursive", italic: false },
-	{ name: "EB Garamond Italic", value: "'EB Garamond', serif", italic: true },
-	{ name: "IM Fell English Italic", value: "'IM Fell English', serif", italic: true }
-];
-
-let currentFont = fontList[0]; // Par défaut Tangerine
-
-function applyFont(fontObj) {
-	currentFont = fontObj;
-	// On n'applique PLUS la police au titre (il reste en EB Garamond Normal)
-	// On applique uniquement aux symboles de la tablature
-	document.querySelectorAll(".symbol").forEach(el => {
-		el.style.fontFamily = fontObj.value;
-		el.style.fontStyle = fontObj.italic ? "italic" : "normal";
-		// Reset fontWeight pour Tangerine qui est naturellement gras
-		el.style.fontWeight = (fontObj.name === "Tangerine") ? "700" : "normal";
-	});
-	localStorage.setItem("tablature_font_index", fontList.indexOf(fontObj));
-}
-
-function applyFontSize(size) {
-	currentFontSize = size;
-	document.querySelectorAll(".symbol").forEach(el => {
-		el.style.fontSize = size + "px";
-	});
-	localStorage.setItem("tablature_font_size", size);
-	updateFontSizeDisplay();
-}
-
-function updateFontSizeDisplay() {
-	const display = document.getElementById("fontSizeDisplay");
-	if (display) display.textContent = currentFontSize + "px";
-}
-
 /* ================= UNDO ================= */
 function serializeState() {
 	return JSON.stringify({
 		title: printTitle.textContent,
 		theme: document.documentElement.getAttribute("data-theme"),
-		fontSize: currentFontSize,
-		fontIndex: fontList.indexOf(currentFont),
 		systemCount: systemCount,
 		elements: [...canvas.children].map(el => {
 			if (el.classList.contains("draw")) {
@@ -798,7 +728,7 @@ function serializeState() {
 				left: el.style.left,
 				top: el.style.top,
 				height: el.style.height || "",
-				fontSize: el.style.fontSize || ""
+				width: el.style.width || ""
 			};
 		})
 	});
@@ -829,15 +759,6 @@ function restoreState(raw, save = true) {
 	printTitle.textContent = s.title || "Titre du Morceau";
 
 	if (s.theme) applyTheme(s.theme);
-	if (s.fontSize) {
-		currentFontSize = s.fontSize;
-		updateFontSizeDisplay();
-	}
-	if (s.fontIndex !== undefined && fontList[s.fontIndex]) {
-		currentFont = fontList[s.fontIndex];
-		// Mise à jour du selecteur
-		document.querySelector("select").selectedIndex = s.fontIndex;
-	}
 
 	s.elements.forEach(e => {
 		if (e.class === "draw") {
@@ -861,13 +782,9 @@ function restoreState(raw, save = true) {
 		el.style.left = e.left;
 		el.style.top = e.top;
 		if (e.height) el.style.height = e.height;
+		if (e.width) el.style.width = e.width;
 		
-		// Restaurer la police courante
 		if (el.classList.contains("symbol")) {
-			el.style.fontSize = e.fontSize || (currentFontSize + "px");
-			el.style.fontFamily = currentFont.value;
-			el.style.fontStyle = currentFont.italic ? "italic" : "normal";
-			el.style.fontWeight = (currentFont.name === "Tangerine") ? "700" : "normal";
 			makeDraggable(el);
 		}
 		
@@ -877,7 +794,7 @@ function restoreState(raw, save = true) {
 			lines.push(parseFloat(e.top));
 			currentY = parseFloat(e.top) + LINE_SPACING;
 		}
-		if (el.classList.contains("bar")) makeDraggable(el);
+		if (el.classList.contains("bar") || el.classList.contains("end-bar")) makeDraggable(el);
 	});
 	
 	if (showVerticalGuides) renderVerticalGuides();
@@ -888,12 +805,6 @@ function restoreFromStorage() {
 	const raw = localStorage.getItem("tablature_state");
 	if (raw) restoreState(raw, false);
 	else { createInitialStructure(); saveState(); }
-	
-	const savedFontIdx = localStorage.getItem("tablature_font_index");
-	if (savedFontIdx) {
-		const idx = parseInt(savedFontIdx);
-		if (fontList[idx]) applyFont(fontList[idx]);
-	}
 }
 
 /* ================= TITLE ================= */
@@ -1007,7 +918,6 @@ function snapToNearbySymbols(x, y) {
 	let minDist = SNAP_THRESHOLD;
 	symbols.forEach(sym => {
 		const symY = parseFloat(sym.style.top);
-		// Petite tolérance verticale pour trouver les voisins
 		if (Math.abs(symY - y) < LINE_SPACING * 3) {
 			const symX = parseFloat(sym.style.left);
 			const dist = Math.abs(symX - x);
@@ -1073,21 +983,16 @@ const SLASH_X_OFFSET = {
 
 /* ===== JITTER MANUSCRIT (POSE UNIQUEMENT) ===== */
 function applyJitter(el) {
-	const sizeJitter = (Math.random() * 0.8 - 0.4); // ±0.4px
-	const rotJitter  = (Math.random() * 0.6 - 0.3); // ±0.3°
+	const sizeJitter = (Math.random() * 0.8 - 0.4);
+	const rotJitter  = (Math.random() * 0.6 - 0.3);
 
-	// Taille légèrement variable
-	el.style.fontSize = (currentFontSize + sizeJitter) + "px";
-
-	// Rotation très légère
+	el.style.fontSize = (FIXED_FONT_SIZE + sizeJitter) + "px";
 	el.style.transform += ` rotate(${rotJitter}deg)`;
-
-	// Marqueur (sécurité : ne jamais rejitter)
 	el.dataset.jittered = "1";
 }
 
 function symbolVerticalOffset(char) {
-	let base = currentFontSize * 0.55;
+	let base = FIXED_FONT_SIZE * 0.55;
 
 	if (LETTER_VERTICAL_OFFSET[char]) {
 		base += LETTER_VERTICAL_OFFSET[char];
@@ -1097,7 +1002,7 @@ function symbolVerticalOffset(char) {
 }
 
 canvas.addEventListener("touchstart", e => {
-	if (tool === "select" && !e.target.closest(".symbol, .bar, .draw")) {
+	if (tool === "select" && !e.target.closest(".symbol, .bar, .end-bar, .draw")) {
 		if (selectedElement) {
 			selectedElement.classList.remove("selected");
 			selectedElement = null;
@@ -1133,7 +1038,26 @@ canvas.addEventListener("touchstart", e => {
 		return;
 	}
 
-	/* ===== MODE BARRE ===== */
+	/* ===== MODE BARRE FINALE (RACCOURCIR) ===== */
+	if (placingEndBar) {
+		placingEndBar = false;
+		addEndBar.classList.remove("placing");
+
+		const topLine = firstLineOfSystem(y);
+		const b = document.createElement("div");
+		b.className = "end-bar";
+		b.style.left = x + "px";
+		b.style.top  = topLine + "px";
+		b.style.height = (5 * LINE_SPACING) + "px";
+
+		canvas.appendChild(b);
+		makeDraggable(b);
+		saveState();
+		haptic();
+		return;
+	}
+
+	/* ===== MODE BARRE NORMALE ===== */
 	if (placingBar) {
 		placingBar = false;
 		addBar.classList.remove("placing");
@@ -1157,44 +1081,35 @@ canvas.addEventListener("touchstart", e => {
 		const snappedY = snapY(y);
 		const snappedX = snapToNearbySymbols(x, snappedY);
 
+		const w = document.createElement("div");
+		w.className = "symbol-wrapper";
+
+		const offset = symbolVerticalOffset(selected);
+		w.style.left = snappedX + "px";
+		w.style.top  = (snappedY - offset) + "px";
+
+		if (SLASH_X_OFFSET[selected]) {
+			w.style.transform =
+				`translateX(calc(-50% + ${SLASH_X_OFFSET[selected]}px))`;
+		} else {
+			w.style.transform = "translateX(-50%)";
+		}
+
 		const s = document.createElement("div");
 		s.className = "symbol";
 		s.textContent = selected;
 
-		s.style.fontSize = currentFontSize + "px";
-		s.style.fontFamily = currentFont.value;
-		s.style.fontStyle = currentFont.italic ? "italic" : "normal";
-		s.style.fontWeight = (currentFont.name === "Tangerine") ? "700" : "normal";
-
-		// OFFSET VERTICAL PAR GLYPHE
-		const offset = symbolVerticalOffset(s.textContent);
-		s.style.left = snappedX + "px";
-		s.style.top  = (snappedY - offset) + "px";
-
-		// OFFSET HORIZONTAL POUR /a //a ///a
-		if (SLASH_X_OFFSET[s.textContent]) {
-			s.style.transform =
-				`translateX(calc(-50% + ${SLASH_X_OFFSET[s.textContent]}px))`;
-		} else {
-			s.style.transform = "translateX(-50%)";
-		}
-
-		// JITTER MANUSCRIT (UNE SEULE FOIS, À LA POSE)
 		applyJitter(s);
 
-canvas.appendChild(s);
-makeDraggable(s);
+		w.appendChild(s);
+		canvas.appendChild(w);
+		makeDraggable(w);
 
-/* ===== FIX RENDU iOS (Tangerine grandes boucles) ===== */
-requestAnimationFrame(() => {
-	s.style.transform += " translateZ(0)";
-});
+		s.classList.add("flash");
+		setTimeout(() => s.classList.remove("flash"), 300);
 
-s.classList.add("flash");
-setTimeout(() => s.classList.remove("flash"), 300);
-
-saveState();
-haptic();
+		saveState();
+		haptic();
 	}
 }, { passive: false });
 
@@ -1258,7 +1173,6 @@ function makeDraggable(el) {
 			cross.className = "loupe-cross";
 			dragLoupe.appendChild(cross);
 			
-			// Capture propre pour la loupe
 			const snap = await html2canvas(canvas, {
 				backgroundColor: getComputedStyle(canvas).backgroundColor,
 				scale: 2,
@@ -1324,7 +1238,18 @@ clearAllBtn.onclick = () => {
 
 addBar.onclick = () => {
 	placingBar = true;
+	placingEndBar = false;
 	addBar.classList.add("placing");
+	addEndBar.classList.remove("placing");
+	setTool("place");
+	haptic();
+};
+
+addEndBar.onclick = () => {
+	placingEndBar = true;
+	placingBar = false;
+	addEndBar.classList.add("placing");
+	addBar.classList.remove("placing");
 	setTool("place");
 	haptic();
 };
@@ -1339,8 +1264,6 @@ addBar.onclick = () => {
 	const p = document.createElement("div");
 	p.className = "palette-item";
 	p.textContent = s;
-
-	// Plus de condition spéciale pour 'f' (il est traité normalement)
 
 	p.onclick = () => {
 		document.querySelectorAll(".palette-item").forEach(item => item.classList.remove("active"));
@@ -1363,46 +1286,6 @@ customInput.oninput = () => {
 	}
 };
 palette.appendChild(customInput);
-
-/* ===== FONT SELECTOR ===== */
-const fontSelect = document.createElement("select");
-fontSelect.style.fontSize = "14px";
-fontSelect.style.marginLeft = "6px";
-
-fontList.forEach((f, index) => {
-	const opt = document.createElement("option");
-	opt.textContent = f.name;
-	opt.value = index;
-	fontSelect.appendChild(opt);
-});
-
-fontSelect.onchange = () => {
-	const selectedFont = fontList[fontSelect.value];
-	applyFont(selectedFont);
-	saveState();
-	haptic();
-};
-palette.appendChild(fontSelect);
-
-/* ===== FONT SIZE CONTROLS ===== */
-const fontSizeControls = document.createElement("div");
-fontSizeControls.className = "font-size-controls";
-const decreaseBtn = document.createElement("button");
-decreaseBtn.className = "font-size-btn";
-decreaseBtn.textContent = "-";
-decreaseBtn.onclick = () => { if (currentFontSize > 12) { applyFontSize(currentFontSize - 2); saveState(); haptic(); } };
-const fontSizeDisplay = document.createElement("div");
-fontSizeDisplay.id = "fontSizeDisplay";
-fontSizeDisplay.textContent = currentFontSize + "px";
-const increaseBtn = document.createElement("button");
-increaseBtn.className = "font-size-btn";
-increaseBtn.textContent = "+";
-increaseBtn.onclick = () => { if (currentFontSize < 50) { applyFontSize(currentFontSize + 2); saveState(); haptic(); } };
-
-fontSizeControls.appendChild(decreaseBtn);
-fontSizeControls.appendChild(fontSizeDisplay);
-fontSizeControls.appendChild(increaseBtn);
-palette.appendChild(fontSizeControls);
 
 /* ================= EXPORT PDF ================= */
 document.getElementById("exportPDF").onclick = () => document.getElementById("exportModal").classList.add("active");
