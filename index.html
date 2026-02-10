@@ -774,6 +774,8 @@ function serializeState() {
 			
 			// Forcer pour les symboles
 			if (el.classList.contains("symbol")) {
+				data.fontSize = "40px";
+				data.fontFamily = "'Tangerine', cursive";
 				data.fontWeight = "700";
 			}
 			
@@ -794,12 +796,14 @@ undoBtn.onclick = () => {
 };
 
 /* ================= PERSISTENCE ================= */
+
 function saveState() {
 	localStorage.setItem("tablature_state", serializeState());
 }
 
 function restoreState(raw, save = true) {
 	const s = typeof raw === "string" ? JSON.parse(raw) : raw;
+
 	canvas.innerHTML = "";
 	lines.length = 0;
 	currentY = 40;
@@ -807,20 +811,27 @@ function restoreState(raw, save = true) {
 	printTitle.textContent = s.title || "Titre du Morceau";
 
 	if (s.theme) applyTheme(s.theme);
-	
-	// Restaurer les limites des systèmes
-	Object.keys(systemEnds).forEach(key => delete systemEnds[key]);
+
+	/* ===== RESTAURATION DES RACCOURCIS ===== */
+	Object.keys(systemEnds).forEach(k => delete systemEnds[k]);
 	Object.assign(systemEnds, s.systemEnds || {});
 
 	s.elements.forEach(e => {
+
+		/* ===== DESSIN ===== */
 		if (e.class === "draw") {
 			const w = document.createElement("div");
 			w.className = "draw";
-			w.style.left = e.left; w.style.top = e.top;
+			w.style.left = e.left;
+			w.style.top = e.top;
+
 			const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-			svg.setAttribute("width", DRAW_W); svg.setAttribute("height", DRAW_H);
+			svg.setAttribute("width", DRAW_W);
+			svg.setAttribute("height", DRAW_H);
+
 			const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
 			p.setAttribute("d", e.d);
+
 			svg.appendChild(p);
 			w.appendChild(svg);
 			canvas.appendChild(w);
@@ -828,37 +839,54 @@ function restoreState(raw, save = true) {
 			return;
 		}
 
+		/* ===== SYMBOLE (WRAPPER OBLIGATOIRE) ===== */
+		if (e.class === "symbol-wrapper") {
+			const w = document.createElement("div");
+			w.className = "symbol-wrapper";
+			w.style.left = e.left;
+			w.style.top = e.top;
+			if (e.systemId) w.dataset.systemId = e.systemId;
+
+			const sEl = document.createElement("div");
+			sEl.className = "symbol";
+			sEl.textContent = e.text;
+
+			/* 🔒 FORÇAGE ABSOLU — IDENTIQUE À LA POSE */
+			sEl.style.fontFamily = "'Tangerine', cursive";
+			sEl.style.fontSize = "40px";
+			sEl.style.fontWeight = "700";
+			sEl.style.fontStyle = "normal";
+
+			w.appendChild(sEl);
+			canvas.appendChild(w);
+			makeDraggable(w);
+			return;
+		}
+
+		/* ===== AUTRES ÉLÉMENTS (LIGNES / BARRES / ETC.) ===== */
 		const el = document.createElement("div");
 		el.className = e.class;
-		el.textContent = e.text;
+		el.textContent = e.text || "";
 		el.style.left = e.left;
 		el.style.top = e.top;
+
 		if (e.height) el.style.height = e.height;
 		if (e.width) el.style.width = e.width;
 		if (e.right) el.style.right = e.right;
 		if (e.systemId) el.dataset.systemId = e.systemId;
-		
-		// FORCER Tangerine 40px pour les symboles
-		if (el.classList.contains("symbol")) {
-			el.style.fontSize = "40px";
-			el.style.fontFamily = "'Tangerine', cursive";
-			el.style.fontWeight = "700";
-			el.style.fontStyle = "normal";
-			makeDraggable(el);
-		}
-		
+
 		canvas.appendChild(el);
 
 		if (el.classList.contains("line")) {
 			lines.push(parseFloat(e.top));
 			currentY = parseFloat(e.top) + LINE_SPACING;
 		}
-		
+
 		if (el.classList.contains("bar") || el.classList.contains("end-bar")) {
 			makeDraggable(el);
 		}
 	});
-	
+
 	if (showVerticalGuides) renderVerticalGuides();
 	if (save) saveState();
 }
@@ -866,7 +894,10 @@ function restoreState(raw, save = true) {
 function restoreFromStorage() {
 	const raw = localStorage.getItem("tablature_state");
 	if (raw) restoreState(raw, false);
-	else { createInitialStructure(); saveState(); }
+	else {
+		createInitialStructure();
+		saveState();
+	}
 }
 
 /* ================= TITLE ================= */
@@ -1152,8 +1183,7 @@ function applyJitter(el) {
 	const sizeJitter = (Math.random() * 0.8 - 0.4);
 	const rotJitter  = (Math.random() * 0.6 - 0.3);
 
-el.style.fontSize = FIXED_FONT_SIZE + "px";
-el.style.transform += ` rotate(${rotJitter}deg)`;
+	el.style.fontSize = (FIXED_FONT_SIZE + sizeJitter) + "px";
 	el.style.transform += ` rotate(${rotJitter}deg)`;
 	el.dataset.jittered = "1";
 }
@@ -1575,10 +1605,8 @@ function restoreUIVerticalPosition(el, storageKey, defaultTop) {
 }
 
 /* ================= INIT ================= */
-document.fonts.ready.then(() => {
-	restoreFromStorage();
-	renderPageNav();
-});
+restoreFromStorage();
+renderPageNav();
 restoreUIVerticalPosition(toolbar, "toolbarY", "8px");
 restoreUIVerticalPosition(palette, "paletteY", null);
 makeUIDraggableVertical(toolbar, document.getElementById("toolbarHandle"), "toolbarY");
