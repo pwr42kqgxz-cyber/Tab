@@ -5,15 +5,15 @@
 	<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 	<meta http-equiv="Pragma" content="no-cache">
 	<meta http-equiv="Expires" content="0">
-	<title>Tablature baroque</title>
+	<title>Tablature Luth Baroque</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 	<meta name="apple-mobile-web-app-capable" content="yes">
 	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=EB+Garamond:ital@0;1&family=Cormorant+Garamond:ital@0;1&family=Libre+Baskerville:ital@0;1&family=Goudy+Bookletter+1911&family=UnifrakturCook:ital@0;1&family=Italianno&family=Herr+Von+Muellerhoff&family=Cinzel:wght@400;700&family=Playfair+Display:ital@0;1&family=Tangerine:wght@400;700&family=Dancing+Script:wght@400;700&family=Great+Vibes&family=Satisfy&family=Permanent+Marker&family=Rock+Salt&display=swap" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;1,400&family=IM+Fell+English:ital@1&family=Tangerine:wght@700&display=swap" rel="stylesheet">
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
 :root {
@@ -77,7 +77,7 @@ html, body {
 	padding: 0;
 	height: 100%;
 	width: 100%;
-	font-family: "IM Fell English", serif;
+	font-family: "EB Garamond", serif; /* Défaut système */
 	overflow: hidden;
 	background: var(--bg-color);
 	color: var(--text-color);
@@ -125,11 +125,6 @@ html, body {
 	letter-spacing: 4px;
 }
 
-.drag-handle:active {
-	cursor: grabbing;
-	opacity: 0.8;
-}
-
 button {
 	padding: 6px 10px;
 	border: 1px solid var(--ui-border);
@@ -158,12 +153,6 @@ button.placing {
 @keyframes pulse {
 	0%, 100% { opacity: 1; }
 	50% { opacity: 0.6; }
-}
-
-#bgColor {
-	width: 34px;
-	height: 34px;
-	border: 1px solid var(--ui-border);
 }
 
 #showUIBtn {
@@ -210,22 +199,17 @@ button.placing {
 	vector-effect: non-scaling-stroke;
 }
 
-.draw svg, .draw path {
-	pointer-events: none;
-	shape-rendering: geometricPrecision;
-}
-
-.draw.selected {
-	outline: 2px dashed var(--accent-color);
-}
-
 /* ===== TITLE ===== */
 #print-title {
 	text-align: center;
-	font-size: 28px;
-	margin: 10px 0 10px;
+	font-size: 32px;
+	margin: 10px 0 20px;
 	cursor: text;
 	color: var(--text-color);
+	/* FORCE LE TITRE EN EB GARAMOND NORMAL */
+	font-family: 'EB Garamond', serif !important;
+	font-style: normal !important;
+	font-weight: 400;
 }
 
 /* ===== LINES ===== */
@@ -234,6 +218,7 @@ button.placing {
 	left: 0;
 	right: 0;
 	height: 1px;
+	z-index: 1; /* Ligne en dessous du texte */
 }
 
 .line.black {
@@ -242,10 +227,6 @@ button.placing {
 
 .line.white {
 	background: transparent;
-}
-
-.line.hidden-after-end {
-	display: none;
 }
 
 /* ===== SYSTEM NUMBER ===== */
@@ -258,35 +239,36 @@ button.placing {
 	pointer-events: none;
 }
 
-.system-number.hidden-after-end {
-	display: none;
-}
-
-/* ===== SYMBOLS ===== */
+/* ===== SYMBOLS (CORRECTION CLIPPING) ===== */
 .symbol {
 	position: absolute;
 	font-size: 26px;
 	white-space: nowrap;
-	line-height: 1.2;
-	padding: 0 0.15em;
-	will-change: transform;
-	backface-visibility: hidden;
+	
+	/* CORRECTION MAJEURE POUR LES GRANDES POLICES (Tangerine) */
+	line-height: normal; /* Laisse la hauteur naturelle de la police */
+	height: auto;        /* Pas de hauteur fixe qui coupe */
+	overflow: visible;   /* Autorise le débordement visuel */
+	padding: 10px 0;     /* Marge de sécurité pour les grandes boucles */
+	margin-top: -10px;   /* Compenstation du padding pour garder le centrage */
+	
 	transform: translateX(-50%);
-	line-height: 1;
 	color: var(--text-color);
 	text-rendering: geometricPrecision;
 	-webkit-font-smoothing: antialiased;
+	
+	z-index: 10; /* Le texte passe AU-DESSUS des lignes */
 }
 
 .selected {
-	box-shadow: 0 0 0 2px var(--accent-color);
-	background: rgba(128, 128, 128, 0.1);
+	text-shadow: 0 0 5px var(--accent-color); /* Mieux que box-shadow pour les polices complexes */
+	color: var(--accent-color);
 }
 
 /* ===== FLASH CONFIRMATION ===== */
 @keyframes flash {
-	0% { background: rgba(128, 128, 128, 0.6); }
-	100% { background: transparent; }
+	0% { opacity: 0.2; }
+	100% { opacity: 1; }
 }
 
 .flash {
@@ -298,15 +280,7 @@ button.placing {
 	position: absolute;
 	width: 1px;
 	background: var(--line-color);
-}
-
-.bar::before {
-	content: "";
-	position: absolute;
-	left: -12px;
-	right: -12px;
-	top: 0;
-	bottom: 0;
+	z-index: 2;
 }
 
 .system-bar {
@@ -315,17 +289,8 @@ button.placing {
 	background: var(--line-color);
 }
 
-.system-bar.left {
-	left: 0;
-}
-
-.system-bar.right {
-	right: 0;
-}
-
-.system-bar.hidden-after-end {
-	display: none;
-}
+.system-bar.left { left: 0; }
+.system-bar.right { right: 0; }
 
 /* ===== PALETTE ===== */
 #palette {
@@ -343,7 +308,7 @@ button.placing {
 	border: 1px solid var(--ui-border);
 	border-radius: 8px;
 	box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-	z-index: 10;
+	z-index: 30;
 	flex-wrap: nowrap;
 	overflow-x: auto;
 	overflow-y: hidden;
@@ -358,7 +323,7 @@ button.placing {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	font-size: 22px;
+	font-size: 24px;
 	line-height: 1;
 	border: 1px solid var(--ui-border);
 	background: var(--ui-bg);
@@ -366,15 +331,13 @@ button.placing {
 	border-radius: 6px;
 	padding: 0;
 	cursor: pointer;
+	font-family: 'Tangerine', cursive; /* Police par défaut de la palette */
+	font-weight: bold;
 }
 
 .palette-item.active {
 	background: var(--accent-color);
 	color: white;
-}
-
-.palette-item.hidden {
-	display: none;
 }
 
 #customChar {
@@ -437,17 +400,6 @@ button.placing {
 	height: 100%;
 }
 
-.drag-loupe .loupe-char {
-	position: absolute;
-	left: 50%;
-	top: 50%;
-	transform: translate(-50%, -50%) scale(1.8);
-	pointer-events: none;
-	font-size: 26px;
-	line-height: 1;
-	color: var(--text-color);
-}
-
 .loupe-cross {
 	position: absolute;
 	left: 50%;
@@ -466,31 +418,16 @@ button.placing {
 	opacity: 0.7;
 }
 
-.loupe-cross::before {
-	left: 0;
-	top: 50%;
-	width: 100%;
-	height: 1px;
-	transform: translateY(-50%);
-}
-
-.loupe-cross::after {
-	top: 0;
-	left: 50%;
-	width: 1px;
-	height: 100%;
-	transform: translateX(-50%);
-}
+.loupe-cross::before { left: 0; top: 50%; width: 100%; height: 1px; transform: translateY(-50%); }
+.loupe-cross::after { top: 0; left: 50%; width: 1px; height: 100%; transform: translateX(-50%); }
 
 .vertical-guide {
 	position: absolute;
-	top: 0;
-	bottom: 0;
-	width: 1px;
+	top: 0; bottom: 0; width: 1px;
 	background: var(--line-color);
 	opacity: 0.15;
 	pointer-events: none;
-	z-index: 1;
+	z-index: 0;
 }
 
 /* ===== MODAL ===== */
@@ -504,9 +441,7 @@ button.placing {
 	justify-content: center;
 }
 
-.modal.active {
-	display: flex;
-}
+.modal.active { display: flex; }
 
 .modal-content {
 	background: var(--ui-bg);
@@ -516,11 +451,6 @@ button.placing {
 	max-width: 90%;
 	max-height: 80%;
 	overflow: auto;
-}
-
-.modal-content h3 {
-	margin-top: 0;
-	color: var(--ui-text);
 }
 
 .modal-buttons {
@@ -545,41 +475,10 @@ button.placing {
 	-webkit-text-fill-color: white;
 }
 
-/* ===== RESPONSIVE LANDSCAPE ===== */
+/* ===== RESPONSIVE ===== */
 @media screen and (orientation: landscape) {
-	#toolbar {
-		flex-wrap: nowrap;
-		overflow-x: auto;
-	}
-
-	#canvas-wrapper {
-		top: 60px;
-		bottom: 70px;
-	}
-}
-
-/* ===== RESPONSIVE IPHONE ===== */
-@media screen and (max-width: 428px) {
-	button {
-		font-size: 12px;
-		padding: 4px 8px;
-	}
-
-	.palette-item {
-		width: 32px;
-		height: 32px;
-		font-size: 18px;
-	}
-
-	#customChar {
-		width: 50px;
-		font-size: 18px;
-	}
-
-	#toolbar {
-		padding: 4px 6px;
-		gap: 4px;
-	}
+	#toolbar { flex-wrap: nowrap; overflow-x: auto; }
+	#canvas-wrapper { top: 60px; bottom: 70px; }
 }
 </style>
 </head>
@@ -606,7 +505,7 @@ button.placing {
 	</div>
 
 	<div id="canvas-wrapper">
-		<div id="print-title"></div>
+		<div id="print-title">Titre du Morceau</div>
 		<div id="canvas"></div>
 	</div>
 
@@ -644,7 +543,7 @@ button.placing {
 	</div>
 
 <script>
-const VERSION = "tablature-barok-v1";
+const VERSION = "tablature-barok-v2";
 
 /* ================= DOM ================= */
 const toolbar = document.getElementById("toolbar");
@@ -689,7 +588,6 @@ let active = null;
 let dragLoupe = null;
 let loupeCanvas = null;
 let loupeCtx = null;
-let loupeChar = null;
 let loupeImage = null;
 
 let currentY = 40;
@@ -699,7 +597,6 @@ const lines = [];
 let drawing = false;
 let currentPath = null;
 let drawStart = { x: 0, y: 0 };
-
 const DRAW_W = 120;
 const DRAW_H = 100;
 
@@ -709,13 +606,9 @@ const MAX_UNDO = 40;
 let currentFontSize = 26;
 const SNAP_THRESHOLD = 15;
 
-let hiddenFonts = JSON.parse(localStorage.getItem("hidden_fonts") || "[]");
-
 /* ================= HAPTIC FEEDBACK ================= */
 function haptic() {
-	if (navigator.vibrate) {
-		navigator.vibrate(10);
-	}
+	if (navigator.vibrate) navigator.vibrate(10);
 }
 
 /* ================= THEME ================= */
@@ -726,33 +619,22 @@ function applyTheme(themeName) {
 	haptic();
 }
 
-themeBtn.onclick = () => {
-	document.getElementById("themeModal").classList.add("active");
-};
+themeBtn.onclick = () => document.getElementById("themeModal").classList.add("active");
 
-function closeModal(id) {
-	document.getElementById(id).classList.remove("active");
-}
+function closeModal(id) { document.getElementById(id).classList.remove("active"); }
 
 document.addEventListener("click", e => {
-	if (e.target.classList.contains("modal")) {
-		e.target.classList.remove("active");
-	}
+	if (e.target.classList.contains("modal")) e.target.classList.remove("active");
 });
 
 /* ================= PAGE MANAGEMENT ================= */
 function renderPageNav() {
 	pageNav.innerHTML = "";
-
 	for (let i = 1; i <= pageCount; i++) {
 		const btn = document.createElement("button");
 		btn.className = "page-btn";
 		btn.textContent = "Page " + i;
-
-		if (i === currentPage) {
-			btn.classList.add("active");
-		}
-
+		if (i === currentPage) btn.classList.add("active");
 		btn.onclick = () => loadPage(i);
 		pageNav.appendChild(btn);
 	}
@@ -772,10 +654,8 @@ function saveCurrentPage() {
 
 function loadPage(n) {
 	if (n === currentPage) return;
-
 	saveCurrentPage();
 	currentPage = n;
-
 	if (pages[n]) {
 		restoreState(pages[n], false);
 	} else {
@@ -788,7 +668,6 @@ function loadPage(n) {
 		createInitialStructure();
 		saveCurrentPage();
 	}
-
 	renderPageNav();
 	haptic();
 }
@@ -796,7 +675,6 @@ function loadPage(n) {
 /* ================= SAVE / LOAD ================= */
 saveBtn.onclick = () => {
 	saveCurrentPage();
-	
 	const data = {
 		version: VERSION,
 		created: new Date().toISOString(),
@@ -806,7 +684,6 @@ saveBtn.onclick = () => {
 		pageCount: pageCount,
 		pages: pages
 	};
-
 	const json = JSON.stringify(data, null, 2);
 	const blob = new Blob([json], { type: "application/json" });
 	const url = URL.createObjectURL(blob);
@@ -825,28 +702,20 @@ loadBtn.onclick = () => {
 	input.onchange = e => {
 		const file = e.target.files[0];
 		if (!file) return;
-
 		const reader = new FileReader();
 		reader.onload = event => {
 			try {
 				const data = JSON.parse(event.target.result);
-				
-				if (data.version !== VERSION) {
-					alert("Version différente, chargement avec compatibilité limitée");
-				}
-
 				printTitle.textContent = data.title || "";
 				if (data.theme) applyTheme(data.theme);
 				if (data.fontSize) {
 					currentFontSize = data.fontSize;
 					updateFontSizeDisplay();
 				}
-
 				pageCount = data.pageCount || 1;
 				Object.assign(pages, data.pages);
-
-currentPage = 0; // forcer le reload
-loadPage(1);
+				currentPage = 0; // force reload
+				loadPage(1);
 				renderPageNav();
 				haptic();
 				alert("Tablature chargée !");
@@ -859,21 +728,12 @@ loadPage(1);
 	input.click();
 };
 
-/* ================= DOUBLE TAP BLOCK (iOS) ================= */
-let lastTouch = 0;
-document.addEventListener("touchend", e => {
-	const now = Date.now();
-	if (now - lastTouch <= 300) e.preventDefault();
-	lastTouch = now;
-}, { passive: false });
-
 /* ================= UI VISIBILITY ================= */
 toggleUI.onclick = () => {
 	toolbar.style.display = "none";
 	palette.style.display = "none";
 	showUIBtn.style.display = "block";
 };
-
 showUIBtn.onclick = () => {
 	toolbar.style.display = "";
 	palette.style.display = "";
@@ -881,12 +741,26 @@ showUIBtn.onclick = () => {
 };
 
 /* ================= FONT ================= */
-function applyFont(font) {
-	printTitle.style.fontFamily = font;
+// Tableau nettoyé : uniquement les polices demandées
+const fontList = [
+	{ name: "Tangerine", value: "'Tangerine', cursive", italic: false },
+	{ name: "EB Garamond Italic", value: "'EB Garamond', serif", italic: true },
+	{ name: "IM Fell English Italic", value: "'IM Fell English', serif", italic: true }
+];
+
+let currentFont = fontList[0]; // Par défaut Tangerine
+
+function applyFont(fontObj) {
+	currentFont = fontObj;
+	// On n'applique PLUS la police au titre (il reste en EB Garamond Normal)
+	// On applique uniquement aux symboles de la tablature
 	document.querySelectorAll(".symbol").forEach(el => {
-		el.style.fontFamily = font;
+		el.style.fontFamily = fontObj.value;
+		el.style.fontStyle = fontObj.italic ? "italic" : "normal";
+		// Reset fontWeight pour Tangerine qui est naturellement gras
+		el.style.fontWeight = (fontObj.name === "Tangerine") ? "700" : "normal";
 	});
-	localStorage.setItem("tablature_font", font);
+	localStorage.setItem("tablature_font_index", fontList.indexOf(fontObj));
 }
 
 function applyFontSize(size) {
@@ -909,13 +783,12 @@ function serializeState() {
 		title: printTitle.textContent,
 		theme: document.documentElement.getAttribute("data-theme"),
 		fontSize: currentFontSize,
+		fontIndex: fontList.indexOf(currentFont),
 		systemCount: systemCount,
 		elements: [...canvas.children].map(el => {
 			if (el.classList.contains("draw")) {
 				return {
-					class: "draw",
-					left: el.style.left,
-					top: el.style.top,
+					class: "draw", left: el.style.left, top: el.style.top,
 					d: el.querySelector("path").getAttribute("d")
 				};
 			}
@@ -953,26 +826,26 @@ function restoreState(raw, save = true) {
 	lines.length = 0;
 	currentY = 40;
 	systemCount = s.systemCount || 1;
-	printTitle.textContent = s.title || "";
+	printTitle.textContent = s.title || "Titre du Morceau";
 
 	if (s.theme) applyTheme(s.theme);
-
 	if (s.fontSize) {
 		currentFontSize = s.fontSize;
 		updateFontSizeDisplay();
+	}
+	if (s.fontIndex !== undefined && fontList[s.fontIndex]) {
+		currentFont = fontList[s.fontIndex];
+		// Mise à jour du selecteur
+		document.querySelector("select").selectedIndex = s.fontIndex;
 	}
 
 	s.elements.forEach(e => {
 		if (e.class === "draw") {
 			const w = document.createElement("div");
 			w.className = "draw";
-			w.style.left = e.left;
-			w.style.top = e.top;
-
+			w.style.left = e.left; w.style.top = e.top;
 			const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-			svg.setAttribute("width", DRAW_W);
-			svg.setAttribute("height", DRAW_H);
-
+			svg.setAttribute("width", DRAW_W); svg.setAttribute("height", DRAW_H);
 			const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
 			p.setAttribute("d", e.d);
 			svg.appendChild(p);
@@ -988,42 +861,39 @@ function restoreState(raw, save = true) {
 		el.style.left = e.left;
 		el.style.top = e.top;
 		if (e.height) el.style.height = e.height;
-		if (e.fontSize) el.style.fontSize = e.fontSize;
+		
+		// Restaurer la police courante
+		if (el.classList.contains("symbol")) {
+			el.style.fontSize = e.fontSize || (currentFontSize + "px");
+			el.style.fontFamily = currentFont.value;
+			el.style.fontStyle = currentFont.italic ? "italic" : "normal";
+			el.style.fontWeight = (currentFont.name === "Tangerine") ? "700" : "normal";
+			makeDraggable(el);
+		}
+		
 		canvas.appendChild(el);
 
 		if (el.classList.contains("line")) {
 			lines.push(parseFloat(e.top));
 			currentY = parseFloat(e.top) + LINE_SPACING;
 		}
-		if (el.classList.contains("symbol") || el.classList.contains("bar")) {
-			makeDraggable(el);
-		}
+		if (el.classList.contains("bar")) makeDraggable(el);
 	});
 	
 	if (showVerticalGuides) renderVerticalGuides();
-
 	if (save) saveState();
 }
 
 function restoreFromStorage() {
 	const raw = localStorage.getItem("tablature_state");
-	if (raw) {
-		restoreState(raw, false);
-	} else {
-		createInitialStructure();
-		saveState();
-	}
-	const savedFont = localStorage.getItem("tablature_font");
-	if (savedFont) applyFont(savedFont);
+	if (raw) restoreState(raw, false);
+	else { createInitialStructure(); saveState(); }
 	
-	const savedSize = localStorage.getItem("tablature_font_size");
-	if (savedSize) {
-		currentFontSize = parseInt(savedSize);
-		updateFontSizeDisplay();
+	const savedFontIdx = localStorage.getItem("tablature_font_index");
+	if (savedFontIdx) {
+		const idx = parseInt(savedFontIdx);
+		if (fontList[idx]) applyFont(fontList[idx]);
 	}
-
-	const savedTheme = localStorage.getItem("theme");
-	if (savedTheme) applyTheme(savedTheme);
 }
 
 /* ================= TITLE ================= */
@@ -1044,12 +914,8 @@ function setTool(t) {
 }
 
 toolPlace.onclick = () => {
-	if (tool === "place") {
-		tool = null;
-		toolPlace.classList.remove("active");
-	} else {
-		setTool("place");
-	}
+	if (tool === "place") { tool = null; toolPlace.classList.remove("active"); }
+	else setTool("place");
 	haptic();
 };
 
@@ -1081,13 +947,9 @@ function addLine(type) {
 	l.className = "line " + type;
 	l.style.top = currentY + "px";
 	canvas.appendChild(l);
-
 	lines.push(currentY);
 	currentY += LINE_SPACING;
-
-	if (currentY + 100 > canvas.offsetHeight) {
-		canvas.style.minHeight = (currentY + 200) + "px";
-	}
+	if (currentY + 100 > canvas.offsetHeight) canvas.style.minHeight = (currentY + 200) + "px";
 }
 
 function addSystemSideBars(startY, systemNum) {
@@ -1112,74 +974,42 @@ function addSystemSideBars(startY, systemNum) {
 }
 
 function createInitialStructure() {
-	addLine("white");
-	addLine("white");
-
+	addLine("white"); addLine("white");
 	const systemTop = currentY;
-
 	for (let i = 0; i < 6; i++) addLine("black");
-
 	addSystemSideBars(systemTop, 1);
 	systemCount = 1;
 }
 
-function addSystem() {
-	if (systemCount >= MAX_SYSTEMS) {
-		alert(`Maximum de ${MAX_SYSTEMS} portées par page atteint.`);
-		return;
-	}
-
+addSystemBtn.onclick = () => {
+	if (systemCount >= MAX_SYSTEMS) { alert(`Max ${MAX_SYSTEMS} portées`); return; }
 	pushUndo();
-
-	addLine("white");
-	addLine("white");
-
+	addLine("white"); addLine("white");
 	const systemTop = currentY;
-
 	for (let i = 0; i < 6; i++) addLine("black");
-
 	systemCount++;
 	addSystemSideBars(systemTop, systemCount);
-
-	if (systemCount === MAX_SYSTEMS) {
-		addLine("white");
-	}
-
+	if (systemCount === MAX_SYSTEMS) addLine("white");
 	saveState();
 	haptic();
-}
-
-addSystemBtn.onclick = () => addSystem();
-
-function symbolVerticalOffset(el) {
-	const size = parseFloat(el.style.fontSize || currentFontSize);
-	return size * 0.50;
-}
+};
 
 /* ================= SNAP ================= */
 function nearestLine(y) {
-	return lines.reduce((a, b) =>
-		Math.abs(b - y) < Math.abs(a - y) ? b : a
-	);
+	return lines.reduce((a, b) => Math.abs(b - y) < Math.abs(a - y) ? b : a);
 }
-
-function snapY(y) {
-	if (!snap || !lines.length) return y;
-	return nearestLine(y);
-}
+function snapY(y) { return (snap && lines.length) ? nearestLine(y) : y; }
 
 function snapToNearbySymbols(x, y) {
 	if (!snap) return x;
-	
 	const symbols = document.querySelectorAll(".symbol");
 	let nearestX = null;
 	let minDist = SNAP_THRESHOLD;
-	
 	symbols.forEach(sym => {
-		const symX = parseFloat(sym.style.left);
 		const symY = parseFloat(sym.style.top);
-		
+		// Petite tolérance verticale pour trouver les voisins
 		if (Math.abs(symY - y) < LINE_SPACING * 3) {
+			const symX = parseFloat(sym.style.left);
 			const dist = Math.abs(symX - x);
 			if (dist < minDist) {
 				minDist = dist;
@@ -1187,7 +1017,6 @@ function snapToNearbySymbols(x, y) {
 			}
 		}
 	});
-	
 	return nearestX !== null ? nearestX : x;
 }
 
@@ -1195,7 +1024,6 @@ function firstLineOfSystem(y) {
 	const lineY = nearestLine(y);
 	let idx = lines.indexOf(lineY);
 	let count = 0;
-
 	while (idx > 0 && count < 5) {
 		const prevY = lines[idx - 1];
 		if (!document.querySelector(`.line.black[style*="top: ${prevY}px"]`)) break;
@@ -1208,22 +1036,14 @@ function firstLineOfSystem(y) {
 function renderVerticalGuides() {
 	document.querySelectorAll(".vertical-guide").forEach(g => g.remove());
 	if (!showVerticalGuides) return;
-
 	const step = 60;
 	const width = canvas.offsetWidth;
-
 	for (let x = step; x < width; x += step) {
 		const g = document.createElement("div");
 		g.className = "vertical-guide";
 		g.style.left = x + "px";
 		canvas.appendChild(g);
 	}
-}
-
-/* ================= FLASH CONFIRMATION ================= */
-function flashConfirm(element) {
-	element.classList.add("flash");
-	setTimeout(() => element.classList.remove("flash"), 300);
 }
 
 /* ================= INTERACTION ================= */
@@ -1235,6 +1055,47 @@ function getCanvasCoords(touch) {
 	};
 }
 
+/* ===== OFFSET TYPO CIBLÉ ===== */
+const LETTER_VERTICAL_OFFSET = {
+	a: 2,
+	c: 2,
+	e: 2,
+	n: 2,
+	m: 2
+};
+
+/* ===== CORRECTION HORIZONTALE DES /a ===== */
+const SLASH_X_OFFSET = {
+	"/a": -6,
+	"//a": -10,
+	"///a": -14
+};
+
+/* ===== JITTER MANUSCRIT (POSE UNIQUEMENT) ===== */
+function applyJitter(el) {
+	const sizeJitter = (Math.random() * 0.8 - 0.4); // ±0.4px
+	const rotJitter  = (Math.random() * 0.6 - 0.3); // ±0.3°
+
+	// Taille légèrement variable
+	el.style.fontSize = (currentFontSize + sizeJitter) + "px";
+
+	// Rotation très légère
+	el.style.transform += ` rotate(${rotJitter}deg)`;
+
+	// Marqueur (sécurité : ne jamais rejitter)
+	el.dataset.jittered = "1";
+}
+
+function symbolVerticalOffset(char) {
+	let base = currentFontSize * 0.55;
+
+	if (LETTER_VERTICAL_OFFSET[char]) {
+		base += LETTER_VERTICAL_OFFSET[char];
+	}
+
+	return base;
+}
+
 canvas.addEventListener("touchstart", e => {
 	if (tool === "select" && !e.target.closest(".symbol, .bar, .draw")) {
 		if (selectedElement) {
@@ -1244,9 +1105,9 @@ canvas.addEventListener("touchstart", e => {
 	}
 
 	const { x, y } = getCanvasCoords(e.touches[0]);
-
 	pushUndo();
 
+	/* ===== MODE DESSIN ===== */
 	if (selected === "__draw__") {
 		drawing = true;
 		drawStart = { x, y };
@@ -1272,6 +1133,7 @@ canvas.addEventListener("touchstart", e => {
 		return;
 	}
 
+	/* ===== MODE BARRE ===== */
 	if (placingBar) {
 		placingBar = false;
 		addBar.classList.remove("placing");
@@ -1290,6 +1152,7 @@ canvas.addEventListener("touchstart", e => {
 		return;
 	}
 
+	/* ===== POSE DE SYMBOLE ===== */
 	if (tool === "place" && selected !== "__draw__") {
 		const snappedY = snapY(y);
 		const snappedX = snapToNearbySymbols(x, snappedY);
@@ -1297,20 +1160,34 @@ canvas.addEventListener("touchstart", e => {
 		const s = document.createElement("div");
 		s.className = "symbol";
 		s.textContent = selected;
+
 		s.style.fontSize = currentFontSize + "px";
+		s.style.fontFamily = currentFont.value;
+		s.style.fontStyle = currentFont.italic ? "italic" : "normal";
+		s.style.fontWeight = (currentFont.name === "Tangerine") ? "700" : "normal";
 
-		if (selected === "f") s.style.fontStyle = "italic";
-
-		const f = localStorage.getItem("tablature_font");
-		if (f) s.style.fontFamily = f;
-
-		const offset = symbolVerticalOffset(s);
+		// OFFSET VERTICAL PAR GLYPHE
+		const offset = symbolVerticalOffset(s.textContent);
 		s.style.left = snappedX + "px";
 		s.style.top  = (snappedY - offset) + "px";
 
+		// OFFSET HORIZONTAL POUR /a //a ///a
+		if (SLASH_X_OFFSET[s.textContent]) {
+			s.style.transform =
+				`translateX(calc(-50% + ${SLASH_X_OFFSET[s.textContent]}px))`;
+		} else {
+			s.style.transform = "translateX(-50%)";
+		}
+
+		// JITTER MANUSCRIT (UNE SEULE FOIS, À LA POSE)
+		applyJitter(s);
+
 		canvas.appendChild(s);
 		makeDraggable(s);
-		flashConfirm(s);
+
+		s.classList.add("flash");
+		setTimeout(() => s.classList.remove("flash"), 300);
+
 		saveState();
 		haptic();
 	}
@@ -1321,33 +1198,35 @@ canvas.addEventListener("touchmove", e => {
 	e.preventDefault();
 
 	const { x, y } = getCanvasCoords(e.touches[0]);
-
 	const dx = x - drawStart.x + DRAW_W / 2;
 	const dy = y - drawStart.y + DRAW_H / 2;
 
-	const d = currentPath.getAttribute("d");
-	currentPath.setAttribute("d", d + ` L ${dx} ${dy}`);
+	currentPath.setAttribute(
+		"d",
+		currentPath.getAttribute("d") + ` L ${dx} ${dy}`
+	);
 }, { passive: false });
 
 canvas.addEventListener("touchend", () => {
-	if (drawing) {
-		drawing = false;
-		currentPath = null;
+	if (!drawing) return;
 
-		if (selectedElement) {
-			makeDraggable(selectedElement);
-			selectedElement = null;
-		}
+	drawing = false;
+	currentPath = null;
 
-		selected = "a";
-		tool = null;
-		toolPlace.classList.remove("active");
-		document.querySelectorAll(".palette-item").forEach(item =>
-			item.classList.remove("active")
-		);
-
-		saveState();
+	if (selectedElement) {
+		makeDraggable(selectedElement);
+		selectedElement = null;
 	}
+
+	selected = "a";
+	tool = null;
+	toolPlace.classList.remove("active");
+
+	document
+		.querySelectorAll(".palette-item")
+		.forEach(item => item.classList.remove("active"));
+
+	saveState();
 });
 
 /* ================= DRAG ================= */
@@ -1355,13 +1234,8 @@ function makeDraggable(el) {
 	el.addEventListener("touchstart", async e => {
 		if (tool !== "select") return;
 		e.preventDefault();
-
 		pushUndo();
-
-		if (selectedElement && selectedElement !== el) {
-			selectedElement.classList.remove("selected");
-		}
-
+		if (selectedElement && selectedElement !== el) selectedElement.classList.remove("selected");
 		selectedElement = el;
 		el.classList.add("selected");
 		active = el;
@@ -1370,48 +1244,35 @@ function makeDraggable(el) {
 		if (!dragLoupe) {
 			dragLoupe = document.createElement("div");
 			dragLoupe.className = "drag-loupe";
-
 			loupeCanvas = document.createElement("canvas");
-			loupeCanvas.width = 120;
-			loupeCanvas.height = 120;
+			loupeCanvas.width = 120; loupeCanvas.height = 120;
 			loupeCtx = loupeCanvas.getContext("2d");
-
 			dragLoupe.appendChild(loupeCanvas);
 			document.body.appendChild(dragLoupe);
-
 			const cross = document.createElement("div");
 			cross.className = "loupe-cross";
 			dragLoupe.appendChild(cross);
-
+			
+			// Capture propre pour la loupe
 			const snap = await html2canvas(canvas, {
 				backgroundColor: getComputedStyle(canvas).backgroundColor,
-				scale: 2
+				scale: 2,
+				logging: false
 			});
 			loupeImage = snap;
-
-			if (!el.classList.contains("draw")) {
-				loupeChar = el.cloneNode(true);
-				loupeChar.classList.remove("selected");
-				loupeChar.classList.add("loupe-char");
-				dragLoupe.appendChild(loupeChar);
-			}
 		}
 	}, { passive: false });
 
 	el.addEventListener("touchmove", e => {
 		if (!active || !loupeImage) return;
 		e.preventDefault();
-
 		const t = e.touches[0];
 		const { x, y } = getCanvasCoords(t);
-		
 		const snappedY = snapY(y);
-		const snappedX = el.classList.contains("symbol")
-			? snapToNearbySymbols(x, snappedY)
-			: x;
+		const snappedX = el.classList.contains("symbol") ? snapToNearbySymbols(x, snappedY) : x;
 
 		if (active.classList.contains("symbol")) {
-			const offset = symbolVerticalOffset(active);
+			const offset = symbolVerticalOffset();
 			active.style.left = snappedX + "px";
 			active.style.top  = (snappedY - offset) + "px";
 		} else {
@@ -1422,33 +1283,12 @@ function makeDraggable(el) {
 		dragLoupe.style.left = t.clientX + "px";
 		dragLoupe.style.top  = t.clientY + "px";
 
-		const scale = 2;
-		const srcSize = 50;
-
 		loupeCtx.clearRect(0, 0, 120, 120);
-		loupeCtx.drawImage(
-			loupeImage,
-			(x * scale) - (srcSize * scale) / 2,
-			(y * scale) - (srcSize * scale) / 2,
-			srcSize * scale,
-			srcSize * scale,
-			0, 0, 120, 120
-		);
-
-		if (loupeChar) {
-			loupeChar.textContent = el.textContent;
-		}
+		loupeCtx.drawImage(loupeImage, (x * 2) - 50, (y * 2) - 50, 100, 100, 0, 0, 120, 120);
 	}, { passive: false });
 
 	el.addEventListener("touchend", () => {
-		if (dragLoupe) {
-			dragLoupe.remove();
-			dragLoupe = null;
-			loupeCanvas = null;
-			loupeCtx = null;
-			loupeImage = null;
-			loupeChar = null;
-		}
+		if (dragLoupe) { dragLoupe.remove(); dragLoupe = null; }
 		active = null;
 		saveState();
 	});
@@ -1477,7 +1317,6 @@ clearAllBtn.onclick = () => {
 	haptic();
 };
 
-/* ================= BAR ================= */
 addBar.onclick = () => {
 	placingBar = true;
 	addBar.classList.add("placing");
@@ -1496,30 +1335,15 @@ addBar.onclick = () => {
 	p.className = "palette-item";
 	p.textContent = s;
 
-	if (s === "f") {
-		p.style.fontStyle = "italic";
-	}
+	// Plus de condition spéciale pour 'f' (il est traité normalement)
 
 	p.onclick = () => {
-		document.querySelectorAll(".palette-item")
-			.forEach(item => item.classList.remove("active"));
-
+		document.querySelectorAll(".palette-item").forEach(item => item.classList.remove("active"));
 		p.classList.add("active");
 		selected = (s === "✎") ? "__draw__" : s;
 		setTool("place");
 		haptic();
 	};
-
-	let touchStartX = 0;
-
-	p.addEventListener("touchstart", e => {
-		touchStartX = e.touches[0].clientX;
-	}, { passive: true });
-
-	p.addEventListener("touchend", e => {
-		// volontairement vide
-	}, { passive: true });
-
 	palette.appendChild(p);
 });
 
@@ -1540,77 +1364,35 @@ const fontSelect = document.createElement("select");
 fontSelect.style.fontSize = "14px";
 fontSelect.style.marginLeft = "6px";
 
-const fonts = [
-	{ name: "IM Fell English", value: "'IM Fell English', serif" },
-	{ name: "IM Fell English Italic", value: "'IM Fell English', serif", italic: true },
-	{ name: "EB Garamond", value: "'EB Garamond', serif" },
-	{ name: "EB Garamond Italic", value: "'EB Garamond', serif", italic: true },
-	{ name: "Cormorant Garamond", value: "'Cormorant Garamond', serif" },
-	{ name: "Cormorant Italic", value: "'Cormorant Garamond', serif", italic: true },
-	{ name: "Libre Baskerville", value: "'Libre Baskerville', serif" },
-	{ name: "Libre Baskerville Italic", value: "'Libre Baskerville', serif", italic: true },
-	{ name: "Goudy Bookletter 1911", value: "'Goudy Bookletter 1911', serif" },
-	{ name: "UnifrakturCook", value: "'UnifrakturCook', cursive" },
-	{ name: "Italianno", value: "'Italianno', cursive" },
-	{ name: "Herr Von Muellerhoff", value: "'Herr Von Muellerhoff', cursive" },
-	{ name: "Cinzel", value: "'Cinzel', serif" },
-	{ name: "Playfair Display", value: "'Playfair Display', serif" },
-	{ name: "Tangerine", value: "'Tangerine', cursive" },
-	{ name: "Dancing Script", value: "'Dancing Script', cursive" },
-	{ name: "Great Vibes", value: "'Great Vibes', cursive" },
-	{ name: "Satisfy", value: "'Satisfy', cursive" },
-	{ name: "Permanent Marker", value: "'Permanent Marker', cursive" },
-	{ name: "Rock Salt", value: "'Rock Salt', cursive" }
-];
-
-fonts.forEach(f => {
+fontList.forEach((f, index) => {
 	const opt = document.createElement("option");
 	opt.textContent = f.name;
-	opt.value = f.value;
+	opt.value = index;
 	fontSelect.appendChild(opt);
 });
 
 fontSelect.onchange = () => {
-	const selectedFont = fonts[fontSelect.selectedIndex];
-	applyFont(selectedFont.value);
-	document.querySelectorAll(".symbol").forEach(el => {
-		el.style.fontStyle = selectedFont.italic ? "italic" : "normal";
-	});
+	const selectedFont = fontList[fontSelect.value];
+	applyFont(selectedFont);
 	saveState();
 	haptic();
 };
-
 palette.appendChild(fontSelect);
 
 /* ===== FONT SIZE CONTROLS ===== */
 const fontSizeControls = document.createElement("div");
 fontSizeControls.className = "font-size-controls";
-
 const decreaseBtn = document.createElement("button");
 decreaseBtn.className = "font-size-btn";
 decreaseBtn.textContent = "-";
-decreaseBtn.onclick = () => {
-	if (currentFontSize > 12) {
-		applyFontSize(currentFontSize - 2);
-		saveState();
-		haptic();
-	}
-};
-
+decreaseBtn.onclick = () => { if (currentFontSize > 12) { applyFontSize(currentFontSize - 2); saveState(); haptic(); } };
 const fontSizeDisplay = document.createElement("div");
 fontSizeDisplay.id = "fontSizeDisplay";
 fontSizeDisplay.textContent = currentFontSize + "px";
-
 const increaseBtn = document.createElement("button");
 increaseBtn.className = "font-size-btn";
 increaseBtn.textContent = "+";
-increaseBtn.onclick = () => {
-	if (currentFontSize < 50) {
-		applyFontSize(currentFontSize + 2);
-		saveState();
-		haptic();
-	}
-};
+increaseBtn.onclick = () => { if (currentFontSize < 50) { applyFontSize(currentFontSize + 2); saveState(); haptic(); } };
 
 fontSizeControls.appendChild(decreaseBtn);
 fontSizeControls.appendChild(fontSizeDisplay);
@@ -1618,25 +1400,16 @@ fontSizeControls.appendChild(increaseBtn);
 palette.appendChild(fontSizeControls);
 
 /* ================= EXPORT PDF ================= */
-document.getElementById("exportPDF").onclick = () => {
-	document.getElementById("exportModal").classList.add("active");
-};
+document.getElementById("exportPDF").onclick = () => document.getElementById("exportModal").classList.add("active");
 
 async function confirmExport() {
 	const showNumbers = document.getElementById("showSystemNumbers").checked;
-
-	if (!showNumbers) {
-		document.querySelectorAll(".system-number").forEach(n => n.style.display = "none");
-	}
-
+	if (!showNumbers) document.querySelectorAll(".system-number").forEach(n => n.style.display = "none");
 	closeModal("exportModal");
-
 	saveCurrentPage();
 	const originalPage = currentPage;
-
 	const ui = [toolbar, palette];
 	ui.forEach(el => el.style.display = "none");
-
 	await new Promise(r => requestAnimationFrame(r));
 
 	const pdf = new jspdf.jsPDF("p", "mm", "a4");
@@ -1645,21 +1418,16 @@ async function confirmExport() {
 
 	const capture = async (pageNum, addPage) => {
 		if (!pages[pageNum]) return;
-
 		loadPage(pageNum);
 		await new Promise(r => setTimeout(r, 150));
-
 		const exportWrapper = document.createElement("div");
 		exportWrapper.style.background = getComputedStyle(document.body).backgroundColor;
 		exportWrapper.style.padding = "20px 24px";
-
 		const titleClone = printTitle.cloneNode(true);
 		titleClone.style.marginBottom = "16px";
 		exportWrapper.appendChild(titleClone);
-
 		const canvasClone = canvas.cloneNode(true);
 		exportWrapper.appendChild(canvasClone);
-
 		document.body.appendChild(exportWrapper);
 
 		const canvasImg = await html2canvas(exportWrapper, {
@@ -1669,98 +1437,53 @@ async function confirmExport() {
 			logging: false,
 			removeContainer: true
 		});
-
 		exportWrapper.remove();
-
 		const imgWidth = pageWidth;
 		const imgHeight = canvasImg.height * imgWidth / canvasImg.width;
-
 		if (addPage) pdf.addPage();
-
-		pdf.addImage(
-			canvasImg.toDataURL("image/png"),
-			"PNG",
-			0,
-			y,
-			imgWidth,
-			imgHeight
-		);
+		pdf.addImage(canvasImg.toDataURL("image/png"), "PNG", 0, y, imgWidth, imgHeight);
 	};
 
-	for (let i = 1; i <= pageCount; i++) {
-		await capture(i, i > 1);
-	}
-
+	for (let i = 1; i <= pageCount; i++) await capture(i, i > 1);
 	loadPage(originalPage);
 	ui.forEach(el => el.style.display = "");
-
-	if (!showNumbers) {
-		document.querySelectorAll(".system-number").forEach(n => n.style.display = "");
-	}
-
+	if (!showNumbers) document.querySelectorAll(".system-number").forEach(n => n.style.display = "");
 	pdf.save("tablature-barok.pdf");
 	haptic();
 }
 
 /* ================= UI DRAG VERTICAL ================= */
 function makeUIDraggableVertical(el, handleEl, storageKey) {
-	let startY = 0;
-	let startTop = 0;
-	let dragging = false;
-
+	let startY = 0, startTop = 0, dragging = false;
 	handleEl.addEventListener("touchstart", e => {
 		startY = e.touches[0].clientY;
 		startTop = el.getBoundingClientRect().top;
-		dragging = true;
-		el.style.transition = "none";
-		e.stopPropagation();
+		dragging = true; el.style.transition = "none"; e.stopPropagation();
 	}, { passive: false });
-
 	document.addEventListener("touchmove", e => {
 		if (!dragging) return;
 		e.preventDefault();
-
-		const dy = e.touches[0].clientY - startY;
-		let newTop = startTop + dy;
-
-		const minTop = 8;
-		const maxTop = window.innerHeight - el.offsetHeight - 8;
-		newTop = Math.max(minTop, Math.min(maxTop, newTop));
-
-		el.style.top = newTop + "px";
-		el.style.bottom = "auto";
+		let newTop = startTop + (e.touches[0].clientY - startY);
+		newTop = Math.max(8, Math.min(window.innerHeight - el.offsetHeight - 8, newTop));
+		el.style.top = newTop + "px"; el.style.bottom = "auto";
 	}, { passive: false });
-
 	document.addEventListener("touchend", () => {
-		if (dragging) {
-			localStorage.setItem(storageKey, el.style.top);
-			el.style.transition = "";
-			dragging = false;
-		}
+		if (dragging) { localStorage.setItem(storageKey, el.style.top); el.style.transition = ""; dragging = false; }
 	});
 }
-
-function restoreUIVerticalPosition(el, storageKey, defaultTop = null) {
+function restoreUIVerticalPosition(el, storageKey, defaultTop) {
 	const saved = localStorage.getItem(storageKey);
-	if (saved !== null) {
-		el.style.top = saved;
-		el.style.bottom = "auto";
-	} else if (defaultTop !== null) {
-		el.style.top = defaultTop;
-		el.style.bottom = "auto";
-	}
+	if (saved) { el.style.top = saved; el.style.bottom = "auto"; }
+	else if (defaultTop) { el.style.top = defaultTop; el.style.bottom = "auto"; }
 }
 
 /* ================= INIT ================= */
 restoreFromStorage();
 renderPageNav();
-
 restoreUIVerticalPosition(toolbar, "toolbarY", "8px");
 restoreUIVerticalPosition(palette, "paletteY", null);
-
 makeUIDraggableVertical(toolbar, document.getElementById("toolbarHandle"), "toolbarY");
 makeUIDraggableVertical(palette, document.getElementById("paletteHandle"), "paletteY");
-
 pushUndo();
 </script>
 </body>
