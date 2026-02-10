@@ -195,8 +195,10 @@ button:disabled {
 	pointer-events: auto;
 	z-index: 10;
 	/* ✅ Espace pour hampes descendantes et montantes */
-	padding-top: 20px;
-	padding-bottom: 20px;
+	padding-top: 25px;
+	padding-bottom: 25px;
+	/* ✅ Force le rendu complet */
+	will-change: transform;
 }
 
 .symbol {
@@ -575,7 +577,7 @@ button:disabled {
 	</div>
 
 <script>
-const VERSION = "tablature-barok-v8";
+const VERSION = "tablature-barok-v9";
 const MAX_PAGES = 10;
 
 /* ================= DOM ================= */
@@ -874,7 +876,7 @@ function serializeState() {
 				data.char    = el.querySelector(".symbol")?.dataset.char || "";
 			}
 
-			if (el.classList.contains("line") || el.classList.contains("system-bar") || el.classList.contains("end-bar")) {
+			if (el.classList.contains("line") || el.classList.contains("system-bar") || el.classList.contains("end-bar") || el.classList.contains("bar")) {
 				data.height = el.style.height;
 				data.width = el.style.width;
 				data.right = el.style.right;
@@ -910,8 +912,8 @@ function symbolVerticalOffset(char) {
 	// Lettres avec hampes montantes
 	if (['b', 'd', 'f', 'h', 'k', 'l'].includes(char)) return FIXED_FONT_SIZE * 0.65;
 	
-	// Lettres normales
-	return FIXED_FONT_SIZE * 0.55;
+	// Lettres normales (a, c, e, m, n) - décalées un peu plus haut
+	return FIXED_FONT_SIZE * 0.60;
 }
 
 function restoreState(raw, save = true) {
@@ -976,11 +978,16 @@ function restoreState(raw, save = true) {
 			if (e.lineY) {
 				const char = sEl.dataset.char;
 				const offset = symbolVerticalOffset(char);
-				w.style.top = (parseFloat(e.lineY) - offset - 20) + "px";
+				w.style.top = (parseFloat(e.lineY) - offset - 25) + "px";
 				w.dataset.lineY = e.lineY;
 			} else {
 				w.style.top = e.top;
 			}
+
+			// ✅ Force le rendu complet après placement
+			requestAnimationFrame(() => {
+				w.style.transform = 'translateZ(0)';
+			});
 
 			makeDraggable(w);
 			return;
@@ -1266,17 +1273,21 @@ function getCanvasCoords(touch) {
 }
 
 canvas.addEventListener("touchstart", e => {
-	if (deleteMode && e.target.closest(".symbol-wrapper, .bar, .end-bar, .draw")) {
+	if (deleteMode && e.target.closest(".symbol-wrapper, .bar:not(.system-bar), .end-bar, .draw")) {
 		e.preventDefault();
 		pushUndo();
-		e.target.closest(".symbol-wrapper, .bar, .end-bar, .draw").remove();
+		e.target.closest(".symbol-wrapper, .bar:not(.system-bar), .end-bar, .draw").remove();
 		saveState();
 		haptic();
 		return;
 	}
 
 	const { x, y } = getCanvasCoords(e.touches[0]);
-	pushUndo();
+	
+	// ✅ Ne pas pushUndo si on est en mode placement bar/endbar (pour éviter de sauvegarder avant l'action)
+	if (!placingBar && !placingEndBar) {
+		pushUndo();
+	}
 
 	if (selected === "__draw__") {
 		drawing = true;
@@ -1304,6 +1315,7 @@ canvas.addEventListener("touchstart", e => {
 	}
 
 	if (placingBar) {
+		pushUndo(); // ✅ Push undo AVANT de placer la barre
 		placingBar = false;
 		addBar.classList.remove("placing");
 
@@ -1316,11 +1328,13 @@ canvas.addEventListener("touchstart", e => {
 
 		canvas.appendChild(b);
 		makeDraggable(b);
+		saveState();
 		haptic();
 		return;
 	}
 
 	if (placingEndBar) {
+		pushUndo(); // ✅ Push undo AVANT de raccourcir
 		placingEndBar = false;
 		addEndBar.classList.remove("placing");
 
@@ -1360,8 +1374,13 @@ canvas.addEventListener("touchstart", e => {
 		w.dataset.centerX = snappedX;
 
 		const offset = symbolVerticalOffset(selected);
-		w.style.top = (snappedY - offset - 20) + "px";
+		w.style.top = (snappedY - offset - 25) + "px";
 		w.dataset.lineY = snappedY;
+
+		// ✅ Force le rendu complet après placement
+		requestAnimationFrame(() => {
+			w.style.transform = 'translateZ(0)';
+		});
 
 		makeDraggable(w);
 		saveState();
@@ -1448,13 +1467,16 @@ function makeDraggable(el) {
 			const char = active.querySelector(".symbol")?.dataset.char || "";
 			const offset = symbolVerticalOffset(char);
 
-			active.style.top = (snappedY - offset - 20) + "px";
+			active.style.top = (snappedY - offset - 25) + "px";
 			active.dataset.lineY = snappedY;
 
 			const rect = active.getBoundingClientRect();
 			const centerOffsetX = rect.width / 2;
 			active.style.left = (snappedX - centerOffsetX) + "px";
 			active.dataset.centerX = snappedX;
+
+			// ✅ Force rendu pendant drag
+			active.style.transform = 'translateZ(0)';
 		} else {
 			active.style.left = snappedX + "px";
 			active.style.top = snappedY + "px";
