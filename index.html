@@ -150,6 +150,11 @@ button.placing {
 	animation: pulse 1s infinite;
 }
 
+button:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
 @keyframes pulse {
 	0%, 100% { opacity: 1; }
 	50% { opacity: 0.6; }
@@ -164,14 +169,15 @@ button.placing {
 }
 
 /* ===== CANVAS ===== */
-.symbol-wrapper {
-	position: absolute;
-	pointer-events: auto;
-	z-index: 10;
-
-	/* zone de capture tactile */
-	padding: 10px;
-	margin: -10px;
+#canvas-wrapper {
+	position: fixed;
+	left: 0;
+	right: 0;
+	top: 80px;
+	bottom: 80px;
+	overflow-y: auto;
+	overflow-x: hidden;
+	-webkit-overflow-scrolling: touch;
 }
 
 #canvas {
@@ -181,6 +187,30 @@ button.placing {
 	margin: 0 auto;
 	background: var(--bg-color);
 	padding: 10px 20px;
+}
+
+/* ===== SYMBOL WRAPPER - CRITIQUE ===== */
+.symbol-wrapper {
+	position: absolute;
+	pointer-events: auto;
+	z-index: 10;
+	/* ✅ Espace pour hampes descendantes et montantes */
+	padding-top: 20px;
+	padding-bottom: 20px;
+}
+
+.symbol {
+	font-size: 40px;
+	font-family: 'Tangerine', cursive;
+	font-weight: 700;
+	color: var(--text-color);
+	line-height: 1;
+	white-space: nowrap;
+}
+
+.selected {
+	text-shadow: 0 0 5px var(--accent-color);
+	color: var(--accent-color);
 }
 
 /* ===== DRAW ===== */
@@ -234,44 +264,6 @@ button.placing {
 	color: var(--text-color);
 	opacity: 0.5;
 	pointer-events: none;
-}
-
-.symbol {
-    position: absolute;
-    font-size: 40px !important;
-    white-space: nowrap;
-    line-height: 1 !important;
-    height: auto;
-    
-    /* 1. On donne de l'air pour que les boucles de Tangerine respirent */
-    padding: 40px !important; 
-    /* 2. On compense exactement ce padding pour ne pas décaler la pose */
-    margin: -40px 0 0 -40px !important; 
-    
-    /* 3. On empêche le navigateur de "couper" ce qui dépasse */
-    overflow: visible !important;
-    
-    /* 4. On force le rendu graphique (GPU) pour éviter le clipping */
-    transform: translateZ(0); 
-    
-    color: var(--text-color);
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-    z-index: 10;
-    font-family: 'Tangerine', cursive !important;
-    font-weight: 700 !important;
-}
-
-
-.symbol-wrapper {
-	position: absolute;
-	pointer-events: auto;
-	z-index: 10;
-}
-
-.selected {
-	text-shadow: 0 0 5px var(--accent-color);
-	color: var(--accent-color);
 }
 
 /* ===== FLASH CONFIRMATION ===== */
@@ -482,12 +474,36 @@ button.placing {
 	color: var(--ui-text);
 	border-radius: 4px;
 	font-size: 14px;
+	position: relative;
 }
 
 .page-btn.active {
 	background: var(--accent-color);
 	color: white;
 	-webkit-text-fill-color: white;
+}
+
+.delete-page-btn {
+	position: absolute;
+	top: -6px;
+	right: -6px;
+	width: 18px;
+	height: 18px;
+	border-radius: 50%;
+	background: #d32f2f;
+	color: white;
+	border: none;
+	font-size: 12px;
+	line-height: 1;
+	padding: 0;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.delete-page-btn:hover {
+	background: #b71c1c;
 }
 
 /* ===== RESPONSIVE ===== */
@@ -559,7 +575,8 @@ button.placing {
 	</div>
 
 <script>
-const VERSION = "tablature-barok-v5";
+const VERSION = "tablature-barok-v8";
+const MAX_PAGES = 10;
 
 /* ================= DOM ================= */
 const toolbar = document.getElementById("toolbar");
@@ -599,6 +616,7 @@ let tool = "place";
 let snap = true;
 let placingBar = false;
 let placingEndBar = false;
+let deleteMode = false;
 let selected = "a";
 let selectedElement = null;
 let active = null;
@@ -624,7 +642,6 @@ const MAX_UNDO = 40;
 const FIXED_FONT_SIZE = 40;
 const SNAP_THRESHOLD = 15;
 
-/* Stockage des systèmes et leurs limites de raccourcissement */
 const systemEnds = {};
 
 /* ================= HAPTIC FEEDBACK ================= */
@@ -632,11 +649,20 @@ function haptic() {
 	if (navigator.vibrate) navigator.vibrate(10);
 }
 
-/* ================= THEME ================= */
+/* ================= THEME (GLOBAL) ================= */
 function applyTheme(themeName) {
 	document.documentElement.setAttribute("data-theme", themeName);
 	localStorage.setItem("theme", themeName);
 	closeModal("themeModal");
+	
+	for (let i = 1; i <= pageCount; i++) {
+		if (pages[i]) {
+			const pageData = JSON.parse(pages[i]);
+			pageData.theme = themeName;
+			pages[i] = JSON.stringify(pageData);
+		}
+	}
+	
 	haptic();
 }
 
@@ -652,16 +678,73 @@ document.addEventListener("click", e => {
 function renderPageNav() {
 	pageNav.innerHTML = "";
 	for (let i = 1; i <= pageCount; i++) {
+		const wrapper = document.createElement("div");
+		wrapper.style.position = "relative";
+		wrapper.style.display = "inline-block";
+		
 		const btn = document.createElement("button");
 		btn.className = "page-btn";
 		btn.textContent = "Page " + i;
 		if (i === currentPage) btn.classList.add("active");
 		btn.onclick = () => loadPage(i);
-		pageNav.appendChild(btn);
+		
+		if (pageCount > 1) {
+			const delBtn = document.createElement("button");
+			delBtn.className = "delete-page-btn";
+			delBtn.innerHTML = "×";
+			delBtn.title = "Supprimer cette page";
+			delBtn.onclick = (e) => {
+				e.stopPropagation();
+				deletePage(i);
+			};
+			wrapper.appendChild(delBtn);
+		}
+		
+		wrapper.appendChild(btn);
+		pageNav.appendChild(wrapper);
 	}
 }
 
+function deletePage(pageNum) {
+	if (pageCount <= 1) {
+		alert("Vous ne pouvez pas supprimer la dernière page.");
+		return;
+	}
+	
+	if (!confirm(`Supprimer la page ${pageNum} ?`)) return;
+	
+	delete pages[pageNum];
+	
+	const newPages = {};
+	let newIndex = 1;
+	for (let i = 1; i <= pageCount; i++) {
+		if (i !== pageNum) {
+			newPages[newIndex] = pages[i];
+			newIndex++;
+		}
+	}
+	
+	pageCount--;
+	Object.keys(pages).forEach(k => delete pages[k]);
+	Object.assign(pages, newPages);
+	
+	if (currentPage > pageCount) {
+		currentPage = pageCount;
+	} else if (currentPage >= pageNum) {
+		currentPage = Math.max(1, currentPage - 1);
+	}
+	
+	loadPage(currentPage);
+	renderPageNav();
+	haptic();
+}
+
 addPageBtn.onclick = () => {
+	if (pageCount >= MAX_PAGES) {
+		alert(`Limite de ${MAX_PAGES} pages atteinte.`);
+		return;
+	}
+	
 	pageCount++;
 	pages[pageCount] = null;
 	loadPage(pageCount);
@@ -681,12 +764,15 @@ function loadPage(n) {
 		restoreState(pages[n], false);
 	} else {
 		const title = printTitle.textContent;
+		const currentTheme = document.documentElement.getAttribute("data-theme");
 		canvas.innerHTML = "";
 		lines.length = 0;
 		currentY = 40;
 		systemCount = 1;
+		Object.keys(systemEnds).forEach(k => delete systemEnds[k]);
 		printTitle.textContent = title;
 		createInitialStructure();
+		applyTheme(currentTheme);
 		saveCurrentPage();
 	}
 	renderPageNav();
@@ -728,7 +814,7 @@ loadBtn.onclick = () => {
 				const data = JSON.parse(event.target.result);
 				printTitle.textContent = data.title || "";
 				if (data.theme) applyTheme(data.theme);
-				pageCount = data.pageCount || 1;
+				pageCount = Math.min(data.pageCount || 1, MAX_PAGES);
 				Object.assign(pages, data.pages);
 				currentPage = 0;
 				loadPage(1);
@@ -761,35 +847,39 @@ function serializeState() {
 	return JSON.stringify({
 		title: printTitle.textContent,
 		theme: document.documentElement.getAttribute("data-theme"),
-		systemCount: systemCount,
-		systemEnds: systemEnds,
+		systemCount,
+		systemEnds,
 		elements: [...canvas.children].map(el => {
+
 			if (el.classList.contains("draw")) {
 				return {
-					class: "draw", left: el.style.left, top: el.style.top,
+					class: "draw",
+					left: el.style.left,
+					top: el.style.top,
 					d: el.querySelector("path").getAttribute("d")
 				};
 			}
-			
-			// Pour les symboles, forcer la sauvegarde de fontSize et fontFamily
+
 			const data = {
 				class: el.className,
 				text: el.textContent || "",
 				left: el.style.left,
 				top: el.style.top,
-				height: el.style.height || "",
-				width: el.style.width || "",
-				right: el.style.right || "",
 				systemId: el.dataset.systemId || ""
 			};
-			
-			// Forcer pour les symboles
-			if (el.classList.contains("symbol")) {
-				data.fontSize = "40px";
-				data.fontFamily = "'Tangerine', cursive";
-				data.fontWeight = "700";
+
+			if (el.classList.contains("symbol-wrapper")) {
+				data.centerX = el.dataset.centerX || "";
+				data.lineY   = el.dataset.lineY || "";
+				data.char    = el.querySelector(".symbol")?.dataset.char || "";
 			}
-			
+
+			if (el.classList.contains("line") || el.classList.contains("system-bar") || el.classList.contains("end-bar")) {
+				data.height = el.style.height;
+				data.width = el.style.width;
+				data.right = el.style.right;
+			}
+
 			return data;
 		})
 	});
@@ -812,6 +902,18 @@ function saveState() {
 	localStorage.setItem("tablature_state", serializeState());
 }
 
+/* ✅ FONCTION DE CALCUL D'OFFSET VERTICAL PAR CARACTÈRE */
+function symbolVerticalOffset(char) {
+	// Lettres avec hampes descendantes
+	if (['g', 'j'].includes(char)) return FIXED_FONT_SIZE * 0.5;
+	
+	// Lettres avec hampes montantes
+	if (['b', 'd', 'f', 'h', 'k', 'l'].includes(char)) return FIXED_FONT_SIZE * 0.65;
+	
+	// Lettres normales
+	return FIXED_FONT_SIZE * 0.55;
+}
+
 function restoreState(raw, save = true) {
 	const s = typeof raw === "string" ? JSON.parse(raw) : raw;
 
@@ -821,15 +923,11 @@ function restoreState(raw, save = true) {
 	systemCount = s.systemCount || 1;
 	printTitle.textContent = s.title || "Titre du Morceau";
 
-	if (s.theme) applyTheme(s.theme);
-
-	/* ===== RESTAURATION DES RACCOURCIS ===== */
 	Object.keys(systemEnds).forEach(k => delete systemEnds[k]);
 	Object.assign(systemEnds, s.systemEnds || {});
 
 	s.elements.forEach(e => {
 
-		/* ===== DESSIN ===== */
 		if (e.class === "draw") {
 			const w = document.createElement("div");
 			w.className = "draw";
@@ -850,31 +948,44 @@ function restoreState(raw, save = true) {
 			return;
 		}
 
-		/* ===== SYMBOLE (WRAPPER OBLIGATOIRE) ===== */
 		if (e.class === "symbol-wrapper") {
 			const w = document.createElement("div");
 			w.className = "symbol-wrapper";
-			w.style.left = e.left;
-			w.style.top = e.top;
+
 			if (e.systemId) w.dataset.systemId = e.systemId;
 
 			const sEl = document.createElement("div");
 			sEl.className = "symbol";
 			sEl.textContent = e.text;
-
-			/* 🔒 FORÇAGE ABSOLU — IDENTIQUE À LA POSE */
-			sEl.style.fontFamily = "'Tangerine', cursive";
-			sEl.style.fontSize = "40px";
-			sEl.style.fontWeight = "700";
-			sEl.style.fontStyle = "normal";
+			sEl.dataset.char = e.char || e.text || "";
 
 			w.appendChild(sEl);
 			canvas.appendChild(w);
+
+			void w.offsetWidth;
+
+			if (e.centerX) {
+				const rect = w.getBoundingClientRect();
+				const centerOffsetX = rect.width / 2;
+				w.style.left = (parseFloat(e.centerX) - centerOffsetX) + "px";
+				w.dataset.centerX = e.centerX;
+			} else {
+				w.style.left = e.left;
+			}
+
+			if (e.lineY) {
+				const char = sEl.dataset.char;
+				const offset = symbolVerticalOffset(char);
+				w.style.top = (parseFloat(e.lineY) - offset - 20) + "px";
+				w.dataset.lineY = e.lineY;
+			} else {
+				w.style.top = e.top;
+			}
+
 			makeDraggable(w);
 			return;
 		}
 
-		/* ===== AUTRES ÉLÉMENTS (LIGNES / BARRES / ETC.) ===== */
 		const el = document.createElement("div");
 		el.className = e.class;
 		el.textContent = e.text || "";
@@ -904,6 +1015,10 @@ function restoreState(raw, save = true) {
 
 function restoreFromStorage() {
 	const raw = localStorage.getItem("tablature_state");
+	const savedTheme = localStorage.getItem("theme");
+
+	if (savedTheme) applyTheme(savedTheme);
+
 	if (raw) restoreState(raw, false);
 	else {
 		createInitialStructure();
@@ -929,8 +1044,15 @@ function setTool(t) {
 }
 
 toolPlace.onclick = () => {
-	if (tool === "place") { tool = null; toolPlace.classList.remove("active"); }
+	if (tool === "place") { 
+		tool = null; 
+		toolPlace.classList.remove("active");
+	}
 	else setTool("place");
+	
+	deleteMode = false;
+	deleteBtn.classList.remove("active");
+	
 	haptic();
 };
 
@@ -940,6 +1062,21 @@ toolSelect.onclick = () => {
 		selectedElement.classList.remove("selected");
 		selectedElement = null;
 	}
+	
+	deleteMode = false;
+	deleteBtn.classList.remove("active");
+	
+	haptic();
+};
+
+deleteBtn.onclick = () => {
+	deleteMode = !deleteMode;
+	deleteBtn.classList.toggle("active", deleteMode);
+	
+	if (deleteMode) {
+		setTool("select");
+	}
+	
 	haptic();
 };
 
@@ -963,7 +1100,6 @@ function addLine(type, systemId = null) {
 	l.style.top = currentY + "px";
 	if (systemId) {
 		l.dataset.systemId = systemId;
-		// Appliquer le raccourcissement si défini
 		if (systemEnds[systemId]) {
 			l.style.right = systemEnds[systemId] + "px";
 		} else {
@@ -1036,20 +1172,28 @@ function snapY(y) { return (snap && lines.length) ? nearestLine(y) : y; }
 
 function snapToNearbySymbols(x, y) {
 	if (!snap) return x;
-	const symbols = document.querySelectorAll(".symbol");
+
+	const wrappers = document.querySelectorAll(".symbol-wrapper");
 	let nearestX = null;
 	let minDist = SNAP_THRESHOLD;
-	symbols.forEach(sym => {
-		const symY = parseFloat(sym.style.top);
-		if (Math.abs(symY - y) < LINE_SPACING * 3) {
-			const symX = parseFloat(sym.style.left);
-			const dist = Math.abs(symX - x);
+
+	wrappers.forEach(w => {
+		const wy = parseFloat(w.dataset.lineY);
+		if (isNaN(wy)) return;
+
+		if (Math.abs(wy - y) < LINE_SPACING * 3) {
+			const centerX = parseFloat(w.dataset.centerX);
+			if (isNaN(centerX)) return;
+
+			const dist = Math.abs(centerX - x);
+
 			if (dist < minDist) {
 				minDist = dist;
-				nearestX = symX;
+				nearestX = centerX;
 			}
 		}
 	});
+
 	return nearestX !== null ? nearestX : x;
 }
 
@@ -1075,7 +1219,7 @@ function getSystemIdAtY(y) {
 function renderVerticalGuides() {
 	document.querySelectorAll(".vertical-guide").forEach(g => g.remove());
 	if (!showVerticalGuides) return;
-	const step = 60;
+	const step = 30;
 	const width = canvas.offsetWidth;
 	for (let x = step; x < width; x += step) {
 		const g = document.createElement("div");
@@ -1089,19 +1233,16 @@ function renderVerticalGuides() {
 function updateSystemEnd(systemId, rightOffset) {
 	systemEnds[systemId] = rightOffset;
 	
-	// Mettre à jour toutes les lignes du système
 	const systemLines = document.querySelectorAll(`.line[data-system-id="${systemId}"]`);
 	systemLines.forEach(line => {
 		line.style.right = rightOffset + "px";
 	});
 	
-	// Mettre à jour la barre de droite
 	const rightBar = document.querySelector(`.system-bar.right[data-system-id="${systemId}"]`);
 	if (rightBar) {
 		rightBar.style.right = rightOffset + "px";
 	}
 	
-	// Mettre à jour ou créer la barre de fin
 	let endBar = document.querySelector(`.end-bar[data-system-id="${systemId}"]`);
 	if (!endBar) {
 		const topLine = parseFloat(systemLines[0].style.top);
@@ -1115,55 +1256,6 @@ function updateSystemEnd(systemId, rightOffset) {
 	endBar.style.right = rightOffset + "px";
 }
 
-function makeShortenHandleDraggable(handle) {
-	let startX = 0;
-	let startRight = 0;
-	let isDragging = false;
-	const systemId = handle.dataset.systemId;
-	
-	handle.addEventListener("touchstart", e => {
-		e.preventDefault();
-		e.stopPropagation();
-		pushUndo();
-		isDragging = true;
-		handle.classList.add("dragging");
-		startX = e.touches[0].clientX;
-		startRight = parseFloat(handle.style.right) || 0;
-		haptic();
-	}, { passive: false });
-	
-	document.addEventListener("touchmove", e => {
-		if (!isDragging) return;
-		e.preventDefault();
-		
-		const deltaX = startX - e.touches[0].clientX;
-		let newRight = Math.max(0, startRight + deltaX);
-		
-		// Limite à la largeur du canvas
-		const maxRight = canvas.offsetWidth - 50;
-		newRight = Math.min(newRight, maxRight);
-		
-		handle.style.right = newRight + "px";
-		updateSystemEnd(systemId, newRight);
-	}, { passive: false });
-	
-	document.addEventListener("touchend", () => {
-		if (!isDragging) return;
-		isDragging = false;
-		handle.classList.remove("dragging");
-		
-		// SUPPRIMER LA POIGNÉE après placement
-		handle.remove();
-		
-		// Désactiver le mode raccourcir
-		placingEndBar = false;
-		addEndBar.classList.remove("placing");
-		
-		saveState();
-		haptic();
-	});
-}
-
 /* ================= INTERACTION ================= */
 function getCanvasCoords(touch) {
 	const canvasRect = canvas.getBoundingClientRect();
@@ -1173,47 +1265,19 @@ function getCanvasCoords(touch) {
 	};
 }
 
-/* ===== OFFSET TYPO CIBLÉ ===== */
-const LETTER_VERTICAL_OFFSET = {
-	a: 2,
-	c: 2,
-	e: 2,
-	n: 2,
-	m: 2
-};
-
-/* ===== CORRECTION HORIZONTALE DES /a ===== */
-const SLASH_X_OFFSET = {
-	"/a": -6,
-	"//a": -10,
-	"///a": -14
-};
-
-/* ===== JITTER MANUSCRIT (POSE UNIQUEMENT) ===== */
-function applyJitter(el) {
-	const rotJitter = (Math.random() * 0.6 - 0.3);
-	el.style.transform += ` rotate(${rotJitter}deg)`;
-el.dataset.jittered = "1";
-}
-
-function symbolVerticalOffset(char) {
-	let base = FIXED_FONT_SIZE * 0.55;
-	if (LETTER_VERTICAL_OFFSET[char]) base += LETTER_VERTICAL_OFFSET[char];
-	return base;
-}
-
 canvas.addEventListener("touchstart", e => {
-	if (tool === "select" && !e.target.closest(".symbol, .bar, .end-bar, .draw, .shorten-handle")) {
-		if (selectedElement) {
-			selectedElement.classList.remove("selected");
-			selectedElement = null;
-		}
+	if (deleteMode && e.target.closest(".symbol-wrapper, .bar, .end-bar, .draw")) {
+		e.preventDefault();
+		pushUndo();
+		e.target.closest(".symbol-wrapper, .bar, .end-bar, .draw").remove();
+		saveState();
+		haptic();
+		return;
 	}
 
 	const { x, y } = getCanvasCoords(e.touches[0]);
 	pushUndo();
 
-	/* ===== MODE DESSIN ===== */
 	if (selected === "__draw__") {
 		drawing = true;
 		drawStart = { x, y };
@@ -1239,36 +1303,6 @@ canvas.addEventListener("touchstart", e => {
 		return;
 	}
 
-	/* ===== MODE RACCOURCIR ===== */
-	if (placingEndBar) {
-		const systemId = getSystemIdAtY(y);
-		if (!systemId) return;
-
-		const existingEndBar = document.querySelector(`.end-bar[data-system-id="${systemId}"]`);
-		if (existingEndBar) {
-			delete systemEnds[systemId];
-			document.querySelectorAll(`.line[data-system-id="${systemId}"]`)
-				.forEach(l => l.style.right = "0");
-			const rb = document.querySelector(`.system-bar.right[data-system-id="${systemId}"]`);
-			if (rb) rb.style.right = "0";
-			existingEndBar.remove();
-		}
-
-		const topLine = firstLineOfSystem(y);
-		const handle = document.createElement("div");
-		handle.className = "shorten-handle";
-		handle.dataset.systemId = systemId;
-		handle.style.top = (topLine + (5 * LINE_SPACING / 2) - 12) + "px";
-		handle.style.right = "0px";
-
-		canvas.appendChild(handle);
-		makeShortenHandleDraggable(handle);
-		updateSystemEnd(systemId, 0);
-		haptic();
-		return;
-	}
-
-	/* ===== MODE BARRE ===== */
 	if (placingBar) {
 		placingBar = false;
 		addBar.classList.remove("placing");
@@ -1277,7 +1311,7 @@ canvas.addEventListener("touchstart", e => {
 		const b = document.createElement("div");
 		b.className = "bar";
 		b.style.left = x + "px";
-		b.style.top  = topLine + "px";
+		b.style.top = topLine + "px";
 		b.style.height = (5 * LINE_SPACING) + "px";
 
 		canvas.appendChild(b);
@@ -1286,99 +1320,90 @@ canvas.addEventListener("touchstart", e => {
 		return;
 	}
 
-/* ===== POSE DE SYMBOLE ===== */
-if (tool === "place" && selected !== "__draw__") {
-    const snappedY = snapY(y);
-    const snappedX = snapToNearbySymbols(x, snappedY);
+	if (placingEndBar) {
+		placingEndBar = false;
+		addEndBar.classList.remove("placing");
 
-    const w = document.createElement("div");
-    w.className = "symbol-wrapper";
+		const systemId = getSystemIdAtY(y);
+		if (!systemId) {
+			alert("Veuillez cliquer sur un système (portée)");
+			return;
+		}
 
-    const offset = symbolVerticalOffset(selected);
-    w.style.left = snappedX + "px";
-    w.style.top  = (snappedY - offset) + "px";
+		const rightOffset = canvas.offsetWidth - x;
+		updateSystemEnd(systemId, rightOffset);
+		saveState();
+		haptic();
+		return;
+	}
 
-    // On s'assure que le wrapper ne coupe rien
-    w.style.overflow = "visible";
+	if (tool === "place" && selected !== "__draw__") {
+		const snappedY = snapY(y);
+		const snappedX = snapToNearbySymbols(x, snappedY);
 
-    w.style.transform = SLASH_X_OFFSET[selected]
-        ? `translateX(calc(-50% + ${SLASH_X_OFFSET[selected]}px))`
-        : "translateX(-50%)";
+		const w = document.createElement("div");
+		w.className = "symbol-wrapper";
 
-    const s = document.createElement("div");
-    s.className = "symbol";
-    s.textContent = selected;
-    s.style.fontSize = "40px";
-    s.style.fontFamily = "'Tangerine', cursive";
-    s.style.fontWeight = "700";
-    s.style.fontStyle = "normal";
-    
-    // --- CORRECTIF DE RENDU (ANTI-ROGNAGE) ---
-    s.style.overflow = "visible";
-    s.style.display = "block";
-    s.style.padding = "20px";          // Crée la zone de sécurité pour les boucles
-    s.style.margin = "-20px 0 0 0";    // Compense le padding pour l'alignement
-    s.style.transform = "translateZ(0)"; // Force le rendu par la carte graphique (GPU)
-    // ------------------------------------------
+		const s = document.createElement("div");
+		s.className = "symbol";
+		s.textContent = selected;
+		s.dataset.char = selected;
 
-    // jitter VISUEL sur le wrapper uniquement
-    applyJitter(w);
+		w.appendChild(s);
+		canvas.appendChild(w);
 
-    // insertion DOM
-    w.appendChild(s);
-    canvas.appendChild(w);
+		void w.offsetWidth;
 
-    // 🔒 Stabilisation forcée : on simule le clic sur "l'œil" pour cet élément
-    s.style.opacity = "0.99";
-    void s.offsetHeight; // Force le recalcul
-    s.style.opacity = "1";
+		const rect = w.getBoundingClientRect();
+		const centerOffsetX = rect.width / 2;
+		w.style.left = (snappedX - centerOffsetX) + "px";
+		w.dataset.centerX = snappedX;
 
-    // interactions
-    makeDraggable(w);
+		const offset = symbolVerticalOffset(selected);
+		w.style.top = (snappedY - offset - 20) + "px";
+		w.dataset.lineY = snappedY;
 
-    // feedback visuel
-    s.classList.add("flash");
-    setTimeout(() => s.classList.remove("flash"), 300);
-
-    haptic();
-}
+		makeDraggable(w);
+		saveState();
+		haptic();
+	}
 }, { passive: false });
 
 canvas.addEventListener("touchmove", e => {
-    if (!drawing) return;
-    e.preventDefault();
+	if (!drawing) return;
+	e.preventDefault();
 
-    const { x, y } = getCanvasCoords(e.touches[0]);
-    currentPath.setAttribute(
-        "d",
-        currentPath.getAttribute("d") +
-        ` L ${x - drawStart.x + DRAW_W / 2} ${y - drawStart.y + DRAW_H / 2}`
-    );
+	const { x, y } = getCanvasCoords(e.touches[0]);
+	currentPath.setAttribute(
+		"d",
+		currentPath.getAttribute("d") +
+		` L ${x - drawStart.x + DRAW_W / 2} ${y - drawStart.y + DRAW_H / 2}`
+	);
 }, { passive: false });
 
 canvas.addEventListener("touchend", () => {
-    if (!drawing) return;
-    drawing = false;
-    currentPath = null;
+	if (!drawing) return;
+	drawing = false;
+	currentPath = null;
 
-    if (selectedElement) {
-        makeDraggable(selectedElement);
-        selectedElement = null;
-    }
-
-    selected = "a";
-    tool = null;
-    toolPlace.classList.remove("active");
-    document.querySelectorAll(".palette-item").forEach(i => i.classList.remove("active"));
+	selected = "a";
+	tool = null;
+	toolPlace.classList.remove("active");
+	document.querySelectorAll(".palette-item").forEach(i => i.classList.remove("active"));
+	saveState();
 });
 
-/* ================= DRAG ================= */
+/* ================= DRAG / SELECTION ================= */
 function makeDraggable(el) {
 	el.addEventListener("touchstart", async e => {
 		if (tool !== "select") return;
 		e.preventDefault();
 		pushUndo();
-		if (selectedElement && selectedElement !== el) selectedElement.classList.remove("selected");
+
+		if (selectedElement && selectedElement !== el) {
+			selectedElement.classList.remove("selected");
+		}
+
 		selectedElement = el;
 		el.classList.add("selected");
 		active = el;
@@ -1387,86 +1412,82 @@ function makeDraggable(el) {
 		if (!dragLoupe) {
 			dragLoupe = document.createElement("div");
 			dragLoupe.className = "drag-loupe";
+
 			loupeCanvas = document.createElement("canvas");
-			loupeCanvas.width = 120; loupeCanvas.height = 120;
+			loupeCanvas.width = 120;
+			loupeCanvas.height = 120;
 			loupeCtx = loupeCanvas.getContext("2d");
+
 			dragLoupe.appendChild(loupeCanvas);
 			document.body.appendChild(dragLoupe);
+
 			const cross = document.createElement("div");
 			cross.className = "loupe-cross";
 			dragLoupe.appendChild(cross);
-			
-			const snap = await html2canvas(canvas, {
+
+			const snapImg = await html2canvas(canvas, {
 				backgroundColor: getComputedStyle(canvas).backgroundColor,
 				scale: 2,
 				logging: false
 			});
-			loupeImage = snap;
+
+			loupeImage = snapImg;
 		}
 	}, { passive: false });
 
 	el.addEventListener("touchmove", e => {
 		if (!active || !loupeImage) return;
 		e.preventDefault();
+
 		const t = e.touches[0];
 		const { x, y } = getCanvasCoords(t);
 		const snappedY = snapY(y);
-		const snappedX = el.classList.contains("symbol") ? snapToNearbySymbols(x, snappedY) : x;
+		const snappedX = snapToNearbySymbols(x, snappedY);
 
-if (active.classList.contains("symbol-wrapper")) {
+		if (active.classList.contains("symbol-wrapper")) {
+			const char = active.querySelector(".symbol")?.dataset.char || "";
+			const offset = symbolVerticalOffset(char);
 
-	const symbol = active.querySelector(".symbol");
-	const char = symbol ? symbol.textContent : null;
-	const offset = symbolVerticalOffset(char);
+			active.style.top = (snappedY - offset - 20) + "px";
+			active.dataset.lineY = snappedY;
 
-	active.style.left = snappedX + "px";
-	active.style.top  = (snappedY - offset) + "px";
-
-} else {
-
-	active.style.left = snappedX + "px";
-	active.style.top  = snappedY + "px";
-
-}
+			const rect = active.getBoundingClientRect();
+			const centerOffsetX = rect.width / 2;
+			active.style.left = (snappedX - centerOffsetX) + "px";
+			active.dataset.centerX = snappedX;
+		} else {
+			active.style.left = snappedX + "px";
+			active.style.top = snappedY + "px";
+		}
 
 		dragLoupe.style.left = t.clientX + "px";
 		dragLoupe.style.top  = t.clientY + "px";
 
 		loupeCtx.clearRect(0, 0, 120, 120);
-		loupeCtx.drawImage(loupeImage, (x * 2) - 50, (y * 2) - 50, 100, 100, 0, 0, 120, 120);
+		loupeCtx.drawImage(
+			loupeImage,
+			(x * 2) - 50,
+			(y * 2) - 50,
+			100,
+			100,
+			0,
+			0,
+			120,
+			120
+		);
 	}, { passive: false });
 
 	el.addEventListener("touchend", () => {
-		if (dragLoupe) { dragLoupe.remove(); dragLoupe = null; }
+		if (dragLoupe) {
+			dragLoupe.remove();
+			dragLoupe = null;
+		}
 		active = null;
 		saveState();
 	});
 }
 
 /* ================= DELETE / CLEAR ================= */
-deleteBtn.onclick = () => {
-	setTool("select");
-	if (!selectedElement) return;
-	pushUndo();
-	
-	// Si on supprime une barre de fin, rétablir le système
-	if (selectedElement.classList.contains("end-bar")) {
-		const systemId = selectedElement.dataset.systemId;
-		delete systemEnds[systemId];
-		
-		const systemLines = document.querySelectorAll(`.line[data-system-id="${systemId}"]`);
-		systemLines.forEach(line => line.style.right = "0");
-		
-		const rightBar = document.querySelector(`.system-bar.right[data-system-id="${systemId}"]`);
-		if (rightBar) rightBar.style.right = "0";
-	}
-	
-	selectedElement.remove();
-	selectedElement = null;
-	saveState();
-	haptic();
-};
-
 clearAllBtn.onclick = () => {
 	if (!confirm("Effacer toute la tablature ?")) return;
 	pushUndo();
@@ -1486,6 +1507,10 @@ addBar.onclick = () => {
 	addBar.classList.add("placing");
 	addEndBar.classList.remove("placing");
 	setTool("place");
+	
+	deleteMode = false;
+	deleteBtn.classList.remove("active");
+	
 	haptic();
 };
 
@@ -1495,6 +1520,10 @@ addEndBar.onclick = () => {
 	addEndBar.classList.add("placing");
 	addBar.classList.remove("placing");
 	setTool("place");
+	
+	deleteMode = false;
+	deleteBtn.classList.remove("active");
+	
 	haptic();
 };
 
@@ -1503,7 +1532,7 @@ addEndBar.onclick = () => {
 	"a","b","c","d","e","f","g","h","j","k",
 	"l","m","n",
 	"/a","//a","///a","4","5","6",
-	",",".","⌒","⌣","|","✎"
+	",",".","⌢","⌣","|","✎"
 ].forEach(s => {
 	const p = document.createElement("div");
 	p.className = "palette-item";
@@ -1514,6 +1543,10 @@ addEndBar.onclick = () => {
 		p.classList.add("active");
 		selected = (s === "✎") ? "__draw__" : s;
 		setTool("place");
+		
+		deleteMode = false;
+		deleteBtn.classList.remove("active");
+		
 		haptic();
 	};
 	palette.appendChild(p);
@@ -1527,6 +1560,9 @@ customInput.oninput = () => {
 	if (customInput.value.trim() !== "") {
 		selected = customInput.value.trim();
 		setTool("place");
+		
+		deleteMode = false;
+		deleteBtn.classList.remove("active");
 	}
 };
 palette.appendChild(customInput);
@@ -1612,8 +1648,6 @@ function restoreUIVerticalPosition(el, storageKey, defaultTop) {
 }
 
 /* ================= INIT ================= */
-/* ================= AUTO SAVE (APP QUIT / BACKGROUND) ================= */
-
 document.addEventListener("visibilitychange", () => {
 	if (document.visibilityState === "hidden") {
 		saveState();
@@ -1624,11 +1658,10 @@ window.addEventListener("pagehide", () => {
 	saveState();
 });
 
-/* ===== RESTORE STATE ===== */
 restoreFromStorage();
 renderPageNav();
+initUndoBaseline();
 
-/* ===== UI POSITIONS ===== */
 restoreUIVerticalPosition(toolbar, "toolbarY", "8px");
 restoreUIVerticalPosition(palette, "paletteY", null);
 
@@ -1644,13 +1677,10 @@ makeUIDraggableVertical(
 	"paletteY"
 );
 
-/* ===== UNDO INIT CORRECT =====
-   - on repart d'une pile propre
-   - on empile UNE fois l'état restauré
-*/
-undoStack.length = 0;
-undoStack.push(serializeState());
-
+function initUndoBaseline() {
+	undoStack.length = 0;
+	undoStack.push(serializeState());
+}
 </script>
 </body>
 </html>
