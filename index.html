@@ -203,7 +203,7 @@ button.placing {
 	color: var(--text-color);
 	font-family: 'EB Garamond', serif !important;
 	font-style: normal !important;
-	font-weight: 400;
+	font-weight: 400 !important;
 }
 
 /* ===== LINES ===== */
@@ -232,10 +232,10 @@ button.placing {
 	pointer-events: none;
 }
 
-/* ===== SYMBOLS ===== */
+/* ===== SYMBOLS - FORCE TANGERINE 40PX ===== */
 .symbol {
 	position: absolute;
-	font-size: 40px;
+	font-size: 40px !important;
 	white-space: nowrap;
 	line-height: normal;
 	height: auto;
@@ -250,6 +250,12 @@ button.placing {
 	font-family: 'Tangerine', cursive !important;
 	font-weight: 700 !important;
 	font-style: normal !important;
+}
+
+.symbol-wrapper {
+	position: absolute;
+	pointer-events: auto;
+	z-index: 10;
 }
 
 .selected {
@@ -284,7 +290,7 @@ button.placing {
 .system-bar.left { left: 0; }
 .system-bar.right { right: 0; }
 
-/* ===== POIGNÉE DE RACCOURCISSEMENT ===== */
+/* ===== POIGNÉE DE RACCOURCISSEMENT (temporaire) ===== */
 .shorten-handle {
 	position: absolute;
 	width: 24px;
@@ -542,7 +548,7 @@ button.placing {
 	</div>
 
 <script>
-const VERSION = "tablature-barok-v4";
+const VERSION = "tablature-barok-v5";
 
 /* ================= DOM ================= */
 const toolbar = document.getElementById("toolbar");
@@ -753,7 +759,9 @@ function serializeState() {
 					d: el.querySelector("path").getAttribute("d")
 				};
 			}
-			return {
+			
+			// Pour les symboles, forcer la sauvegarde de fontSize et fontFamily
+			const data = {
 				class: el.className,
 				text: el.textContent || "",
 				left: el.style.left,
@@ -763,6 +771,13 @@ function serializeState() {
 				right: el.style.right || "",
 				systemId: el.dataset.systemId || ""
 			};
+			
+			// Forcer pour les symboles
+			if (el.classList.contains("symbol")) {
+				data.fontWeight = "700";
+			}
+			
+			return data;
 		})
 	});
 }
@@ -794,6 +809,7 @@ function restoreState(raw, save = true) {
 	if (s.theme) applyTheme(s.theme);
 	
 	// Restaurer les limites des systèmes
+	Object.keys(systemEnds).forEach(key => delete systemEnds[key]);
 	Object.assign(systemEnds, s.systemEnds || {});
 
 	s.elements.forEach(e => {
@@ -822,7 +838,12 @@ function restoreState(raw, save = true) {
 		if (e.right) el.style.right = e.right;
 		if (e.systemId) el.dataset.systemId = e.systemId;
 		
+		// FORCER Tangerine 40px pour les symboles
 		if (el.classList.contains("symbol")) {
+			el.style.fontSize = "40px";
+			el.style.fontFamily = "'Tangerine', cursive";
+			el.style.fontWeight = "700";
+			el.style.fontStyle = "normal";
 			makeDraggable(el);
 		}
 		
@@ -835,10 +856,6 @@ function restoreState(raw, save = true) {
 		
 		if (el.classList.contains("bar") || el.classList.contains("end-bar")) {
 			makeDraggable(el);
-		}
-		
-		if (el.classList.contains("shorten-handle")) {
-			makeShortenHandleDraggable(el);
 		}
 	});
 	
@@ -1092,7 +1109,16 @@ function makeShortenHandleDraggable(handle) {
 		if (!isDragging) return;
 		isDragging = false;
 		handle.classList.remove("dragging");
+		
+		// SUPPRIMER LA POIGNÉE après placement
+		handle.remove();
+		
+		// Désactiver le mode raccourcir
+		placingEndBar = false;
+		addEndBar.classList.remove("placing");
+		
 		saveState();
+		haptic();
 	});
 }
 
@@ -1126,7 +1152,8 @@ function applyJitter(el) {
 	const sizeJitter = (Math.random() * 0.8 - 0.4);
 	const rotJitter  = (Math.random() * 0.6 - 0.3);
 
-	el.style.fontSize = (FIXED_FONT_SIZE + sizeJitter) + "px";
+el.style.fontSize = FIXED_FONT_SIZE + "px";
+el.style.transform += ` rotate(${rotJitter}deg)`;
 	el.style.transform += ` rotate(${rotJitter}deg)`;
 	el.dataset.jittered = "1";
 }
@@ -1180,23 +1207,28 @@ canvas.addEventListener("touchstart", e => {
 
 	/* ===== MODE RACCOURCIR ===== */
 	if (placingEndBar) {
-		placingEndBar = false;
-		addEndBar.classList.remove("placing");
-
 		const systemId = getSystemIdAtY(y);
 		if (!systemId) {
 			alert("Cliquez sur un système pour le raccourcir");
 			return;
 		}
 
-		// Vérifier si une poignée existe déjà
-		const existingHandle = document.querySelector(`.shorten-handle[data-system-id="${systemId}"]`);
-		if (existingHandle) {
-			alert("Ce système a déjà une poignée de raccourcissement");
-			return;
+		// Vérifier si le système a déjà une barre de fin
+		const existingEndBar = document.querySelector(`.end-bar[data-system-id="${systemId}"]`);
+		if (existingEndBar) {
+			// Réinitialiser le système
+			delete systemEnds[systemId];
+			
+			const systemLines = document.querySelectorAll(`.line[data-system-id="${systemId}"]`);
+			systemLines.forEach(line => line.style.right = "0");
+			
+			const rightBar = document.querySelector(`.system-bar.right[data-system-id="${systemId}"]`);
+			if (rightBar) rightBar.style.right = "0";
+			
+			existingEndBar.remove();
 		}
 
-		// Créer la poignée
+		// Créer la poignée temporaire
 		const topLine = firstLineOfSystem(y);
 		const handle = document.createElement("div");
 		handle.className = "shorten-handle";
@@ -1208,7 +1240,6 @@ canvas.addEventListener("touchstart", e => {
 		makeShortenHandleDraggable(handle);
 		updateSystemEnd(systemId, 0);
 		
-		saveState();
 		haptic();
 		return;
 	}
@@ -1254,6 +1285,12 @@ canvas.addEventListener("touchstart", e => {
 		const s = document.createElement("div");
 		s.className = "symbol";
 		s.textContent = selected;
+		
+		// FORCER Tangerine 40px
+		s.style.fontSize = "40px";
+		s.style.fontFamily = "'Tangerine', cursive";
+		s.style.fontWeight = "700";
+		s.style.fontStyle = "normal";
 
 		applyJitter(s);
 
@@ -1375,22 +1412,16 @@ deleteBtn.onclick = () => {
 	if (!selectedElement) return;
 	pushUndo();
 	
-	// Si on supprime une poignée, rétablir le système en entier
-	if (selectedElement.classList.contains("shorten-handle")) {
+	// Si on supprime une barre de fin, rétablir le système
+	if (selectedElement.classList.contains("end-bar")) {
 		const systemId = selectedElement.dataset.systemId;
 		delete systemEnds[systemId];
 		
-		// Rétablir les lignes
 		const systemLines = document.querySelectorAll(`.line[data-system-id="${systemId}"]`);
 		systemLines.forEach(line => line.style.right = "0");
 		
-		// Rétablir la barre de droite
 		const rightBar = document.querySelector(`.system-bar.right[data-system-id="${systemId}"]`);
 		if (rightBar) rightBar.style.right = "0";
-		
-		// Supprimer la barre de fin
-		const endBar = document.querySelector(`.end-bar[data-system-id="${systemId}"]`);
-		if (endBar) endBar.remove();
 	}
 	
 	selectedElement.remove();
@@ -1470,9 +1501,6 @@ async function confirmExport() {
 	const showNumbers = document.getElementById("showSystemNumbers").checked;
 	if (!showNumbers) document.querySelectorAll(".system-number").forEach(n => n.style.display = "none");
 	
-	// Cacher les poignées pour l'export
-	document.querySelectorAll(".shorten-handle").forEach(h => h.style.display = "none");
-	
 	closeModal("exportModal");
 	saveCurrentPage();
 	const originalPage = currentPage;
@@ -1517,9 +1545,6 @@ async function confirmExport() {
 	ui.forEach(el => el.style.display = "");
 	if (!showNumbers) document.querySelectorAll(".system-number").forEach(n => n.style.display = "");
 	
-	// Réafficher les poignées
-	document.querySelectorAll(".shorten-handle").forEach(h => h.style.display = "");
-	
 	pdf.save("tablature-barok.pdf");
 	haptic();
 }
@@ -1550,8 +1575,10 @@ function restoreUIVerticalPosition(el, storageKey, defaultTop) {
 }
 
 /* ================= INIT ================= */
-restoreFromStorage();
-renderPageNav();
+document.fonts.ready.then(() => {
+	restoreFromStorage();
+	renderPageNav();
+});
 restoreUIVerticalPosition(toolbar, "toolbarY", "8px");
 restoreUIVerticalPosition(palette, "paletteY", null);
 makeUIDraggableVertical(toolbar, document.getElementById("toolbarHandle"), "toolbarY");
