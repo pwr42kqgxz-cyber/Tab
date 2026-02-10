@@ -1190,11 +1190,7 @@ function applyJitter(el) {
 
 function symbolVerticalOffset(char) {
 	let base = FIXED_FONT_SIZE * 0.55;
-
-	if (LETTER_VERTICAL_OFFSET[char]) {
-		base += LETTER_VERTICAL_OFFSET[char];
-	}
-
+	if (LETTER_VERTICAL_OFFSET[char]) base += LETTER_VERTICAL_OFFSET[char];
 	return base;
 }
 
@@ -1238,43 +1234,33 @@ canvas.addEventListener("touchstart", e => {
 	/* ===== MODE RACCOURCIR ===== */
 	if (placingEndBar) {
 		const systemId = getSystemIdAtY(y);
-		if (!systemId) {
-			alert("Cliquez sur un système pour le raccourcir");
-			return;
-		}
+		if (!systemId) return;
 
-		// Vérifier si le système a déjà une barre de fin
 		const existingEndBar = document.querySelector(`.end-bar[data-system-id="${systemId}"]`);
 		if (existingEndBar) {
-			// Réinitialiser le système
 			delete systemEnds[systemId];
-			
-			const systemLines = document.querySelectorAll(`.line[data-system-id="${systemId}"]`);
-			systemLines.forEach(line => line.style.right = "0");
-			
-			const rightBar = document.querySelector(`.system-bar.right[data-system-id="${systemId}"]`);
-			if (rightBar) rightBar.style.right = "0";
-			
+			document.querySelectorAll(`.line[data-system-id="${systemId}"]`)
+				.forEach(l => l.style.right = "0");
+			const rb = document.querySelector(`.system-bar.right[data-system-id="${systemId}"]`);
+			if (rb) rb.style.right = "0";
 			existingEndBar.remove();
 		}
 
-		// Créer la poignée temporaire
 		const topLine = firstLineOfSystem(y);
 		const handle = document.createElement("div");
 		handle.className = "shorten-handle";
 		handle.dataset.systemId = systemId;
 		handle.style.top = (topLine + (5 * LINE_SPACING / 2) - 12) + "px";
 		handle.style.right = "0px";
-		
+
 		canvas.appendChild(handle);
 		makeShortenHandleDraggable(handle);
 		updateSystemEnd(systemId, 0);
-		
 		haptic();
 		return;
 	}
 
-	/* ===== MODE BARRE NORMALE ===== */
+	/* ===== MODE BARRE ===== */
 	if (placingBar) {
 		placingBar = false;
 		addBar.classList.remove("placing");
@@ -1288,7 +1274,6 @@ canvas.addEventListener("touchstart", e => {
 
 		canvas.appendChild(b);
 		makeDraggable(b);
-		saveState();
 		haptic();
 		return;
 	}
@@ -1305,18 +1290,13 @@ canvas.addEventListener("touchstart", e => {
 		w.style.left = snappedX + "px";
 		w.style.top  = (snappedY - offset) + "px";
 
-		if (SLASH_X_OFFSET[selected]) {
-			w.style.transform =
-				`translateX(calc(-50% + ${SLASH_X_OFFSET[selected]}px))`;
-		} else {
-			w.style.transform = "translateX(-50%)";
-		}
+		w.style.transform = SLASH_X_OFFSET[selected]
+			? `translateX(calc(-50% + ${SLASH_X_OFFSET[selected]}px))`
+			: "translateX(-50%)";
 
 		const s = document.createElement("div");
 		s.className = "symbol";
 		s.textContent = selected;
-		
-		// FORCER Tangerine 40px
 		s.style.fontSize = "40px";
 		s.style.fontFamily = "'Tangerine', cursive";
 		s.style.fontWeight = "700";
@@ -1330,8 +1310,6 @@ canvas.addEventListener("touchstart", e => {
 
 		s.classList.add("flash");
 		setTimeout(() => s.classList.remove("flash"), 300);
-
-		saveState();
 		haptic();
 	}
 }, { passive: false });
@@ -1341,18 +1319,15 @@ canvas.addEventListener("touchmove", e => {
 	e.preventDefault();
 
 	const { x, y } = getCanvasCoords(e.touches[0]);
-	const dx = x - drawStart.x + DRAW_W / 2;
-	const dy = y - drawStart.y + DRAW_H / 2;
-
 	currentPath.setAttribute(
 		"d",
-		currentPath.getAttribute("d") + ` L ${dx} ${dy}`
+		currentPath.getAttribute("d") +
+		` L ${x - drawStart.x + DRAW_W / 2} ${y - drawStart.y + DRAW_H / 2}`
 	);
 }, { passive: false });
 
 canvas.addEventListener("touchend", () => {
 	if (!drawing) return;
-
 	drawing = false;
 	currentPath = null;
 
@@ -1364,12 +1339,7 @@ canvas.addEventListener("touchend", () => {
 	selected = "a";
 	tool = null;
 	toolPlace.classList.remove("active");
-
-	document
-		.querySelectorAll(".palette-item")
-		.forEach(item => item.classList.remove("active"));
-
-	saveState();
+	document.querySelectorAll(".palette-item").forEach(i => i.classList.remove("active"));
 });
 
 /* ================= DRAG ================= */
@@ -1605,13 +1575,45 @@ function restoreUIVerticalPosition(el, storageKey, defaultTop) {
 }
 
 /* ================= INIT ================= */
+/* ================= AUTO SAVE (APP QUIT / BACKGROUND) ================= */
+
+document.addEventListener("visibilitychange", () => {
+	if (document.visibilityState === "hidden") {
+		saveState();
+	}
+});
+
+window.addEventListener("pagehide", () => {
+	saveState();
+});
+
+/* ===== RESTORE STATE ===== */
 restoreFromStorage();
 renderPageNav();
+
+/* ===== UI POSITIONS ===== */
 restoreUIVerticalPosition(toolbar, "toolbarY", "8px");
 restoreUIVerticalPosition(palette, "paletteY", null);
-makeUIDraggableVertical(toolbar, document.getElementById("toolbarHandle"), "toolbarY");
-makeUIDraggableVertical(palette, document.getElementById("paletteHandle"), "paletteY");
-pushUndo();
+
+makeUIDraggableVertical(
+	toolbar,
+	document.getElementById("toolbarHandle"),
+	"toolbarY"
+);
+
+makeUIDraggableVertical(
+	palette,
+	document.getElementById("paletteHandle"),
+	"paletteY"
+);
+
+/* ===== UNDO INIT CORRECT =====
+   - on repart d'une pile propre
+   - on empile UNE fois l'état restauré
+*/
+undoStack.length = 0;
+undoStack.push(serializeState());
+
 </script>
 </body>
 </html>
