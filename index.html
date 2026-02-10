@@ -168,6 +168,10 @@ button.placing {
 	position: absolute;
 	pointer-events: auto;
 	z-index: 10;
+
+	/* zone de capture tactile */
+	padding: 10px;
+	margin: -10px;
 }
 
 #canvas {
@@ -232,25 +236,32 @@ button.placing {
 	pointer-events: none;
 }
 
-/* ===== SYMBOLS - FORCE TANGERINE 40PX ===== */
 .symbol {
-	position: absolute;
-	font-size: 40px !important;
-	white-space: nowrap;
-	line-height: normal;
-	height: auto;
-	overflow: visible;
-	padding: 10px 0;
-	margin-top: -10px;
-	transform: translateX(-50%);
-	color: var(--text-color);
-	text-rendering: geometricPrecision;
-	-webkit-font-smoothing: antialiased;
-	z-index: 10;
-	font-family: 'Tangerine', cursive !important;
-	font-weight: 700 !important;
-	font-style: normal !important;
+    position: absolute;
+    font-size: 40px !important;
+    white-space: nowrap;
+    line-height: 1 !important;
+    height: auto;
+    
+    /* 1. On donne de l'air pour que les boucles de Tangerine respirent */
+    padding: 40px !important; 
+    /* 2. On compense exactement ce padding pour ne pas décaler la pose */
+    margin: -40px 0 0 -40px !important; 
+    
+    /* 3. On empêche le navigateur de "couper" ce qui dépasse */
+    overflow: visible !important;
+    
+    /* 4. On force le rendu graphique (GPU) pour éviter le clipping */
+    transform: translateZ(0); 
+    
+    color: var(--text-color);
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    z-index: 10;
+    font-family: 'Tangerine', cursive !important;
+    font-weight: 700 !important;
 }
+
 
 .symbol-wrapper {
 	position: absolute;
@@ -1275,69 +1286,90 @@ canvas.addEventListener("touchstart", e => {
 		return;
 	}
 
-	/* ===== POSE DE SYMBOLE ===== */
-	if (tool === "place" && selected !== "__draw__") {
-		const snappedY = snapY(y);
-		const snappedX = snapToNearbySymbols(x, snappedY);
+/* ===== POSE DE SYMBOLE ===== */
+if (tool === "place" && selected !== "__draw__") {
+    const snappedY = snapY(y);
+    const snappedX = snapToNearbySymbols(x, snappedY);
 
-		const w = document.createElement("div");
-		w.className = "symbol-wrapper";
+    const w = document.createElement("div");
+    w.className = "symbol-wrapper";
 
-		const offset = symbolVerticalOffset(selected);
-		w.style.left = snappedX + "px";
-		w.style.top  = (snappedY - offset) + "px";
+    const offset = symbolVerticalOffset(selected);
+    w.style.left = snappedX + "px";
+    w.style.top  = (snappedY - offset) + "px";
 
-		w.style.transform = SLASH_X_OFFSET[selected]
-			? `translateX(calc(-50% + ${SLASH_X_OFFSET[selected]}px))`
-			: "translateX(-50%)";
+    // On s'assure que le wrapper ne coupe rien
+    w.style.overflow = "visible";
 
-		const s = document.createElement("div");
-		s.className = "symbol";
-		s.textContent = selected;
-		s.style.fontSize = "40px";
-		s.style.fontFamily = "'Tangerine', cursive";
-		s.style.fontWeight = "700";
-		s.style.fontStyle = "normal";
+    w.style.transform = SLASH_X_OFFSET[selected]
+        ? `translateX(calc(-50% + ${SLASH_X_OFFSET[selected]}px))`
+        : "translateX(-50%)";
 
-		applyJitter(w);
+    const s = document.createElement("div");
+    s.className = "symbol";
+    s.textContent = selected;
+    s.style.fontSize = "40px";
+    s.style.fontFamily = "'Tangerine', cursive";
+    s.style.fontWeight = "700";
+    s.style.fontStyle = "normal";
+    
+    // --- CORRECTIF DE RENDU (ANTI-ROGNAGE) ---
+    s.style.overflow = "visible";
+    s.style.display = "block";
+    s.style.padding = "20px";          // Crée la zone de sécurité pour les boucles
+    s.style.margin = "-20px 0 0 0";    // Compense le padding pour l'alignement
+    s.style.transform = "translateZ(0)"; // Force le rendu par la carte graphique (GPU)
+    // ------------------------------------------
 
-w.appendChild(s);
-canvas.appendChild(w);
-w.getBoundingClientRect();
-makeDraggable(w);
+    // jitter VISUEL sur le wrapper uniquement
+    applyJitter(w);
 
-		s.classList.add("flash");
-		setTimeout(() => s.classList.remove("flash"), 300);
-		haptic();
-	}
+    // insertion DOM
+    w.appendChild(s);
+    canvas.appendChild(w);
+
+    // 🔒 Stabilisation forcée : on simule le clic sur "l'œil" pour cet élément
+    s.style.opacity = "0.99";
+    void s.offsetHeight; // Force le recalcul
+    s.style.opacity = "1";
+
+    // interactions
+    makeDraggable(w);
+
+    // feedback visuel
+    s.classList.add("flash");
+    setTimeout(() => s.classList.remove("flash"), 300);
+
+    haptic();
+}
 }, { passive: false });
 
 canvas.addEventListener("touchmove", e => {
-	if (!drawing) return;
-	e.preventDefault();
+    if (!drawing) return;
+    e.preventDefault();
 
-	const { x, y } = getCanvasCoords(e.touches[0]);
-	currentPath.setAttribute(
-		"d",
-		currentPath.getAttribute("d") +
-		` L ${x - drawStart.x + DRAW_W / 2} ${y - drawStart.y + DRAW_H / 2}`
-	);
+    const { x, y } = getCanvasCoords(e.touches[0]);
+    currentPath.setAttribute(
+        "d",
+        currentPath.getAttribute("d") +
+        ` L ${x - drawStart.x + DRAW_W / 2} ${y - drawStart.y + DRAW_H / 2}`
+    );
 }, { passive: false });
 
 canvas.addEventListener("touchend", () => {
-	if (!drawing) return;
-	drawing = false;
-	currentPath = null;
+    if (!drawing) return;
+    drawing = false;
+    currentPath = null;
 
-	if (selectedElement) {
-		makeDraggable(selectedElement);
-		selectedElement = null;
-	}
+    if (selectedElement) {
+        makeDraggable(selectedElement);
+        selectedElement = null;
+    }
 
-	selected = "a";
-	tool = null;
-	toolPlace.classList.remove("active");
-	document.querySelectorAll(".palette-item").forEach(i => i.classList.remove("active"));
+    selected = "a";
+    tool = null;
+    toolPlace.classList.remove("active");
+    document.querySelectorAll(".palette-item").forEach(i => i.classList.remove("active"));
 });
 
 /* ================= DRAG ================= */
@@ -1381,14 +1413,21 @@ function makeDraggable(el) {
 		const snappedY = snapY(y);
 		const snappedX = el.classList.contains("symbol") ? snapToNearbySymbols(x, snappedY) : x;
 
-		if (active.classList.contains("symbol")) {
-			const offset = symbolVerticalOffset();
-			active.style.left = snappedX + "px";
-			active.style.top  = (snappedY - offset) + "px";
-		} else {
-			active.style.left = snappedX + "px";
-			active.style.top  = snappedY + "px";
-		}
+if (active.classList.contains("symbol-wrapper")) {
+
+	const symbol = active.querySelector(".symbol");
+	const char = symbol ? symbol.textContent : null;
+	const offset = symbolVerticalOffset(char);
+
+	active.style.left = snappedX + "px";
+	active.style.top  = (snappedY - offset) + "px";
+
+} else {
+
+	active.style.left = snappedX + "px";
+	active.style.top  = snappedY + "px";
+
+}
 
 		dragLoupe.style.left = t.clientX + "px";
 		dragLoupe.style.top  = t.clientY + "px";
