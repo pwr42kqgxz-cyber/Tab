@@ -1182,14 +1182,19 @@ canvas.addEventListener("touchstart", e => {
 		// JITTER MANUSCRIT (UNE SEULE FOIS, À LA POSE)
 		applyJitter(s);
 
-		canvas.appendChild(s);
-		makeDraggable(s);
+canvas.appendChild(s);
+makeDraggable(s);
 
-		s.classList.add("flash");
-		setTimeout(() => s.classList.remove("flash"), 300);
+/* ===== FIX RENDU iOS (Tangerine grandes boucles) ===== */
+requestAnimationFrame(() => {
+	s.style.transform += " translateZ(0)";
+});
 
-		saveState();
-		haptic();
+s.classList.add("flash");
+setTimeout(() => s.classList.remove("flash"), 300);
+
+saveState();
+haptic();
 	}
 }, { passive: false });
 
