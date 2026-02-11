@@ -610,7 +610,7 @@ const MAX_PAGES = 10;
 /* ================= LAYOUT ENGINE ================= */
 const LayoutEngine = {
 	ctx: null,
-	fontString: "700 40px Tangerine",
+	fontString: "700 40px 'Tangerine'",
 
 	init() {
 		const canvas = document.createElement("canvas");
@@ -620,17 +620,21 @@ const LayoutEngine = {
 	getMetrics(char) {
 		if (!this.ctx) this.init();
 		this.ctx.font = this.fontString;
+
 		const metrics = this.ctx.measureText(char);
 
-		const safeAscent = (typeof metrics.actualBoundingBoxAscent === 'number') 
-			? metrics.actualBoundingBoxAscent 
-			: 35; 
-		const safeDescent = (typeof metrics.actualBoundingBoxDescent === 'number') 
-			? metrics.actualBoundingBoxDescent 
-			: 15;
-		const safeWidth = metrics.width || 20;
+		const safeAscent =
+			typeof metrics.actualBoundingBoxAscent === "number"
+				? metrics.actualBoundingBoxAscent
+				: 35;
 
-		const hPadding = 20; 
+		const safeDescent =
+			typeof metrics.actualBoundingBoxDescent === "number"
+				? metrics.actualBoundingBoxDescent
+				: 15;
+
+		const safeWidth = metrics.width || 20;
+		const hPadding = 20;
 
 		return {
 			ascent: Math.ceil(safeAscent),
@@ -642,19 +646,19 @@ const LayoutEngine = {
 
 	createSymbolElement(char, centerX, staffLineY) {
 		const m = this.getMetrics(char);
-		
+
 		const height = m.totalHeight;
 		const width = m.width;
 
 		const wrapper = document.createElement("div");
 		wrapper.className = "symbol-wrapper";
-		
+
 		wrapper.dataset.char = char;
 		wrapper.dataset.centerX = centerX;
 		wrapper.dataset.lineY = staffLineY;
 
-		const top = staffLineY - (height / 2);
-		const left = centerX - (width / 2);
+		const top = staffLineY - height / 2;
+		const left = centerX - width / 2;
 
 		wrapper.style.top = `${top}px`;
 		wrapper.style.left = `${left}px`;
@@ -667,16 +671,24 @@ const LayoutEngine = {
 		svg.setAttribute("width", "100%");
 		svg.setAttribute("height", "100%");
 		svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
-		
+
 		const text = document.createElementNS(svgNS, "text");
 		text.textContent = char;
+
 		text.setAttribute("x", "50%");
-		text.setAttribute("y", m.ascent); 
-		text.setAttribute("font-family", "Tangerine");
+		text.setAttribute("y", m.ascent);
+		text.setAttribute("text-anchor", "middle");
+
+		// 🔥 double définition = html2canvas fiable
+		text.setAttribute("font-family", "'Tangerine', cursive");
 		text.setAttribute("font-weight", "700");
 		text.setAttribute("font-size", "40");
-		text.setAttribute("text-anchor", "middle");
-		
+
+		text.style.fontFamily = "'Tangerine', cursive";
+		text.style.fontWeight = "700";
+		text.style.fontSize = "40px";
+		text.style.fill = "currentColor";
+
 		svg.appendChild(text);
 		wrapper.appendChild(svg);
 
