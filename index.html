@@ -1702,17 +1702,20 @@ async function confirmExport() {
 		const titleClone = printTitle.cloneNode(true);
 		titleClone.style.marginBottom = "16px";
 		exportWrapper.appendChild(titleClone);
-		const canvasClone = canvas.cloneNode(true);
-		exportWrapper.appendChild(canvasClone);
-		document.body.appendChild(exportWrapper);
+const canvasClone = canvas.cloneNode(true);
+exportWrapper.appendChild(canvasClone);
+document.body.appendChild(exportWrapper);
 
-		const canvasImg = await html2canvas(exportWrapper, {
-			scale: 4,
-			backgroundColor: getComputedStyle(document.body).backgroundColor,
-			useCORS: true,
-			logging: false,
-			removeContainer: true
-		});
+await document.fonts.load("700 40px Tangerine");
+await document.fonts.ready;
+
+const canvasImg = await html2canvas(exportWrapper, {
+    scale: 4,
+    backgroundColor: getComputedStyle(document.body).backgroundColor,
+    useCORS: true,
+    logging: false,
+    removeContainer: true
+});
 		exportWrapper.remove();
 		const imgWidth = pageWidth;
 		const imgHeight = canvasImg.height * imgWidth / canvasImg.width;
