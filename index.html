@@ -16,6 +16,13 @@
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
+@font-face {
+    font-family: 'Tangerine';
+    src: url('https://fonts.gstatic.com/s/tangerine/v17/IurY6Y5j_oScZZow4VOxCZZMprJ-gC8.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+}
+
 :root {
 	--bg-color: #ffffff;
 	--text-color: #000000;
@@ -1718,6 +1725,8 @@ async function confirmExport() {
 		// ✅ Attendre que le DOM se stabilise et que les polices se rendent
 		await new Promise(r => setTimeout(r, 500));
 		await document.fonts.ready;
+		
+await document.fonts.ready;
 
 		const canvasImg = await html2canvas(exportWrapper, {
 			scale: 4,
