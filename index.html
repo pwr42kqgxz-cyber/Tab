@@ -1682,80 +1682,83 @@ customInput.oninput = () => {
 palette.appendChild(customInput);
 
 /* ================= EXPORT PDF ================= */
-document.getElementById("exportPDF").onclick = () => document.getElementById("exportModal").classList.add("active");
+document.getElementById("exportPDF").onclick =
+    () => document.getElementById("exportModal").classList.add("active");
 
 async function confirmExport() {
-	const showNumbers = document.getElementById("showSystemNumbers").checked;
-	if (!showNumbers) document.querySelectorAll(".system-number").forEach(n => n.style.display = "none");
-	
-	closeModal("exportModal");
-	saveCurrentPage();
-	const originalPage = currentPage;
-	const ui = [toolbar, palette];
-	ui.forEach(el => el.style.display = "none");
-	
-	// ✅ Attendre que toutes les polices soient chargées
-	await document.fonts.ready;
-	await new Promise(r => requestAnimationFrame(r));
 
-	const pdf = new jspdf.jsPDF("p", "mm", "a4");
-	const pageWidth = 210;
-	const y = 15;
+    const showNumbers = document.getElementById("showSystemNumbers").checked;
 
-	const capture = async (pageNum, addPage) => {
-		if (!pages[pageNum]) return;
-		loadPage(pageNum);
-		
-		// ✅ Attendre le chargement de la page ET des polices
-		await document.fonts.ready;
-		await new Promise(r => setTimeout(r, 300));
-		
-		const exportWrapper = document.createElement("div");
-		exportWrapper.style.background = getComputedStyle(document.body).backgroundColor;
-		exportWrapper.style.padding = "20px 24px";
-		
-		const titleClone = printTitle.cloneNode(true);
-		titleClone.style.marginBottom = "16px";
-		exportWrapper.appendChild(titleClone);
-		
-		const canvasClone = canvas.cloneNode(true);
-		exportWrapper.appendChild(canvasClone);
-		document.body.appendChild(exportWrapper);
+    if (!showNumbers) {
+        document.querySelectorAll(".system-number")
+            .forEach(n => n.style.display = "none");
+    }
 
-		// ✅ Attendre que le DOM se stabilise et que les polices se rendent
-		await new Promise(r => setTimeout(r, 500));
-		await document.fonts.ready;
-		
-await document.fonts.ready;
+    closeModal("exportModal");
+    saveCurrentPage();
 
-		const canvasImg = await html2canvas(exportWrapper, {
-			scale: 4,
-			backgroundColor: getComputedStyle(document.body).backgroundColor,
-			useCORS: true,
-			logging: false,
-			removeContainer: true,
-			// ✅ Options pour forcer le rendu des polices
-			allowTaint: false,
-			foreignObjectRendering: false,
-			imageTimeout: 0
-		});
-		
-		exportWrapper.remove();
-		
-		const imgWidth = pageWidth;
-		const imgHeight = canvasImg.height * imgWidth / canvasImg.width;
-		if (addPage) pdf.addPage();
-		pdf.addImage(canvasImg.toDataURL("image/png"), "PNG", 0, y, imgWidth, imgHeight);
-	};
+    const originalPage = currentPage;
+    const ui = [toolbar, palette];
 
-	for (let i = 1; i <= pageCount; i++) await capture(i, i > 1);
-	
-	loadPage(originalPage);
-	ui.forEach(el => el.style.display = "");
-	if (!showNumbers) document.querySelectorAll(".system-number").forEach(n => n.style.display = "");
-	
-	pdf.save("tablature-barok.pdf");
-	haptic();
+    // Masquer UI
+    ui.forEach(el => el.style.display = "none");
+
+    // Laisser le DOM se stabiliser
+    await new Promise(r => requestAnimationFrame(r));
+    await document.fonts.ready;
+
+    const pdf = new jspdf.jsPDF("p", "mm", "a4");
+    const pageWidth = 210;
+    const y = 15;
+
+    const capture = async (pageNum, addPage) => {
+
+        if (!pages[pageNum]) return;
+
+        loadPage(pageNum);
+
+        // Attendre rendu + fonts
+        await new Promise(r => setTimeout(r, 250));
+        await document.fonts.ready;
+
+        const canvasImg = await html2canvas(canvasWrapper, {
+            scale: 4,
+            backgroundColor: getComputedStyle(document.body).backgroundColor,
+            useCORS: true,
+            logging: false
+        });
+
+        const imgWidth = pageWidth;
+        const imgHeight = canvasImg.height * imgWidth / canvasImg.width;
+
+        if (addPage) pdf.addPage();
+
+        pdf.addImage(
+            canvasImg.toDataURL("image/png"),
+            "PNG",
+            0,
+            y,
+            imgWidth,
+            imgHeight
+        );
+    };
+
+    for (let i = 1; i <= pageCount; i++) {
+        await capture(i, i > 1);
+    }
+
+    loadPage(originalPage);
+
+    // Restaurer UI
+    ui.forEach(el => el.style.display = "");
+
+    if (!showNumbers) {
+        document.querySelectorAll(".system-number")
+            .forEach(n => n.style.display = "");
+    }
+
+    pdf.save("tablature-barok.pdf");
+    haptic();
 }
 
 
