@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="fr" data-theme="classique">
 <head>
 	<meta charset="UTF-8">
@@ -10,10 +11,12 @@
 	<meta name="apple-mobile-web-app-capable" content="yes">
 	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-	<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;1,400&family=Tangerine:wght@700&display=swap" rel="stylesheet">
+```
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;1,400&family=Tangerine:wght@700&display=swap" rel="stylesheet">
 
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+```
 
 <style>
 @font-face {
@@ -21,6 +24,15 @@
     src: url('https://fonts.gstatic.com/s/tangerine/v17/IurY6Y5j_oScZZow4VOxCZZMprJ-gC8.ttf') format('truetype');
     font-weight: 700;
     font-style: normal;
+    font-display: block;
+}
+
+@font-face {
+    font-family: 'EB Garamond';
+    src: url('https://fonts.gstatic.com/s/ebgaramond/v27/SlGDmQSNjdsmc35JDF1K5E55YMjF_7DPuGi-6_RUA4V-e6yHgQ.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: block;
 }
 
 :root {
@@ -202,26 +214,23 @@ button:disabled {
 	position: absolute;
 	pointer-events: auto;
 	z-index: 10;
-	/* Removed padding hacks and line-height dependencies */
 	margin: 0;
 	padding: 0;
 	display: flex;
 	align-items: flex-start;
 	justify-content: flex-start;
-	/* Hardware acceleration */
 	will-change: transform, top, left;
 	transform: translateZ(0);
 }
 
 .symbol-svg {
 	display: block;
-	overflow: visible; /* Allows flourishes to extend beyond bounding box */
-	pointer-events: none; /* Passes clicks to wrapper */
+	overflow: visible;
+	pointer-events: none;
 }
 
 .symbol-svg text {
 	fill: var(--text-color);
-	/* Font definition moved to SVG for consistency */
 }
 
 .selected .symbol-svg text {
@@ -529,7 +538,7 @@ button:disabled {
 	#canvas-wrapper { top: 60px; bottom: 70px; }
 }
 </style>
-<link rel="stylesheet" href="/index.css">
+
 </head>
 <body>
 	<div id="toolbar">
@@ -554,54 +563,51 @@ button:disabled {
 		<button id="toggleVGuides">││</button>
 	</div>
 
-	<div id="canvas-wrapper">
-		<div id="print-title">Titre du Morceau</div>
-		<div id="canvas"></div>
-	</div>
+```
+<div id="canvas-wrapper">
+	<div id="print-title">Titre du Morceau</div>
+	<div id="canvas"></div>
+</div>
 
-	<div id="palette">
-		<div class="drag-handle" id="paletteHandle"></div>
-	</div>
+<div id="palette">
+	<div class="drag-handle" id="paletteHandle"></div>
+</div>
 
-	<button id="showUIBtn">⬅︎</button>
+<button id="showUIBtn">⬅︎</button>
 
-	<div id="themeModal" class="modal">
-		<div class="modal-content">
-			<h3>Choisir un thème</h3>
-			<button onclick="applyTheme('classique')">Classique</button>
-			<button onclick="applyTheme('moderne')">Moderne</button>
-			<button onclick="applyTheme('parchemin')">Parchemin</button>
-			<button onclick="applyTheme('nuit')">Nuit</button>
-			<div class="modal-buttons">
-				<button onclick="closeModal('themeModal')">Fermer</button>
-			</div>
+<div id="themeModal" class="modal">
+	<div class="modal-content">
+		<h3>Choisir un thème</h3>
+		<button onclick="applyTheme('classique')">Classique</button>
+		<button onclick="applyTheme('moderne')">Moderne</button>
+		<button onclick="applyTheme('parchemin')">Parchemin</button>
+		<button onclick="applyTheme('nuit')">Nuit</button>
+		<div class="modal-buttons">
+			<button onclick="closeModal('themeModal')">Fermer</button>
 		</div>
 	</div>
+</div>
 
-	<div id="exportModal" class="modal">
-		<div class="modal-content">
-			<h3>Options d'export PDF</h3>
-			<label>
-				<input type="checkbox" id="showSystemNumbers" checked>
-				Afficher les numéros de systèmes
-			</label>
-			<div class="modal-buttons">
-				<button onclick="closeModal('exportModal')">Annuler</button>
-				<button onclick="confirmExport()">Exporter</button>
-			</div>
+<div id="exportModal" class="modal">
+	<div class="modal-content">
+		<h3>Options d'export PDF</h3>
+		<label>
+			<input type="checkbox" id="showSystemNumbers" checked>
+			Afficher les numéros de systèmes
+		</label>
+		<div class="modal-buttons">
+			<button onclick="closeModal('exportModal')">Annuler</button>
+			<button onclick="confirmExport()">Exporter</button>
 		</div>
 	</div>
+</div>
+```
 
 <script>
 const VERSION = "tablature-barok-v13-engine";
 const MAX_PAGES = 10;
 
 /* ================= LAYOUT ENGINE ================= */
-/**
- * Dedicated Layout Engine for calculating precise vertical offsets.
- * Eliminates magic numbers by using real font metrics.
- * Ensures consistent rendering by bridging Canvas metrics with DOM positioning via SVG.
- */
 const LayoutEngine = {
 	ctx: null,
 	fontString: "700 40px Tangerine",
@@ -611,19 +617,11 @@ const LayoutEngine = {
 		this.ctx = canvas.getContext("2d");
 	},
 
-	/**
-	 * Measures the character and calculates geometric properties.
-	 * @param {string} char 
-	 * @returns {object} { ascent, descent, width, height }
-	 */
 	getMetrics(char) {
 		if (!this.ctx) this.init();
 		this.ctx.font = this.fontString;
 		const metrics = this.ctx.measureText(char);
 
-		// Fallback for browsers/contexts where advanced metrics fail (Safari, uninitialized fonts)
-		// Defaults based on Tangerine 40px visual average
-		// This prevents "NaN" causing symbols to disappear
 		const safeAscent = (typeof metrics.actualBoundingBoxAscent === 'number') 
 			? metrics.actualBoundingBoxAscent 
 			: 35; 
@@ -632,7 +630,6 @@ const LayoutEngine = {
 			: 15;
 		const safeWidth = metrics.width || 20;
 
-		// Extra padding to prevent clipping of swashes/italics common in script fonts
 		const hPadding = 20; 
 
 		return {
@@ -643,32 +640,19 @@ const LayoutEngine = {
 		};
 	},
 
-	/**
-	 * Creates a DOM element where the text is geometrically centered on the staff line.
-	 * 
-	 * Logic:
-	 * 1. Measure the exact ink height (Ascent + Descent).
-	 * 2. Center this box on the StaffLineY.
-	 *    Top = StaffLineY - (TotalHeight / 2)
-	 * 3. Inside the box, draw text at y = Ascent.
-	 *    This effectively places the midpoint of the ink at StaffLineY.
-	 */
 	createSymbolElement(char, centerX, staffLineY) {
 		const m = this.getMetrics(char);
 		
-		// The container bounds the ink exactly vertically
 		const height = m.totalHeight;
-		const width = m.width; // Padding already included in metrics
+		const width = m.width;
 
 		const wrapper = document.createElement("div");
 		wrapper.className = "symbol-wrapper";
 		
-		// Store logical data
 		wrapper.dataset.char = char;
 		wrapper.dataset.centerX = centerX;
-		wrapper.dataset.lineY = staffLineY; // Logical center/line Y
+		wrapper.dataset.lineY = staffLineY;
 
-		// Center the bounding box vertically on the staff line
 		const top = staffLineY - (height / 2);
 		const left = centerX - (width / 2);
 
@@ -677,25 +661,17 @@ const LayoutEngine = {
 		wrapper.style.width = `${width}px`;
 		wrapper.style.height = `${height}px`;
 
-		// SVG Construction
 		const svgNS = "http://www.w3.org/2000/svg";
 		const svg = document.createElementNS(svgNS, "svg");
 		svg.setAttribute("class", "symbol-svg");
 		svg.setAttribute("width", "100%");
 		svg.setAttribute("height", "100%");
-		// Viewbox matches the dimensions
 		svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
 		
 		const text = document.createElementNS(svgNS, "text");
 		text.textContent = char;
-		text.setAttribute("x", "50%"); // Center in box
-		
-		// The baseline is at 'ascent' pixels from the top of the box.
-		// Since the box top is (LineY - Height/2), the baseline is at:
-		// LineY - Height/2 + Ascent = LineY + (Ascent - Descent)/2
-		// This mathematically centers the ink.
+		text.setAttribute("x", "50%");
 		text.setAttribute("y", m.ascent); 
-		
 		text.setAttribute("font-family", "Tangerine");
 		text.setAttribute("font-weight", "700");
 		text.setAttribute("font-size", "40");
@@ -707,27 +683,21 @@ const LayoutEngine = {
 		return wrapper;
 	},
 
-	/**
-	 * Updates an existing symbol's position based on new coordinates
-	 */
 	updatePosition(wrapper, centerX, staffLineY) {
 		const char = wrapper.dataset.char;
 		const m = this.getMetrics(char);
 		const height = m.totalHeight;
 		const width = m.width;
 		
-		// Update Logical Data
 		wrapper.dataset.centerX = centerX;
 		wrapper.dataset.lineY = staffLineY;
 
-		// Update Visual Position (Centered on Line)
 		const top = staffLineY - (height / 2);
 		const left = centerX - (width / 2);
 
 		wrapper.style.top = `${top}px`;
 		wrapper.style.left = `${left}px`;
 		
-		// Ensure internal SVG text baseline is still correct
 		const text = wrapper.querySelector("text");
 		if (text) text.setAttribute("y", m.ascent);
 	}
@@ -1024,7 +994,6 @@ function serializeState() {
 			};
 
 			if (el.classList.contains("symbol-wrapper")) {
-				// We prioritize the dataset which contains logical coords
 				data.centerX = el.dataset.centerX || "";
 				data.lineY   = el.dataset.lineY || "";
 				data.char    = el.dataset.char || "";
@@ -1091,11 +1060,8 @@ function restoreState(raw, save = true) {
 			return;
 		}
 
-		// Rebuild using LayoutEngine
 		if (e.class === "symbol-wrapper") {
-			// Backwards compatibility for older saves that might lack char in dataset
 			const char = e.char || e.text;
-			// Logical coordinates are preferred
 			const centerX = parseFloat(e.centerX) || parseFloat(e.left);
 			const lineY = parseFloat(e.lineY) || parseFloat(e.top);
 
@@ -1468,7 +1434,6 @@ canvas.addEventListener("touchstart", e => {
 		const snappedY = snapY(y);
 		const snappedX = snapToNearbySymbols(x, snappedY);
 
-		// Use LayoutEngine to create precise symbol
 		const w = LayoutEngine.createSymbolElement(selected, snappedX, snappedY);
 
 		canvas.appendChild(w);
@@ -1555,7 +1520,6 @@ function makeDraggable(el) {
 		const snappedX = snapToNearbySymbols(x, snappedY);
 
 		if (active.classList.contains("symbol-wrapper")) {
-			// Update using LayoutEngine logic
 			LayoutEngine.updatePosition(active, snappedX, snappedY);
 		} else {
 			active.style.left = snappedX + "px";
@@ -1596,16 +1560,13 @@ clearAllBtn.onclick = () => {
 	try {
 		pushUndo();
 		
-		// Complete DOM cleanup
 		canvas.innerHTML = "";
 		
-		// State reset
 		lines.length = 0;
 		currentY = 70;
 		systemCount = 1;
 		Object.keys(systemEnds).forEach(key => delete systemEnds[key]);
 		
-		// Re-init
 		createInitialStructure();
 		saveState();
 		haptic();
@@ -1681,86 +1642,134 @@ customInput.oninput = () => {
 };
 palette.appendChild(customInput);
 
-/* ================= EXPORT PDF ================= */
-document.getElementById("exportPDF").onclick =
-    () => document.getElementById("exportModal").classList.add("active");
+/* ================= EXPORT PDF (VERSION CORRIGÉE) ================= */
+document.getElementById("exportPDF").onclick = () => {
+	document.getElementById("exportModal").classList.add("active");
+};
 
 async function confirmExport() {
+	const showNumbers = document.getElementById("showSystemNumbers").checked;
 
-    const showNumbers = document.getElementById("showSystemNumbers").checked;
+	// Masquer les numéros si nécessaire
+	if (!showNumbers) {
+		document.querySelectorAll(".system-number").forEach(n => n.style.display = "none");
+	}
 
-    if (!showNumbers) {
-        document.querySelectorAll(".system-number")
-            .forEach(n => n.style.display = "none");
-    }
+	closeModal("exportModal");
+	saveCurrentPage();
 
-    closeModal("exportModal");
-    saveCurrentPage();
+	const originalPage = currentPage;
+	const ui = [toolbar, palette, showUIBtn];
 
-    const originalPage = currentPage;
-    const ui = [toolbar, palette];
+	// Masquer toute l'UI
+	ui.forEach(el => el.style.display = "none");
 
-    // Masquer UI
-    ui.forEach(el => el.style.display = "none");
+	// CORRECTION PRINCIPALE: Attendre que les fonts soient chargées
+	await document.fonts.ready;
+	
+	// Délai supplémentaire pour stabilisation du rendu
+	await new Promise(resolve => setTimeout(resolve, 500));
 
-    // Laisser le DOM se stabiliser
-    await new Promise(r => requestAnimationFrame(r));
-    await document.fonts.ready;
+	const pdf = new jspdf.jsPDF("p", "mm", "a4");
+	const pageWidth = 210;
+	const marginTop = 10;
 
-    const pdf = new jspdf.jsPDF("p", "mm", "a4");
-    const pageWidth = 210;
-    const y = 15;
+	const captureAndAddPage = async (pageNum, addPageToPdf) => {
+		if (!pages[pageNum]) return;
 
-    const capture = async (pageNum, addPage) => {
+		loadPage(pageNum);
 
-        if (!pages[pageNum]) return;
+		// Attendre le rendu complet de la page
+		await new Promise(resolve => setTimeout(resolve, 800));
+		await document.fonts.ready;
 
-        loadPage(pageNum);
+		// Forcer le reflow pour s'assurer que tout est bien rendu
+		canvas.offsetHeight;
+		canvasWrapper.offsetHeight;
 
-        // Attendre rendu + fonts
-        await new Promise(r => setTimeout(r, 250));
-        await document.fonts.ready;
+		// Capture avec paramètres optimisés pour les fonts
+		const capturedImage = await html2canvas(canvasWrapper, {
+			scale: 2, // Réduit de 4 à 2 pour éviter les problèmes de rendu
+			backgroundColor: getComputedStyle(document.body).backgroundColor,
+			useCORS: true,
+			allowTaint: true,
+			logging: false,
+			windowWidth: canvasWrapper.scrollWidth,
+			windowHeight: canvasWrapper.scrollHeight,
+			onclone: (clonedDoc) => {
+				// S'assurer que les fonts sont bien appliquées dans le clone
+				const clonedCanvas = clonedDoc.querySelector('#canvas');
+				const clonedTitle = clonedDoc.querySelector('#print-title');
+				if (clonedCanvas) {
+					clonedCanvas.style.fontFamily = "'EB Garamond', serif";
+				}
+				if (clonedTitle) {
+					clonedTitle.style.fontFamily = "'EB Garamond', serif";
+					clonedTitle.style.fontSize = "32px";
+					clonedTitle.style.fontWeight = "400";
+				}
+				// Forcer le rendu des symboles SVG
+				const symbols = clonedDoc.querySelectorAll('.symbol-svg text');
+				symbols.forEach(sym => {
+					sym.setAttribute('font-family', 'Tangerine');
+					sym.setAttribute('font-weight', '700');
+					sym.setAttribute('font-size', '40');
+				});
+			}
+		});
 
-        const canvasImg = await html2canvas(canvasWrapper, {
-            scale: 4,
-            backgroundColor: getComputedStyle(document.body).backgroundColor,
-            useCORS: true,
-            logging: false
-        });
+		const imgWidth = pageWidth;
+		const imgHeight = (capturedImage.height * imgWidth) / capturedImage.width;
 
-        const imgWidth = pageWidth;
-        const imgHeight = canvasImg.height * imgWidth / canvasImg.width;
+		if (addPageToPdf) {
+			pdf.addPage();
+		}
 
-        if (addPage) pdf.addPage();
+		pdf.addImage(
+			capturedImage.toDataURL("image/png", 1.0),
+			"PNG",
+			0,
+			marginTop,
+			imgWidth,
+			imgHeight,
+			undefined,
+			'FAST'
+		);
+	};
 
-        pdf.addImage(
-            canvasImg.toDataURL("image/png"),
-            "PNG",
-            0,
-            y,
-            imgWidth,
-            imgHeight
-        );
-    };
+	// Capturer toutes les pages
+	try {
+		for (let i = 1; i <= pageCount; i++) {
+			await captureAndAddPage(i, i > 1);
+		}
 
-    for (let i = 1; i <= pageCount; i++) {
-        await capture(i, i > 1);
-    }
+		// Retour à la page originale
+		loadPage(originalPage);
 
-    loadPage(originalPage);
+		// Restaurer l'UI
+		ui.forEach(el => el.style.display = "");
 
-    // Restaurer UI
-    ui.forEach(el => el.style.display = "");
+		// Restaurer les numéros si nécessaire
+		if (!showNumbers) {
+			document.querySelectorAll(".system-number").forEach(n => n.style.display = "");
+		}
 
-    if (!showNumbers) {
-        document.querySelectorAll(".system-number")
-            .forEach(n => n.style.display = "");
-    }
-
-    pdf.save("tablature-barok.pdf");
-    haptic();
+		// Sauvegarder le PDF
+		pdf.save(`tablature-${new Date().getTime()}.pdf`);
+		haptic();
+		
+	} catch (error) {
+		console.error("Erreur lors de l'export PDF:", error);
+		alert("Erreur lors de l'export PDF. Veuillez réessayer.");
+		
+		// Restaurer l'UI en cas d'erreur
+		ui.forEach(el => el.style.display = "");
+		if (!showNumbers) {
+			document.querySelectorAll(".system-number").forEach(n => n.style.display = "");
+		}
+		loadPage(originalPage);
+	}
 }
-
 
 /* ================= UI DRAG VERTICAL ================= */
 function makeUIDraggableVertical(el, handleEl, storageKey) {
@@ -1798,7 +1807,7 @@ window.addEventListener("pagehide", () => {
 	saveState();
 });
 
-// Wait for fonts to be ready before initializing to ensure accurate metrics
+// Attendre que les fonts soient chargées avant l'initialisation
 document.fonts.ready.then(() => {
 	restoreFromStorage();
 	renderPageNav();
@@ -1825,6 +1834,6 @@ function initUndoBaseline() {
 	undoStack.push(serializeState());
 }
 </script>
-<script type="module" src="/index.tsx"></script>
+
 </body>
 </html>
