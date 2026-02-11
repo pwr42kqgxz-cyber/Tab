@@ -186,33 +186,40 @@ button:disabled {
 	min-height: 1123px;
 	margin: 0 auto;
 	background: var(--bg-color);
-	padding: 10px 20px;
+	padding: 50px 20px 20px 20px;
+	overflow: visible;
 }
 
-/* ===== SYMBOL WRAPPER - CRITIQUE ===== */
+/* ===== SYMBOL WRAPPER (NEW LAYOUT ENGINE) ===== */
 .symbol-wrapper {
 	position: absolute;
 	pointer-events: auto;
 	z-index: 10;
-	/* ✅ Espace pour hampes descendantes et montantes */
-	padding-top: 25px;
-	padding-bottom: 25px;
-	/* ✅ Force le rendu complet */
-	will-change: transform;
+	/* Removed padding hacks and line-height dependencies */
+	margin: 0;
+	padding: 0;
+	display: flex;
+	align-items: flex-start;
+	justify-content: flex-start;
+	/* Hardware acceleration */
+	will-change: transform, top, left;
+	transform: translateZ(0);
 }
 
-.symbol {
-	font-size: 40px;
-	font-family: 'Tangerine', cursive;
-	font-weight: 700;
-	color: var(--text-color);
-	line-height: 1;
-	white-space: nowrap;
+.symbol-svg {
+	display: block;
+	overflow: visible; /* Allows flourishes to extend beyond bounding box */
+	pointer-events: none; /* Passes clicks to wrapper */
 }
 
-.selected {
-	text-shadow: 0 0 5px var(--accent-color);
-	color: var(--accent-color);
+.symbol-svg text {
+	fill: var(--text-color);
+	/* Font definition moved to SVG for consistency */
+}
+
+.selected .symbol-svg text {
+	fill: var(--accent-color);
+	filter: drop-shadow(0 0 2px var(--accent-color));
 }
 
 /* ===== DRAW ===== */
@@ -248,6 +255,7 @@ button:disabled {
 	left: 0;
 	height: 1px;
 	z-index: 1;
+	overflow: visible;
 }
 
 .line.black {
@@ -295,7 +303,7 @@ button:disabled {
 .system-bar.left { left: 0; }
 .system-bar.right { right: 0; }
 
-/* ===== POIGNÉE DE RACCOURCISSEMENT (temporaire) ===== */
+/* ===== POIGNÉE DE RACCOURCISSEMENT ===== */
 .shorten-handle {
 	position: absolute;
 	width: 24px;
@@ -514,6 +522,7 @@ button:disabled {
 	#canvas-wrapper { top: 60px; bottom: 70px; }
 }
 </style>
+<link rel="stylesheet" href="/index.css">
 </head>
 <body>
 	<div id="toolbar">
@@ -577,8 +586,145 @@ button:disabled {
 	</div>
 
 <script>
-const VERSION = "tablature-barok-v9";
+const VERSION = "tablature-barok-v13-engine";
 const MAX_PAGES = 10;
+
+/* ================= LAYOUT ENGINE ================= */
+/**
+ * Dedicated Layout Engine for calculating precise vertical offsets.
+ * Eliminates magic numbers by using real font metrics.
+ * Ensures consistent rendering by bridging Canvas metrics with DOM positioning via SVG.
+ */
+const LayoutEngine = {
+	ctx: null,
+	fontString: "700 40px Tangerine",
+
+	init() {
+		const canvas = document.createElement("canvas");
+		this.ctx = canvas.getContext("2d");
+	},
+
+	/**
+	 * Measures the character and calculates geometric properties.
+	 * @param {string} char 
+	 * @returns {object} { ascent, descent, width, height }
+	 */
+	getMetrics(char) {
+		if (!this.ctx) this.init();
+		this.ctx.font = this.fontString;
+		const metrics = this.ctx.measureText(char);
+
+		// Fallback for browsers/contexts where advanced metrics fail (Safari, uninitialized fonts)
+		// Defaults based on Tangerine 40px visual average
+		// This prevents "NaN" causing symbols to disappear
+		const safeAscent = (typeof metrics.actualBoundingBoxAscent === 'number') 
+			? metrics.actualBoundingBoxAscent 
+			: 35; 
+		const safeDescent = (typeof metrics.actualBoundingBoxDescent === 'number') 
+			? metrics.actualBoundingBoxDescent 
+			: 15;
+		const safeWidth = metrics.width || 20;
+
+		// Extra padding to prevent clipping of swashes/italics common in script fonts
+		const hPadding = 20; 
+
+		return {
+			ascent: Math.ceil(safeAscent),
+			descent: Math.ceil(safeDescent),
+			width: Math.ceil(safeWidth + hPadding),
+			totalHeight: Math.ceil(safeAscent + safeDescent)
+		};
+	},
+
+	/**
+	 * Creates a DOM element where the text is geometrically centered on the staff line.
+	 * 
+	 * Logic:
+	 * 1. Measure the exact ink height (Ascent + Descent).
+	 * 2. Center this box on the StaffLineY.
+	 *    Top = StaffLineY - (TotalHeight / 2)
+	 * 3. Inside the box, draw text at y = Ascent.
+	 *    This effectively places the midpoint of the ink at StaffLineY.
+	 */
+	createSymbolElement(char, centerX, staffLineY) {
+		const m = this.getMetrics(char);
+		
+		// The container bounds the ink exactly vertically
+		const height = m.totalHeight;
+		const width = m.width; // Padding already included in metrics
+
+		const wrapper = document.createElement("div");
+		wrapper.className = "symbol-wrapper";
+		
+		// Store logical data
+		wrapper.dataset.char = char;
+		wrapper.dataset.centerX = centerX;
+		wrapper.dataset.lineY = staffLineY; // Logical center/line Y
+
+		// Center the bounding box vertically on the staff line
+		const top = staffLineY - (height / 2);
+		const left = centerX - (width / 2);
+
+		wrapper.style.top = `${top}px`;
+		wrapper.style.left = `${left}px`;
+		wrapper.style.width = `${width}px`;
+		wrapper.style.height = `${height}px`;
+
+		// SVG Construction
+		const svgNS = "http://www.w3.org/2000/svg";
+		const svg = document.createElementNS(svgNS, "svg");
+		svg.setAttribute("class", "symbol-svg");
+		svg.setAttribute("width", "100%");
+		svg.setAttribute("height", "100%");
+		// Viewbox matches the dimensions
+		svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+		
+		const text = document.createElementNS(svgNS, "text");
+		text.textContent = char;
+		text.setAttribute("x", "50%"); // Center in box
+		
+		// The baseline is at 'ascent' pixels from the top of the box.
+		// Since the box top is (LineY - Height/2), the baseline is at:
+		// LineY - Height/2 + Ascent = LineY + (Ascent - Descent)/2
+		// This mathematically centers the ink.
+		text.setAttribute("y", m.ascent); 
+		
+		text.setAttribute("font-family", "Tangerine");
+		text.setAttribute("font-weight", "700");
+		text.setAttribute("font-size", "40");
+		text.setAttribute("text-anchor", "middle");
+		
+		svg.appendChild(text);
+		wrapper.appendChild(svg);
+
+		return wrapper;
+	},
+
+	/**
+	 * Updates an existing symbol's position based on new coordinates
+	 */
+	updatePosition(wrapper, centerX, staffLineY) {
+		const char = wrapper.dataset.char;
+		const m = this.getMetrics(char);
+		const height = m.totalHeight;
+		const width = m.width;
+		
+		// Update Logical Data
+		wrapper.dataset.centerX = centerX;
+		wrapper.dataset.lineY = staffLineY;
+
+		// Update Visual Position (Centered on Line)
+		const top = staffLineY - (height / 2);
+		const left = centerX - (width / 2);
+
+		wrapper.style.top = `${top}px`;
+		wrapper.style.left = `${left}px`;
+		
+		// Ensure internal SVG text baseline is still correct
+		const text = wrapper.querySelector("text");
+		if (text) text.setAttribute("y", m.ascent);
+	}
+};
 
 /* ================= DOM ================= */
 const toolbar = document.getElementById("toolbar");
@@ -628,7 +774,7 @@ let loupeCanvas = null;
 let loupeCtx = null;
 let loupeImage = null;
 
-let currentY = 40;
+let currentY = 70;
 const LINE_SPACING = 22;
 const lines = [];
 
@@ -769,7 +915,7 @@ function loadPage(n) {
 		const currentTheme = document.documentElement.getAttribute("data-theme");
 		canvas.innerHTML = "";
 		lines.length = 0;
-		currentY = 40;
+		currentY = 70;
 		systemCount = 1;
 		Object.keys(systemEnds).forEach(k => delete systemEnds[k]);
 		printTitle.textContent = title;
@@ -844,7 +990,7 @@ showUIBtn.onclick = () => {
 	showUIBtn.style.display = "none";
 };
 
-/* ================= UNDO ================= */
+/* ================= UNDO / SERIALIZATION ================= */
 function serializeState() {
 	return JSON.stringify({
 		title: printTitle.textContent,
@@ -871,9 +1017,10 @@ function serializeState() {
 			};
 
 			if (el.classList.contains("symbol-wrapper")) {
+				// We prioritize the dataset which contains logical coords
 				data.centerX = el.dataset.centerX || "";
 				data.lineY   = el.dataset.lineY || "";
-				data.char    = el.querySelector(".symbol")?.dataset.char || "";
+				data.char    = el.dataset.char || "";
 			}
 
 			if (el.classList.contains("line") || el.classList.contains("system-bar") || el.classList.contains("end-bar") || el.classList.contains("bar")) {
@@ -899,21 +1046,8 @@ undoBtn.onclick = () => {
 };
 
 /* ================= PERSISTENCE ================= */
-
 function saveState() {
 	localStorage.setItem("tablature_state", serializeState());
-}
-
-/* ✅ FONCTION DE CALCUL D'OFFSET VERTICAL PAR CARACTÈRE */
-function symbolVerticalOffset(char) {
-	// Lettres avec hampes descendantes
-	if (['g', 'j'].includes(char)) return FIXED_FONT_SIZE * 0.5;
-	
-	// Lettres avec hampes montantes
-	if (['b', 'd', 'f', 'h', 'k', 'l'].includes(char)) return FIXED_FONT_SIZE * 0.65;
-	
-	// Lettres normales (a, c, e, m, n) - décalées un peu plus haut
-	return FIXED_FONT_SIZE * 0.60;
 }
 
 function restoreState(raw, save = true) {
@@ -921,7 +1055,7 @@ function restoreState(raw, save = true) {
 
 	canvas.innerHTML = "";
 	lines.length = 0;
-	currentY = 40;
+	currentY = 70;
 	systemCount = s.systemCount || 1;
 	printTitle.textContent = s.title || "Titre du Morceau";
 
@@ -950,45 +1084,18 @@ function restoreState(raw, save = true) {
 			return;
 		}
 
+		// Rebuild using LayoutEngine
 		if (e.class === "symbol-wrapper") {
-			const w = document.createElement("div");
-			w.className = "symbol-wrapper";
+			// Backwards compatibility for older saves that might lack char in dataset
+			const char = e.char || e.text;
+			// Logical coordinates are preferred
+			const centerX = parseFloat(e.centerX) || parseFloat(e.left);
+			const lineY = parseFloat(e.lineY) || parseFloat(e.top);
 
+			const w = LayoutEngine.createSymbolElement(char, centerX, lineY);
 			if (e.systemId) w.dataset.systemId = e.systemId;
 
-			const sEl = document.createElement("div");
-			sEl.className = "symbol";
-			sEl.textContent = e.text;
-			sEl.dataset.char = e.char || e.text || "";
-
-			w.appendChild(sEl);
 			canvas.appendChild(w);
-
-			void w.offsetWidth;
-
-			if (e.centerX) {
-				const rect = w.getBoundingClientRect();
-				const centerOffsetX = rect.width / 2;
-				w.style.left = (parseFloat(e.centerX) - centerOffsetX) + "px";
-				w.dataset.centerX = e.centerX;
-			} else {
-				w.style.left = e.left;
-			}
-
-			if (e.lineY) {
-				const char = sEl.dataset.char;
-				const offset = symbolVerticalOffset(char);
-				w.style.top = (parseFloat(e.lineY) - offset - 25) + "px";
-				w.dataset.lineY = e.lineY;
-			} else {
-				w.style.top = e.top;
-			}
-
-			// ✅ Force le rendu complet après placement
-			requestAnimationFrame(() => {
-				w.style.transform = 'translateZ(0)';
-			});
-
 			makeDraggable(w);
 			return;
 		}
@@ -1284,7 +1391,6 @@ canvas.addEventListener("touchstart", e => {
 
 	const { x, y } = getCanvasCoords(e.touches[0]);
 	
-	// ✅ Ne pas pushUndo si on est en mode placement bar/endbar (pour éviter de sauvegarder avant l'action)
 	if (!placingBar && !placingEndBar) {
 		pushUndo();
 	}
@@ -1315,7 +1421,7 @@ canvas.addEventListener("touchstart", e => {
 	}
 
 	if (placingBar) {
-		pushUndo(); // ✅ Push undo AVANT de placer la barre
+		pushUndo();
 		placingBar = false;
 		addBar.classList.remove("placing");
 
@@ -1334,7 +1440,7 @@ canvas.addEventListener("touchstart", e => {
 	}
 
 	if (placingEndBar) {
-		pushUndo(); // ✅ Push undo AVANT de raccourcir
+		pushUndo();
 		placingEndBar = false;
 		addEndBar.classList.remove("placing");
 
@@ -1355,32 +1461,10 @@ canvas.addEventListener("touchstart", e => {
 		const snappedY = snapY(y);
 		const snappedX = snapToNearbySymbols(x, snappedY);
 
-		const w = document.createElement("div");
-		w.className = "symbol-wrapper";
+		// Use LayoutEngine to create precise symbol
+		const w = LayoutEngine.createSymbolElement(selected, snappedX, snappedY);
 
-		const s = document.createElement("div");
-		s.className = "symbol";
-		s.textContent = selected;
-		s.dataset.char = selected;
-
-		w.appendChild(s);
 		canvas.appendChild(w);
-
-		void w.offsetWidth;
-
-		const rect = w.getBoundingClientRect();
-		const centerOffsetX = rect.width / 2;
-		w.style.left = (snappedX - centerOffsetX) + "px";
-		w.dataset.centerX = snappedX;
-
-		const offset = symbolVerticalOffset(selected);
-		w.style.top = (snappedY - offset - 25) + "px";
-		w.dataset.lineY = snappedY;
-
-		// ✅ Force le rendu complet après placement
-		requestAnimationFrame(() => {
-			w.style.transform = 'translateZ(0)';
-		});
 
 		makeDraggable(w);
 		saveState();
@@ -1464,19 +1548,8 @@ function makeDraggable(el) {
 		const snappedX = snapToNearbySymbols(x, snappedY);
 
 		if (active.classList.contains("symbol-wrapper")) {
-			const char = active.querySelector(".symbol")?.dataset.char || "";
-			const offset = symbolVerticalOffset(char);
-
-			active.style.top = (snappedY - offset - 25) + "px";
-			active.dataset.lineY = snappedY;
-
-			const rect = active.getBoundingClientRect();
-			const centerOffsetX = rect.width / 2;
-			active.style.left = (snappedX - centerOffsetX) + "px";
-			active.dataset.centerX = snappedX;
-
-			// ✅ Force rendu pendant drag
-			active.style.transform = 'translateZ(0)';
+			// Update using LayoutEngine logic
+			LayoutEngine.updatePosition(active, snappedX, snappedY);
 		} else {
 			active.style.left = snappedX + "px";
 			active.style.top = snappedY + "px";
@@ -1512,15 +1585,27 @@ function makeDraggable(el) {
 /* ================= DELETE / CLEAR ================= */
 clearAllBtn.onclick = () => {
 	if (!confirm("Effacer toute la tablature ?")) return;
-	pushUndo();
-	canvas.innerHTML = "";
-	lines.length = 0;
-	currentY = 40;
-	systemCount = 1;
-	Object.keys(systemEnds).forEach(key => delete systemEnds[key]);
-	createInitialStructure();
-	saveState();
-	haptic();
+	
+	try {
+		pushUndo();
+		
+		// Complete DOM cleanup
+		canvas.innerHTML = "";
+		
+		// State reset
+		lines.length = 0;
+		currentY = 70;
+		systemCount = 1;
+		Object.keys(systemEnds).forEach(key => delete systemEnds[key]);
+		
+		// Re-init
+		createInitialStructure();
+		saveState();
+		haptic();
+	} catch (e) {
+		console.error("Erreur effacement:", e);
+		alert("Erreur lors de l'effacement. Essayez de recharger la page.");
+	}
 };
 
 addBar.onclick = () => {
@@ -1680,9 +1765,12 @@ window.addEventListener("pagehide", () => {
 	saveState();
 });
 
-restoreFromStorage();
-renderPageNav();
-initUndoBaseline();
+// Wait for fonts to be ready before initializing to ensure accurate metrics
+document.fonts.ready.then(() => {
+	restoreFromStorage();
+	renderPageNav();
+	initUndoBaseline();
+});
 
 restoreUIVerticalPosition(toolbar, "toolbarY", "8px");
 restoreUIVerticalPosition(palette, "paletteY", null);
@@ -1704,5 +1792,6 @@ function initUndoBaseline() {
 	undoStack.push(serializeState());
 }
 </script>
+<script type="module" src="/index.tsx"></script>
 </body>
 </html>
