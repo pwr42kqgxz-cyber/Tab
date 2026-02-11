@@ -1686,6 +1686,9 @@ async function confirmExport() {
 	const originalPage = currentPage;
 	const ui = [toolbar, palette];
 	ui.forEach(el => el.style.display = "none");
+	
+	// ✅ Attendre que toutes les polices soient chargées
+	await document.fonts.ready;
 	await new Promise(r => requestAnimationFrame(r));
 
 	const pdf = new jspdf.jsPDF("p", "mm", "a4");
@@ -1695,28 +1698,41 @@ async function confirmExport() {
 	const capture = async (pageNum, addPage) => {
 		if (!pages[pageNum]) return;
 		loadPage(pageNum);
-		await new Promise(r => setTimeout(r, 150));
+		
+		// ✅ Attendre le chargement de la page ET des polices
+		await document.fonts.ready;
+		await new Promise(r => setTimeout(r, 300));
+		
 		const exportWrapper = document.createElement("div");
 		exportWrapper.style.background = getComputedStyle(document.body).backgroundColor;
 		exportWrapper.style.padding = "20px 24px";
+		
 		const titleClone = printTitle.cloneNode(true);
 		titleClone.style.marginBottom = "16px";
 		exportWrapper.appendChild(titleClone);
-const canvasClone = canvas.cloneNode(true);
-exportWrapper.appendChild(canvasClone);
-document.body.appendChild(exportWrapper);
+		
+		const canvasClone = canvas.cloneNode(true);
+		exportWrapper.appendChild(canvasClone);
+		document.body.appendChild(exportWrapper);
 
-await document.fonts.load("700 40px Tangerine");
-await document.fonts.ready;
+		// ✅ Attendre que le DOM se stabilise et que les polices se rendent
+		await new Promise(r => setTimeout(r, 500));
+		await document.fonts.ready;
 
-const canvasImg = await html2canvas(exportWrapper, {
-    scale: 4,
-    backgroundColor: getComputedStyle(document.body).backgroundColor,
-    useCORS: true,
-    logging: false,
-    removeContainer: true
-});
+		const canvasImg = await html2canvas(exportWrapper, {
+			scale: 4,
+			backgroundColor: getComputedStyle(document.body).backgroundColor,
+			useCORS: true,
+			logging: false,
+			removeContainer: true,
+			// ✅ Options pour forcer le rendu des polices
+			allowTaint: false,
+			foreignObjectRendering: false,
+			imageTimeout: 0
+		});
+		
 		exportWrapper.remove();
+		
 		const imgWidth = pageWidth;
 		const imgHeight = canvasImg.height * imgWidth / canvasImg.width;
 		if (addPage) pdf.addPage();
@@ -1724,6 +1740,7 @@ const canvasImg = await html2canvas(exportWrapper, {
 	};
 
 	for (let i = 1; i <= pageCount; i++) await capture(i, i > 1);
+	
 	loadPage(originalPage);
 	ui.forEach(el => el.style.display = "");
 	if (!showNumbers) document.querySelectorAll(".system-number").forEach(n => n.style.display = "");
@@ -1731,6 +1748,7 @@ const canvasImg = await html2canvas(exportWrapper, {
 	pdf.save("tablature-barok.pdf");
 	haptic();
 }
+
 
 /* ================= UI DRAG VERTICAL ================= */
 function makeUIDraggableVertical(el, handleEl, storageKey) {
