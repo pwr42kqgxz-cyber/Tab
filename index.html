@@ -558,6 +558,7 @@ button:disabled {
 		<button id="loadBtn">📂</button>
 		<button id="toggleUI">👁</button>
 		<div id="pageNav"></div>
+		<button id="deletePageBtn">🗑 Page</button>
 		<button id="addPageBtn">+ Page</button>
 		<button id="exportPDF">PDF</button>
 		<button id="toggleVGuides">││</button>
@@ -747,6 +748,7 @@ const saveBtn = document.getElementById("saveBtn");
 const loadBtn = document.getElementById("loadBtn");
 const addPageBtn = document.getElementById("addPageBtn");
 const pageNav = document.getElementById("pageNav");
+const deletePageBtn = document.getElementById("deletePageBtn");
 
 /* ================= STATE ================= */
 let pageCount = 1;
@@ -820,36 +822,26 @@ document.addEventListener("click", e => {
 });
 
 /* ================= PAGE MANAGEMENT ================= */
+
 function renderPageNav() {
 	pageNav.innerHTML = "";
+
 	for (let i = 1; i <= pageCount; i++) {
-		const wrapper = document.createElement("div");
-		wrapper.style.position = "relative";
-		wrapper.style.display = "inline-block";
-		
+
 		const btn = document.createElement("button");
 		btn.className = "page-btn";
 		btn.textContent = "Page " + i;
+
 		if (i === currentPage) btn.classList.add("active");
+
 		btn.onclick = () => loadPage(i);
-		
-		if (pageCount > 1) {
-			const delBtn = document.createElement("button");
-			delBtn.className = "delete-page-btn";
-			delBtn.innerHTML = "×";
-			delBtn.title = "Supprimer cette page";
-			delBtn.onclick = (e) => {
-				e.stopPropagation();
-				deletePage(i);
-			};
-			wrapper.appendChild(delBtn);
-		}
-		
-		wrapper.appendChild(btn);
-		pageNav.appendChild(wrapper);
+
+		pageNav.appendChild(btn);
 	}
 }
 
+
+/* ===== DELETE PAGE CORRECT ===== */
 function deletePage(pageNum) {
 
 	if (pageCount <= 1) {
@@ -859,10 +851,8 @@ function deletePage(pageNum) {
 
 	if (!confirm(`Supprimer la page ${pageNum} ?`)) return;
 
-	// 🔥 IMPORTANT : sauvegarder UNIQUEMENT si on ne supprime pas la page courante
-	if (currentPage !== pageNum) {
-		saveCurrentPage();
-	}
+	// Ne JAMAIS sauvegarder la page supprimée
+	const deletingCurrent = (currentPage === pageNum);
 
 	const newPages = {};
 	let newIndex = 1;
@@ -879,55 +869,71 @@ function deletePage(pageNum) {
 	for (let k in pages) delete pages[k];
 	Object.assign(pages, newPages);
 
-	// 🔥 LOGIQUE CORRECTE DE PAGE COURANTE
-	if (currentPage === pageNum) {
-		currentPage = Math.min(pageNum - 1, pageCount);
+	// Déterminer nouvelle page active
+	if (deletingCurrent) {
+		currentPage = Math.min(pageNum, pageCount);
 		if (currentPage < 1) currentPage = 1;
 	} else if (currentPage > pageNum) {
 		currentPage--;
 	}
 
-	loadPage(currentPage);
+	// ⚠️ Restaurer DIRECTEMENT sans sauvegarde
+	restoreState(pages[currentPage] || null, false);
+
 	renderPageNav();
 	haptic();
 }
 
+
+/* ===== ADD PAGE ===== */
 addPageBtn.onclick = () => {
+
 	if (pageCount >= MAX_PAGES) {
 		alert(`Limite de ${MAX_PAGES} pages atteinte.`);
 		return;
 	}
-	
+
+	saveCurrentPage();
+
 	pageCount++;
 	pages[pageCount] = null;
-	loadPage(pageCount);
+
+	currentPage = pageCount;
+
+	restoreState(null, false);
 	renderPageNav();
 	haptic();
 };
 
+
+/* ===== SAVE CURRENT PAGE ===== */
 function saveCurrentPage() {
 	pages[currentPage] = serializeState();
 }
 
+
+/* ===== LOAD PAGE CORRECT ===== */
 function loadPage(n) {
+
 	if (n === currentPage) return;
+
+	// Sauvegarder AVANT changement
 	saveCurrentPage();
+
 	currentPage = n;
+
 	if (pages[n]) {
 		restoreState(pages[n], false);
 	} else {
-		const title = printTitle.textContent;
-		const currentTheme = document.documentElement.getAttribute("data-theme");
 		canvas.innerHTML = "";
 		lines.length = 0;
 		currentY = 70;
 		systemCount = 1;
 		Object.keys(systemEnds).forEach(k => delete systemEnds[k]);
-		printTitle.textContent = title;
 		createInitialStructure();
-		applyTheme(currentTheme);
 		saveCurrentPage();
 	}
+
 	renderPageNav();
 	haptic();
 }
