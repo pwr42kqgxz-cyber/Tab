@@ -1766,27 +1766,26 @@ async function confirmExport() {
 			});
 
 			/* ===== SYMBOLES ===== */
-/* ===== SYMBOLES ===== */
 pdf.setFont("Tangerine", "bold");
 pdf.setFontSize(34 * scaleFactor);
 
 document.querySelectorAll(".symbol-wrapper").forEach(w => {
 
 	const char = w.dataset.char;
+	const xPx  = parseFloat(w.style.left);
+	const yPx  = parseFloat(w.style.top);
 
-	const xPx = parseFloat(w.dataset.centerX);
-	const lineYPx = parseFloat(w.dataset.lineY);
+	if (!char || isNaN(xPx) || isNaN(yPx)) return;
 
-	if (!char || isNaN(xPx) || isNaN(lineYPx)) return;
+	const wrapperHeightPx = w.offsetHeight;
+
+	// centre vertical réel du wrapper
+	const centerYPx = yPx + (wrapperHeightPx / 2);
 
 	const x = marginLeft + (xPx * pxToMm * scaleFactor);
+	const y = marginTop  + (centerYPx * pxToMm * scaleFactor);
 
-	// Baseline exacte : ligne + offset moteur écran
-	const baselineOffset = 0; // plus besoin de 30, on part de la vraie ligne
-
-	const y = marginTop + ((lineYPx + baselineOffset) * pxToMm * scaleFactor);
-
-	pdf.text(char, x, y);
+	pdf.text(char, x, y, { baseline: "middle" });
 });
 
 		} 
