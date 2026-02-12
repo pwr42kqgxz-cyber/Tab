@@ -1737,20 +1737,29 @@ async function confirmExport() {
 			});
 
 			/* ===== BARRES ===== */
-			document.querySelectorAll(".bar, .system-bar, .end-bar").forEach(bar => {
+document.querySelectorAll(".bar, .system-bar, .end-bar").forEach(bar => {
 
-				const xPx = parseFloat(bar.style.left) || 0;
-				const yPx = parseFloat(bar.style.top);
-				const hPx = parseFloat(bar.style.height);
+	let xPx;
 
-				if (isNaN(yPx) || isNaN(hPx)) return;
+	if (bar.style.left) {
+		xPx = parseFloat(bar.style.left);
+	} else if (bar.style.right) {
+		xPx = canvas.offsetWidth - parseFloat(bar.style.right);
+	} else {
+		return;
+	}
 
-				const x  = marginLeft + (xPx * pxToMm * scaleFactor);
-				const y1 = marginTop  + (yPx * pxToMm * scaleFactor);
-				const y2 = y1 + (hPx * pxToMm * scaleFactor);
+	const yPx = parseFloat(bar.style.top);
+	const hPx = parseFloat(bar.style.height);
 
-				pdf.line(x, y1, x, y2);
-			});
+	if (isNaN(yPx) || isNaN(hPx)) return;
+
+	const x  = marginLeft + (xPx * pxToMm * scaleFactor);
+	const y1 = marginTop  + (yPx * pxToMm * scaleFactor);
+	const y2 = y1 + (hPx * pxToMm * scaleFactor);
+
+	pdf.line(x, y1, x, y2);
+});
 
 			/* ===== NUMÉROS ===== */
 			pdf.setFont("helvetica", "normal");
@@ -1779,7 +1788,7 @@ async function confirmExport() {
 				if (!char || isNaN(xPx) || isNaN(yPx)) return;
 
 				const x = marginLeft + (xPx * pxToMm * scaleFactor);
-				const y = marginTop  + (yPx * pxToMm * scaleFactor) + (12 * scaleFactor);
+const y = marginTop + ((yPx + 30) * pxToMm * scaleFactor);
 
 				pdf.text(char, x, y);
 			});
