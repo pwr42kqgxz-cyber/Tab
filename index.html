@@ -1713,23 +1713,24 @@ pdf.addFont("EBGaramond-Regular.ttf", "EBGaramond", "normal");
 			);
 
 /* ===== TITRE ===== */
+
 const title = printTitle.textContent;
 
+// Lire taille réelle écran
 const computed = window.getComputedStyle(printTitle);
 const fontSizePx = parseFloat(computed.fontSize);
 
+// Conversion px → mm (sans scale)
 const fontSizeMm = fontSizePx * pxToMm;
 
+// Police embarquée
 pdf.setFont("EBGaramond", "normal");
-pdf.setFontSize(fontSizeMm);
 
-const canvasRect = canvas.getBoundingClientRect();
-const titleRect  = printTitle.getBoundingClientRect();
+// 🔥 On agrandit légèrement pour correspondre au rendu navigateur
+pdf.setFontSize(fontSizeMm * 1.15);
 
-const relativeYPx = titleRect.top - canvasRect.top;
-
-// 🔥 PAS de scaleFactor ici
-const titleY = marginTop + (relativeYPx * pxToMm);
+// Position fixe propre
+const titleY = 18; // mm depuis le haut
 
 pdf.text(title, pageWidthMm / 2, titleY, { align: "center" });
 
