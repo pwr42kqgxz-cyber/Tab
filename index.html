@@ -1765,7 +1765,7 @@ async function confirmExport() {
 				pdf.text(num.textContent, marginLeft - 5, y);
 			});
 
-			/* ===== SYMBOLES ===== */
+/* ===== SYMBOLES ===== */
 pdf.setFont("Tangerine", "bold");
 pdf.setFontSize(34 * scaleFactor);
 
@@ -1779,13 +1779,17 @@ document.querySelectorAll(".symbol-wrapper").forEach(w => {
 
 	const wrapperHeightPx = w.offsetHeight;
 
-	// centre vertical réel du wrapper
-	const centerYPx = yPx + (wrapperHeightPx / 2);
+	// Ton moteur écran place la baseline à m.ascent
+	// donc on reproduit la même logique :
+	const ascentApprox = wrapperHeightPx * 0.75; 
+	// 0.75 correspond au ratio visuel Tangerine Bold
+
+	const baselineYPx = yPx + ascentApprox;
 
 	const x = marginLeft + (xPx * pxToMm * scaleFactor);
-	const y = marginTop  + (centerYPx * pxToMm * scaleFactor);
+	const y = marginTop  + (baselineYPx * pxToMm * scaleFactor);
 
-	pdf.text(char, x, y, { baseline: "middle" });
+	pdf.text(char, x, y);
 });
 
 		} 
