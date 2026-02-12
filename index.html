@@ -1766,32 +1766,28 @@ async function confirmExport() {
 			});
 
 			/* ===== SYMBOLES ===== */
-			pdf.setFont("Tangerine", "bold");
-			pdf.setFontSize(34 * scaleFactor);
+/* ===== SYMBOLES ===== */
+pdf.setFont("Tangerine", "bold");
+pdf.setFontSize(34 * scaleFactor);
 
-			document.querySelectorAll(".symbol-wrapper").forEach(w => {
+document.querySelectorAll(".symbol-wrapper").forEach(w => {
 
-				const char = w.dataset.char;
-				const xPx  = parseFloat(w.style.left);
-				const yPx  = parseFloat(w.style.top);
+	const char = w.dataset.char;
 
-				if (!char || isNaN(xPx) || isNaN(yPx)) return;
+	const xPx = parseFloat(w.dataset.centerX);
+	const lineYPx = parseFloat(w.dataset.lineY);
 
-				let adjust = 30;
+	if (!char || isNaN(xPx) || isNaN(lineYPx)) return;
 
-				if (["a","c","e","n","m"].includes(char)) {
-					adjust = 29;
-				}
+	const x = marginLeft + (xPx * pxToMm * scaleFactor);
 
-				if (["g","j"].includes(char)) {
-					adjust = 28;
-				}
+	// Baseline exacte : ligne + offset moteur écran
+	const baselineOffset = 0; // plus besoin de 30, on part de la vraie ligne
 
-				const x = marginLeft + (xPx * pxToMm * scaleFactor);
-				const y = marginTop + ((yPx + adjust) * pxToMm * scaleFactor);
+	const y = marginTop + ((lineYPx + baselineOffset) * pxToMm * scaleFactor);
 
-				pdf.text(char, x, y);
-			});
+	pdf.text(char, x, y);
+});
 
 		} 
 
