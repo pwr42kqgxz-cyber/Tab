@@ -859,8 +859,10 @@ function deletePage(pageNum) {
 
 	if (!confirm(`Supprimer la page ${pageNum} ?`)) return;
 
-	// Sauvegarde avant suppression
-	saveCurrentPage();
+	// 🔥 IMPORTANT : sauvegarder UNIQUEMENT si on ne supprime pas la page courante
+	if (currentPage !== pageNum) {
+		saveCurrentPage();
+	}
 
 	const newPages = {};
 	let newIndex = 1;
@@ -873,13 +875,14 @@ function deletePage(pageNum) {
 
 	pageCount--;
 
-	// Remplacer complètement l'objet pages
-	Object.keys(pages).forEach(k => delete pages[k]);
+	// Reset propre
+	for (let k in pages) delete pages[k];
 	Object.assign(pages, newPages);
 
-	// Ajuster page courante correctement
+	// 🔥 LOGIQUE CORRECTE DE PAGE COURANTE
 	if (currentPage === pageNum) {
-		currentPage = Math.min(pageNum, pageCount);
+		currentPage = Math.min(pageNum - 1, pageCount);
+		if (currentPage < 1) currentPage = 1;
 	} else if (currentPage > pageNum) {
 		currentPage--;
 	}
