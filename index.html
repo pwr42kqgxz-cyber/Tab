@@ -1715,28 +1715,22 @@ pdf.addFont("EBGaramond-Regular.ttf", "EBGaramond", "normal");
 /* ===== TITRE ===== */
 const title = printTitle.textContent;
 
-// Lire les styles réels
 const computed = window.getComputedStyle(printTitle);
 const fontSizePx = parseFloat(computed.fontSize);
 
-// Conversion px → mm avec scale
 const fontSizeMm = fontSizePx * pxToMm;
 
-// Injection de la vraie EB Garamond
 pdf.setFont("EBGaramond", "normal");
 pdf.setFontSize(fontSizeMm);
 
-// Position Y basée sur la vraie position canvas
 const canvasRect = canvas.getBoundingClientRect();
 const titleRect  = printTitle.getBoundingClientRect();
 
-// Position relative au canvas
 const relativeYPx = titleRect.top - canvasRect.top;
 
-// Conversion en mm
-const titleY = marginTop + (relativeYPx * pxToMm * scaleFactor);
+// 🔥 PAS de scaleFactor ici
+const titleY = marginTop + (relativeYPx * pxToMm);
 
-// Centrage horizontal parfait
 pdf.text(title, pageWidthMm / 2, titleY, { align: "center" });
 
 			/* ===== LIGNES ===== */
