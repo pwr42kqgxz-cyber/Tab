@@ -1779,12 +1779,13 @@ document.querySelectorAll(".symbol-wrapper").forEach(w => {
 
 	const wrapperHeightPx = w.offsetHeight;
 
-	// Ton moteur écran place la baseline à m.ascent
-	// donc on reproduit la même logique :
-	const ascentApprox = wrapperHeightPx * 0.75; 
-	// 0.75 correspond au ratio visuel Tangerine Bold
+	const ascentApprox = wrapperHeightPx * 0.75;
+	let baselineYPx = yPx + ascentApprox;
 
-	const baselineYPx = yPx + ascentApprox;
+	// 🔎 correction optique uniquement pour lettres sans hampe
+	if (["a","c","e","m","n"].includes(char)) {
+		baselineYPx += 2;  // micro descente
+	}
 
 	const x = marginLeft + (xPx * pxToMm * scaleFactor);
 	const y = marginTop  + (baselineYPx * pxToMm * scaleFactor);
