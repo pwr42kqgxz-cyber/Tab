@@ -1658,7 +1658,7 @@ customInput.oninput = () => {
 };
 palette.appendChild(customInput);
 
-/* ================= EXPORT PDF (VECTORIEL COMPLET) ================= */
+/* ================= EXPORT PDF (VECTORIEL COMPLET FIDÈLE) ================= */
 document.getElementById("exportPDF").onclick = () => {
 	document.getElementById("exportModal").classList.add("active");
 };
@@ -1672,13 +1672,17 @@ async function confirmExport() {
 
 	const pdf = new jspdf.jsPDF("p", "mm", "a4");
 
-	// Charger la vraie Tangerine embarquée
+	/* === FONTS EMBARQUÉES === */
 	pdf.addFileToVFS("Tangerine-Bold.ttf", TANGERINE_BASE64);
 	pdf.addFont("Tangerine-Bold.ttf", "Tangerine", "bold");
 
+	pdf.addFileToVFS("EBGaramond-Regular.ttf", EBGARAMOND_BASE64);
+	pdf.addFont("EBGaramond-Regular.ttf", "EBGaramond", "normal");
+
 	const pxToMm = 0.264583;
 	const marginLeft = 15;
-	const marginTop = 20;
+	const marginTop = 25;
+	const pageWidthMm = 180;
 
 	try {
 
@@ -1687,26 +1691,44 @@ async function confirmExport() {
 			if (p > 1) pdf.addPage();
 
 			loadPage(p);
-			await new Promise(r => setTimeout(r, 100));
+			await new Promise(r => setTimeout(r, 120));
 
 			/* ===== TITRE ===== */
 			const title = printTitle.textContent;
-			pdf.setFont("helvetica", "normal");
-			pdf.setFontSize(16);
-			pdf.text(title, 105, 15, { align: "center" });
 
-			/* ===== LIGNES ===== */
+			pdf.setFont("EBGaramond", "normal");
+			pdf.setFontSize(18);
+			pdf.text(title, 105, 18, { align: "center" });
+
+
+			/* ===== LIGNES (respect largeur réelle système) ===== */
 			document.querySelectorAll(".line.black").forEach(line => {
+
 				const yPx = parseFloat(line.style.top);
+				const rightPx = parseFloat(line.style.right) || 0;
+
 				const y = marginTop + (yPx * pxToMm);
-				pdf.line(15, y, 195, y);
+
+				const widthPx = canvas.offsetWidth - rightPx;
+				const widthMm = widthPx * pxToMm;
+
+				pdf.line(
+					marginLeft,
+					y,
+					marginLeft + widthMm,
+					y
+				);
 			});
+
 
 			/* ===== BARRES ===== */
 			document.querySelectorAll(".bar, .system-bar, .end-bar").forEach(bar => {
+
 				const xPx = parseFloat(bar.style.left) || 0;
 				const yPx = parseFloat(bar.style.top);
 				const hPx = parseFloat(bar.style.height);
+
+				if (isNaN(yPx) || isNaN(hPx)) return;
 
 				const x = marginLeft + (xPx * pxToMm);
 				const y1 = marginTop + (yPx * pxToMm);
@@ -1715,19 +1737,24 @@ async function confirmExport() {
 				pdf.line(x, y1, x, y2);
 			});
 
+
 			/* ===== NUMÉROS DE SYSTÈME ===== */
-			pdf.setFont("helvetica", "normal");
-			pdf.setFontSize(10);
+			pdf.setFont("EBGaramond", "normal");
+			pdf.setFontSize(11);
 
 			document.querySelectorAll(".system-number").forEach(num => {
+
 				const yPx = parseFloat(num.style.top);
+				if (isNaN(yPx)) return;
+
 				const y = marginTop + (yPx * pxToMm);
-				pdf.text(num.textContent, 10, y);
+				pdf.text(num.textContent, 8, y);
 			});
+
 
 			/* ===== SYMBOLES ===== */
 			pdf.setFont("Tangerine", "bold");
-			pdf.setFontSize(40);
+			pdf.setFontSize(34);   // Ajusté (40 était trop grand)
 
 			document.querySelectorAll(".symbol-wrapper").forEach(w => {
 
@@ -1738,7 +1765,8 @@ async function confirmExport() {
 				if (!char || isNaN(xPx) || isNaN(yPx)) return;
 
 				const x = marginLeft + (xPx * pxToMm);
-				const y = marginTop + (yPx * pxToMm);
+				const y = marginTop + (yPx * pxToMm) + 10; 
+				// +10 corrige le décalage vertical SVG → PDF
 
 				pdf.text(char, x, y);
 			});
