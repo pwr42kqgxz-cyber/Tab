@@ -1720,7 +1720,7 @@ const computed = window.getComputedStyle(printTitle);
 const fontSizePx = parseFloat(computed.fontSize);
 
 // Conversion px → mm avec scale
-const fontSizeMm = fontSizePx * pxToMm * scaleFactor;
+const fontSizeMm = fontSizePx * pxToMm;
 
 // Injection de la vraie EB Garamond
 pdf.setFont("EBGaramond", "normal");
