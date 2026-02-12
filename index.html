@@ -1658,33 +1658,36 @@ customInput.oninput = () => {
 };
 palette.appendChild(customInput);
 
-/* ================= EXPORT PDF (VECTORIEL FIDÈLE) ================= */
+/* ================= EXPORT PDF (FIDÈLE ÉCRAN) ================= */
 document.getElementById("exportPDF").onclick = () => {
 	document.getElementById("exportModal").classList.add("active");
 };
 
 async function confirmExport() {
 
+	const showNumbers = document.getElementById("showSystemNumbers").checked;
+
+	if (!showNumbers) {
+		document.querySelectorAll(".system-number")
+			.forEach(n => n.style.display = "none");
+	}
+
 	closeModal("exportModal");
 	saveCurrentPage();
 
 	const originalPage = currentPage;
 
-	// ✅ Bonne instanciation jsPDF (UMD)
-	const { jsPDF } = window.jspdf;
-	const pdf = new jsPDF("p", "mm", "a4");
+	const ui = [toolbar, palette, showUIBtn];
+	ui.forEach(el => el.style.display = "none");
 
-	// ✅ Injection de la vraie Tangerine Bold embarquée
-	pdf.addFileToVFS("Tangerine-Bold.ttf", TANGERINE_BASE64);
-	pdf.addFont("Tangerine-Bold.ttf", "Tangerine", "bold");
+	// attendre que tout soit stabilisé
+	await document.fonts.ready;
+	await new Promise(r => setTimeout(r, 300));
 
-	// ✅ Activation police
-	pdf.setFont("Tangerine", "bold");
-	pdf.setFontSize(40);
+	const pdf = new jspdf.jsPDF("p", "mm", "a4");
 
-	const pxToMm = 0.264583;
-	const marginLeft = 15;
-	const marginTop = 20;
+	const pageWidth = 210;
+	const marginTop = 10;
 
 	try {
 
@@ -1694,32 +1697,43 @@ async function confirmExport() {
 
 			loadPage(p);
 
-			await new Promise(r => setTimeout(r, 150));
+			await new Promise(r => setTimeout(r, 300));
+			await document.fonts.ready;
 
-			const symbols = document.querySelectorAll(".symbol-wrapper");
-
-			symbols.forEach(w => {
-
-				const char = w.dataset.char;
-				const xPx = parseFloat(w.style.left);
-				const yPx = parseFloat(w.style.top);
-
-				if (!char || isNaN(xPx) || isNaN(yPx)) return;
-
-				const x = marginLeft + (xPx * pxToMm);
-				const y = marginTop + (yPx * pxToMm);
-
-				// ✅ Correction baseline (à ajuster si besoin)
-				pdf.text(char, x, y + 10);
+			const canvasImage = await html2canvas(canvasWrapper, {
+				scale: 3,
+				backgroundColor: getComputedStyle(document.body).backgroundColor,
+				useCORS: true,
+				logging: false
 			});
+
+			const imgWidth = pageWidth;
+			const imgHeight = canvasImage.height * imgWidth / canvasImage.width;
+
+			pdf.addImage(
+				canvasImage.toDataURL("image/png", 1.0),
+				"PNG",
+				0,
+				marginTop,
+				imgWidth,
+				imgHeight
+			);
 		}
 
 		loadPage(originalPage);
+		ui.forEach(el => el.style.display = "");
+
+		if (!showNumbers) {
+			document.querySelectorAll(".system-number")
+				.forEach(n => n.style.display = "");
+		}
+
 		pdf.save("tablature.pdf");
 
 	} catch (error) {
 		console.error("Erreur export PDF :", error);
 		loadPage(originalPage);
+		ui.forEach(el => el.style.display = "");
 		alert("Erreur lors de l'export PDF.");
 	}
 }
