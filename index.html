@@ -1677,7 +1677,6 @@ async function confirmExport() {
 	pdf.addFont("Tangerine-Bold.ttf", "Tangerine", "bold");
 
 	const pxToMm = 0.264583;
-
 	const marginLeft = 15;
 	const marginTop  = 20;
 
@@ -1702,7 +1701,6 @@ async function confirmExport() {
 			const canvasWidthMm  = canvasWidthPx  * pxToMm;
 			const canvasHeightMm = canvasHeightPx * pxToMm;
 
-			/* ===== SCALE AUTOMATIQUE ===== */
 			const scaleFactor = Math.min(
 				usableWidthMm  / canvasWidthMm,
 				usableHeightMm / canvasHeightMm
@@ -1737,29 +1735,21 @@ async function confirmExport() {
 			});
 
 			/* ===== BARRES ===== */
-document.querySelectorAll(".bar, .system-bar, .end-bar").forEach(bar => {
+			document.querySelectorAll(".bar, .system-bar, .end-bar").forEach(bar => {
 
-	let xPx;
+				const rect = bar.getBoundingClientRect();
+				const canvasRect = canvas.getBoundingClientRect();
 
-	if (bar.style.left) {
-		xPx = parseFloat(bar.style.left);
-	} else if (bar.style.right) {
-		xPx = canvas.offsetWidth - parseFloat(bar.style.right);
-	} else {
-		return;
-	}
+				const xPx = rect.left - canvasRect.left;
+				const yPx = rect.top - canvasRect.top;
+				const hPx = rect.height;
 
-	const yPx = parseFloat(bar.style.top);
-	const hPx = parseFloat(bar.style.height);
+				const x  = marginLeft + (xPx * pxToMm * scaleFactor);
+				const y1 = marginTop  + (yPx * pxToMm * scaleFactor);
+				const y2 = y1 + (hPx * pxToMm * scaleFactor);
 
-	if (isNaN(yPx) || isNaN(hPx)) return;
-
-	const x  = marginLeft + (xPx * pxToMm * scaleFactor);
-	const y1 = marginTop  + (yPx * pxToMm * scaleFactor);
-	const y2 = y1 + (hPx * pxToMm * scaleFactor);
-
-	pdf.line(x, y1, x, y2);
-});
+				pdf.line(x, y1, x, y2);
+			});
 
 			/* ===== NUMÉROS ===== */
 			pdf.setFont("helvetica", "normal");
@@ -1787,12 +1777,23 @@ document.querySelectorAll(".bar, .system-bar, .end-bar").forEach(bar => {
 
 				if (!char || isNaN(xPx) || isNaN(yPx)) return;
 
+				let adjust = 30;
+
+				if (["a","c","e","n","m"].includes(char)) {
+					adjust = 33;
+				}
+
+				if (["g","j"].includes(char)) {
+					adjust = 28;
+				}
+
 				const x = marginLeft + (xPx * pxToMm * scaleFactor);
-const y = marginTop + ((yPx + 30) * pxToMm * scaleFactor);
+				const y = marginTop + ((yPx + adjust) * pxToMm * scaleFactor);
 
 				pdf.text(char, x, y);
 			});
-		}
+
+		} 
 
 		loadPage(originalPage);
 		pdf.save("tablature.pdf");
@@ -1802,8 +1803,8 @@ const y = marginTop + ((yPx + 30) * pxToMm * scaleFactor);
 		loadPage(originalPage);
 		alert("Erreur lors de l'export PDF.");
 	}
-}
 
+}
 /* ================= UI DRAG VERTICAL ================= */
 function makeUIDraggableVertical(el, handleEl, storageKey) {
 	let startY = 0, startTop = 0, dragging = false;
