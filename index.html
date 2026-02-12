@@ -1658,36 +1658,27 @@ customInput.oninput = () => {
 };
 palette.appendChild(customInput);
 
-/* ================= EXPORT PDF (FIDÈLE ÉCRAN) ================= */
+/* ================= EXPORT PDF (VECTORIEL COMPLET) ================= */
 document.getElementById("exportPDF").onclick = () => {
 	document.getElementById("exportModal").classList.add("active");
 };
 
 async function confirmExport() {
 
-	const showNumbers = document.getElementById("showSystemNumbers").checked;
-
-	if (!showNumbers) {
-		document.querySelectorAll(".system-number")
-			.forEach(n => n.style.display = "none");
-	}
-
 	closeModal("exportModal");
 	saveCurrentPage();
 
 	const originalPage = currentPage;
 
-	const ui = [toolbar, palette, showUIBtn];
-	ui.forEach(el => el.style.display = "none");
-
-	// attendre que tout soit stabilisé
-	await document.fonts.ready;
-	await new Promise(r => setTimeout(r, 300));
-
 	const pdf = new jspdf.jsPDF("p", "mm", "a4");
 
-	const pageWidth = 210;
-	const marginTop = 10;
+	// Charger la vraie Tangerine embarquée
+	pdf.addFileToVFS("Tangerine-Bold.ttf", TANGERINE_BASE64);
+	pdf.addFont("Tangerine-Bold.ttf", "Tangerine", "bold");
+
+	const pxToMm = 0.264583;
+	const marginLeft = 15;
+	const marginTop = 20;
 
 	try {
 
@@ -1696,44 +1687,69 @@ async function confirmExport() {
 			if (p > 1) pdf.addPage();
 
 			loadPage(p);
+			await new Promise(r => setTimeout(r, 100));
 
-			await new Promise(r => setTimeout(r, 300));
-			await document.fonts.ready;
+			/* ===== TITRE ===== */
+			const title = printTitle.textContent;
+			pdf.setFont("helvetica", "normal");
+			pdf.setFontSize(16);
+			pdf.text(title, 105, 15, { align: "center" });
 
-			const canvasImage = await html2canvas(canvasWrapper, {
-				scale: 3,
-				backgroundColor: getComputedStyle(document.body).backgroundColor,
-				useCORS: true,
-				logging: false
+			/* ===== LIGNES ===== */
+			document.querySelectorAll(".line.black").forEach(line => {
+				const yPx = parseFloat(line.style.top);
+				const y = marginTop + (yPx * pxToMm);
+				pdf.line(15, y, 195, y);
 			});
 
-			const imgWidth = pageWidth;
-			const imgHeight = canvasImage.height * imgWidth / canvasImage.width;
+			/* ===== BARRES ===== */
+			document.querySelectorAll(".bar, .system-bar, .end-bar").forEach(bar => {
+				const xPx = parseFloat(bar.style.left) || 0;
+				const yPx = parseFloat(bar.style.top);
+				const hPx = parseFloat(bar.style.height);
 
-			pdf.addImage(
-				canvasImage.toDataURL("image/png", 1.0),
-				"PNG",
-				0,
-				marginTop,
-				imgWidth,
-				imgHeight
-			);
+				const x = marginLeft + (xPx * pxToMm);
+				const y1 = marginTop + (yPx * pxToMm);
+				const y2 = y1 + (hPx * pxToMm);
+
+				pdf.line(x, y1, x, y2);
+			});
+
+			/* ===== NUMÉROS DE SYSTÈME ===== */
+			pdf.setFont("helvetica", "normal");
+			pdf.setFontSize(10);
+
+			document.querySelectorAll(".system-number").forEach(num => {
+				const yPx = parseFloat(num.style.top);
+				const y = marginTop + (yPx * pxToMm);
+				pdf.text(num.textContent, 10, y);
+			});
+
+			/* ===== SYMBOLES ===== */
+			pdf.setFont("Tangerine", "bold");
+			pdf.setFontSize(40);
+
+			document.querySelectorAll(".symbol-wrapper").forEach(w => {
+
+				const char = w.dataset.char;
+				const xPx = parseFloat(w.style.left);
+				const yPx = parseFloat(w.style.top);
+
+				if (!char || isNaN(xPx) || isNaN(yPx)) return;
+
+				const x = marginLeft + (xPx * pxToMm);
+				const y = marginTop + (yPx * pxToMm);
+
+				pdf.text(char, x, y);
+			});
 		}
 
 		loadPage(originalPage);
-		ui.forEach(el => el.style.display = "");
-
-		if (!showNumbers) {
-			document.querySelectorAll(".system-number")
-				.forEach(n => n.style.display = "");
-		}
-
 		pdf.save("tablature.pdf");
 
 	} catch (error) {
 		console.error("Erreur export PDF :", error);
 		loadPage(originalPage);
-		ui.forEach(el => el.style.display = "");
 		alert("Erreur lors de l'export PDF.");
 	}
 }
