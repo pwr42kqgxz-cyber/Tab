@@ -851,34 +851,39 @@ function renderPageNav() {
 }
 
 function deletePage(pageNum) {
+
 	if (pageCount <= 1) {
 		alert("Vous ne pouvez pas supprimer la dernière page.");
 		return;
 	}
-	
+
 	if (!confirm(`Supprimer la page ${pageNum} ?`)) return;
-	
-	delete pages[pageNum];
-	
+
+	// Sauvegarde avant suppression
+	saveCurrentPage();
+
 	const newPages = {};
 	let newIndex = 1;
+
 	for (let i = 1; i <= pageCount; i++) {
-		if (i !== pageNum) {
-			newPages[newIndex] = pages[i];
-			newIndex++;
-		}
+		if (i === pageNum) continue;
+		newPages[newIndex] = pages[i];
+		newIndex++;
 	}
-	
+
 	pageCount--;
+
+	// Remplacer complètement l'objet pages
 	Object.keys(pages).forEach(k => delete pages[k]);
 	Object.assign(pages, newPages);
-	
-	if (currentPage > pageCount) {
-		currentPage = pageCount;
-	} else if (currentPage >= pageNum) {
-		currentPage = Math.max(1, currentPage - 1);
+
+	// Ajuster page courante correctement
+	if (currentPage === pageNum) {
+		currentPage = Math.min(pageNum, pageCount);
+	} else if (currentPage > pageNum) {
+		currentPage--;
 	}
-	
+
 	loadPage(currentPage);
 	renderPageNav();
 	haptic();
@@ -1713,25 +1718,30 @@ pdf.addFont("EBGaramond-Regular.ttf", "EBGaramond", "normal");
 			);
 
 /* ===== TITRE ===== */
-
 const title = printTitle.textContent;
 
-// Lire taille réelle écran
+// Lire les styles réels
 const computed = window.getComputedStyle(printTitle);
 const fontSizePx = parseFloat(computed.fontSize);
 
-// Conversion px → mm (sans scale)
+// Conversion px → mm avec scale
 const fontSizeMm = fontSizePx * pxToMm;
 
-// Police embarquée
+// Injection de la vraie EB Garamond
 pdf.setFont("EBGaramond", "normal");
+pdf.setFontSize(fontSizeMm);
 
-// 🔥 On agrandit légèrement pour correspondre au rendu navigateur
-pdf.setFontSize(fontSizeMm * 1.8);
+// Position Y basée sur la vraie position canvas
+const canvasRect = canvas.getBoundingClientRect();
+const titleRect  = printTitle.getBoundingClientRect();
 
-// Position fixe propre
-const titleY = 18; // mm depuis le haut
+// Position relative au canvas
+const relativeYPx = titleRect.top - canvasRect.top;
 
+// Conversion en mm
+const titleY = marginTop + (relativeYPx * pxToMm * scaleFactor);
+
+// Centrage horizontal parfait
 pdf.text(title, pageWidthMm / 2, titleY, { align: "center" });
 
 			/* ===== LIGNES ===== */
